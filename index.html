@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Organizer">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" href="./icon-192.png">
+<title>Organizer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+:root{
+  --bg:#F2F2F7;--surface:#FFFFFF;--surface2:#F2F2F7;
+  --blue:#007AFF;--blue-bg:rgba(0,122,255,0.1);
+  --green:#34C759;--orange:#FF9500;--red:#FF3B30;--purple:#AF52DE;--indigo:#5856D6;
+  --label:#000000;--label2:rgba(60,60,67,0.6);--label3:rgba(60,60,67,0.3);
+  --sep:rgba(60,60,67,0.12);--fill:rgba(120,120,128,0.12);--fill2:rgba(120,120,128,0.2);
+  --radius:12px;--font:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;
+  --tab-h:calc(56px + env(safe-area-inset-bottom));--safe-top:calc(20px + env(safe-area-inset-top));
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#000000;--surface:#1C1C1E;--surface2:#2C2C2E;
+  --blue:#0A84FF;--blue-bg:rgba(10,132,255,0.15);
+  --green:#30D158;--orange:#FF9F0A;--red:#FF453A;--purple:#BF5AF2;--indigo:#5E5CE6;
+  --label:#FFFFFF;--label2:rgba(235,235,245,0.6);--label3:rgba(235,235,245,0.3);
+  --sep:rgba(84,84,88,0.6);--fill:rgba(118,118,128,0.24);--fill2:rgba(118,118,128,0.36);
+}}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:460px;margin:0 auto;position:relative;-webkit-font-smoothing:antialiased}
+
+.screen{display:none;position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:var(--safe-top);padding-bottom:calc(var(--tab-h) + 16px)}
+.screen.active{display:block;animation:fade .2s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.status-bar{position:fixed;top:0;left:0;right:0;max-width:460px;margin:0 auto;height:var(--safe-top);display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:13px;font-weight:600;color:var(--label2);z-index:500;background:var(--bg)}
+
+.nav{padding:8px 20px 4px}
+.nav h1{font-size:34px;font-weight:700;letter-spacing:-0.5px;line-height:1.1}
+.nav .sub{font-size:15px;color:var(--label2);margin-top:1px}
+
+.section{margin:0 0 24px}
+.section-label{font-size:13px;font-weight:600;color:var(--label2);text-transform:uppercase;letter-spacing:0.4px;padding:0 20px 8px;display:flex;justify-content:space-between;align-items:center}
+.section-action{color:var(--blue);font-size:14px;font-weight:500;text-transform:none;letter-spacing:0;cursor:pointer}
+.card-group{background:var(--surface);border-radius:var(--radius);margin:0 16px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:.5px solid var(--sep);cursor:pointer;transition:background .1s}
+.row:last-child{border-bottom:none}
+.row:active{background:var(--fill)}
+.row-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.ic-blue{background:var(--blue)} .ic-green{background:var(--green)} .ic-orange{background:var(--orange)} .ic-red{background:var(--red)} .ic-purple{background:var(--purple)} .ic-indigo{background:var(--indigo)} .ic-gray{background:var(--fill2)}
+.row-body{flex:1;min-width:0}
+.row-title{font-size:16px}
+.row-sub{font-size:13px;color:var(--label2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-right{display:flex;align-items:center;gap:6px;color:var(--label3);font-size:14px;flex-shrink:0}
+.chevron{color:var(--label3);font-size:17px}
+.badge{background:var(--red);color:#fff;font-size:12px;font-weight:700;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 6px}
+
+.focus-card{margin:12px 16px 16px;background:var(--blue);border-radius:20px;padding:20px;color:#fff;position:relative;overflow:hidden}
+.focus-card h2{font-size:22px;font-weight:700;margin-bottom:4px;line-height:1.2}
+.focus-card p{font-size:15px;opacity:.85}
+.focus-tag{font-size:12px;font-weight:600;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.focus-ring{position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;border:22px solid rgba(255,255,255,.1)}
+.focus-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.focus-btn{background:rgba(255,255,255,.2);border:none;border-radius:20px;padding:8px 14px;color:#fff;font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font);transition:background .1s}
+.focus-btn:active{background:rgba(255,255,255,.38)}
+
+.quick-add{margin:0 16px 8px;background:var(--surface);border-radius:var(--radius);padding:11px 16px;display:flex;gap:10px;align-items:center}
+.quick-add input{flex:1;background:none;border:none;outline:none;font-family:var(--font);font-size:16px;color:var(--label)}
+.quick-add input::placeholder{color:var(--label3)}
+.add-btn{width:28px;height:28px;background:var(--blue);border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:21px;color:#fff;flex-shrink:0;line-height:1;transition:transform .1s}
+.add-btn:active{transform:scale(.88)}
+
+.task-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:.5px solid var(--sep);cursor:pointer;transition:background .1s;user-select:none}
+.task-row:last-child{border-bottom:none}
+.task-row:active{background:var(--fill)}
+.task-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--label3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;transition:all .2s}
+.task-check.done{background:var(--green);border-color:var(--green)}
+.task-text{flex:1;font-size:16px;transition:color .2s}
+.task-text.done{text-decoration:line-through;color:var(--label2)}
+.tag{font-size:12px;font-weight:600;padding:3px 9px;border-radius:20px;flex-shrink:0}
+.tag-buy{background:rgba(52,199,89,.14);color:var(--green)}
+.tag-work{background:rgba(0,122,255,.14);color:var(--blue)}
+.tag-personal{background:rgba(175,82,222,.14);color:var(--purple)}
+.tag-health{background:rgba(255,149,0,.14);color:var(--orange)}
+
+.time-grid{margin:0 16px;border-radius:var(--radius);overflow:hidden;background:var(--sep)}
+.time-slot{background:var(--surface);display:flex;min-height:54px;cursor:pointer;transition:background .1s}
+.time-slot:active{background:var(--fill)}
+.time-slot+.time-slot{border-top:.5px solid var(--sep)}
+.t-label{width:50px;padding:12px 6px 10px 14px;font-size:12px;color:var(--label2);flex-shrink:0;font-variant-numeric:tabular-nums}
+.t-content{flex:1;padding:7px 12px 7px 0;border-left:.5px solid var(--sep);display:flex;align-items:center}
+.t-event{border-left:3px solid var(--blue);background:var(--blue-bg);border-radius:5px;padding:6px 10px;font-size:14px;font-weight:500;color:var(--blue);width:100%}
+.ev-green{background:rgba(52,199,89,.1);border-color:var(--green);color:var(--green)}
+.ev-orange{background:rgba(255,149,0,.1);border-color:var(--orange);color:var(--orange)}
+.ev-purple{background:rgba(175,82,222,.1);border-color:var(--purple);color:var(--purple)}
+.ev-cal{background:rgba(88,86,214,.12);border-color:var(--indigo);color:var(--indigo)}
+.t-event-sub{font-size:12px;opacity:.75;font-weight:400}
+.t-now-line{height:2px;background:var(--red);position:relative;margin:0 16px}
+.t-now-line::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--red)}
+
+.energy-wrap{margin:0 16px 16px;background:var(--surface);border-radius:var(--radius);padding:16px}
+.energy-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.energy-title{font-size:15px;font-weight:600}
+.energy-val{font-size:15px;color:var(--blue);font-weight:600}
+.e-track{height:6px;background:var(--fill);border-radius:3px;overflow:hidden;margin-bottom:12px}
+.e-fill{height:100%;background:var(--green);border-radius:3px;transition:width .35s}
+.e-btns{display:flex;gap:8px}
+.e-btn{flex:1;background:var(--fill);border:none;border-radius:8px;padding:9px 4px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--label);cursor:pointer;transition:all .1s}
+.e-btn:active{transform:scale(.96)}
+.e-btn.on{background:var(--blue);color:#fff}
+
+.ring-wrap{display:flex;align-items:center;gap:16px;margin:0 16px 16px;background:var(--blue);border-radius:20px;padding:18px 20px;color:#fff}
+.ring-text h2{font-size:20px;font-weight:700}
+.ring-text p{font-size:14px;opacity:.85;margin-top:2px}
+
+.habit-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:.5px solid var(--sep);user-select:none}
+.habit-row:last-child{border-bottom:none}
+.habit-dots{display:flex;gap:4px;margin-left:auto}
+.hdot{width:22px;height:22px;border-radius:50%;background:var(--fill);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:transparent;transition:all .15s;flex-shrink:0}
+.hdot.done{background:var(--green);color:#fff}
+.hdot.today{box-shadow:0 0 0 2px var(--blue)}
+.hdot:active{transform:scale(.82)}
+.streak{font-size:13px;color:var(--orange);font-weight:700;min-width:30px;text-align:right}
+
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - var(--safe-top) - var(--tab-h) - 70px)}
+.chat-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:84%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.45;word-break:break-word;white-space:pre-wrap;animation:pop .2s}
+@keyframes pop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.msg.user{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:4px}
+.msg.ai{align-self:flex-start;background:var(--surface2);color:var(--label);border-bottom-left-radius:4px}
+.msg.thinking{color:var(--label2);font-style:italic}
+.msg-time{font-size:11px;color:var(--label3);text-align:center;margin:4px 0}
+.chat-bar{padding:8px 16px calc(8px + env(safe-area-inset-bottom));background:var(--surface);border-top:.5px solid var(--sep);display:flex;gap:8px;align-items:flex-end}
+.chat-input-wrap{flex:1;background:var(--fill);border-radius:20px;padding:8px 14px;display:flex;align-items:center}
+.chat-input{flex:1;background:none;border:none;outline:none;font-family:var(--font);font-size:16px;color:var(--label);resize:none;max-height:100px;line-height:1.3}
+.chat-input::placeholder{color:var(--label3)}
+.send-btn{width:36px;height:36px;background:var(--blue);border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0;transition:transform .1s}
+.send-btn:active{transform:scale(.9)}
+.send-btn:disabled{opacity:.35}
+.chips{display:flex;gap:8px;padding:8px 16px 4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{background:var(--surface);border:.5px solid var(--sep);border-radius:20px;padding:7px 14px;font-size:14px;font-weight:500;color:var(--label);white-space:nowrap;cursor:pointer;flex-shrink:0;transition:background .1s}
+.chip:active{background:var(--fill)}
+
+.setup-card{margin:16px;background:var(--surface);border-radius:var(--radius);padding:20px}
+.setup-card h3{font-size:17px;font-weight:600;margin-bottom:6px}
+.setup-card p{font-size:14px;color:var(--label2);line-height:1.5;margin-bottom:16px}
+.api-inp{width:100%;background:var(--fill);border:none;border-radius:10px;padding:12px 14px;font-family:monospace;font-size:14px;color:var(--label);outline:none;margin-bottom:12px;letter-spacing:1px}
+.ios-btn{width:100%;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:13px;font-family:var(--font);font-size:16px;font-weight:600;cursor:pointer;transition:opacity .1s;margin-top:0}
+.ios-btn:active{opacity:.8}
+.ios-btn.sec{background:var(--fill);color:var(--blue);margin-top:8px;font-weight:500}
+
+.mod-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 16px}
+.mod-card{background:var(--surface);border-radius:16px;padding:16px;cursor:pointer;transition:transform .15s;min-height:96px;display:flex;flex-direction:column;justify-content:space-between}
+.mod-card:active{transform:scale(.96)}
+.mod-emoji{font-size:26px}
+.mod-name{font-size:15px;font-weight:600;margin-top:8px}
+.mod-count{font-size:13px;color:var(--label2);margin-top:2px}
+
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:.5px solid var(--sep);cursor:pointer;gap:12px}
+.settings-row:last-child{border-bottom:none}
+.settings-row:active{background:var(--fill)}
+.s-label{font-size:16px;display:flex;align-items:center;gap:10px}
+.s-val{font-size:14px;color:var(--label2);white-space:nowrap}
+.danger-btn{margin:12px 16px 0;width:calc(100% - 32px);background:rgba(255,59,48,.12);color:var(--red);border:none;border-radius:var(--radius);padding:14px;font-family:var(--font);font-size:16px;font-weight:500;cursor:pointer;transition:background .1s}
+.danger-btn:active{background:rgba(255,59,48,.22)}
+
+.tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:460px;height:var(--tab-h);background:var(--surface);border-top:.5px solid var(--sep);display:flex;align-items:flex-start;justify-content:space-around;padding-top:8px;padding-bottom:env(safe-area-inset-bottom);z-index:500;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:2px 10px;min-width:56px;transition:opacity .1s}
+.tab:active{opacity:.5}
+.tab-icon{font-size:22px;line-height:1;color:var(--label3);transition:color .15s}
+.tab-label{font-size:10px;color:var(--label3);font-weight:500;transition:color .15s}
+.tab.on .tab-icon,.tab.on .tab-label{color:var(--blue)}
+
+.toast{position:fixed;bottom:calc(var(--tab-h) + 14px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--label);color:var(--bg);padding:11px 22px;border-radius:22px;font-size:14px;font-weight:500;z-index:999;opacity:0;transition:all .25s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:600;opacity:0;pointer-events:none;transition:opacity .25s}
+.sheet-overlay.show{opacity:1;pointer-events:auto}
+.sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:460px;background:var(--surface);border-radius:20px 20px 0 0;padding:8px 20px calc(24px + env(safe-area-inset-bottom));z-index:601;transition:transform .3s cubic-bezier(.32,.72,0,1)}
+.sheet.show{transform:translateX(-50%) translateY(0)}
+.sheet-handle{width:36px;height:5px;background:var(--label3);border-radius:3px;margin:0 auto 16px}
+.sheet-title{font-size:18px;font-weight:700;margin-bottom:16px;text-align:center}
+.sheet-label{font-size:13px;color:var(--label2);font-weight:600;display:block;margin:12px 0 6px;text-transform:uppercase;letter-spacing:.3px}
+.sheet-input{width:100%;background:var(--fill);border:none;border-radius:10px;padding:12px 14px;font-family:var(--font);font-size:16px;color:var(--label);outline:none}
+
+.code-box{background:var(--fill);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:12px;color:var(--label2);word-break:break-all;margin-top:8px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="status-bar"><span id="clock">09:41</span></div>
+
+<!-- ══════ HEUTE ══════ -->
+<div class="screen active" id="s-home">
+  <div class="nav">
+    <div class="sub" id="date-label">—</div>
+    <h1 id="greeting">Hallo</h1>
+  </div>
+  <div id="focus-card" class="focus-card">
+    <div class="focus-ring"></div>
+    <div class="focus-tag"><span id="focus-icon">🎯</span><span>Jetzt dran</span></div>
+    <h2 id="focus-title">—</h2>
+    <p id="focus-sub">—</p>
+    <div class="focus-actions" id="focus-actions"></div>
+  </div>
+  <div class="energy-wrap">
+    <div class="energy-top"><span class="energy-title">⚡ Energie</span><span class="energy-val" id="energy-label">Gut</span></div>
+    <div class="e-track"><div class="e-fill" id="e-fill" style="width:70%"></div></div>
+    <div class="e-btns">
+      <button class="e-btn" data-e="low" onclick="setEnergy('low',this)">😴 Müde</button>
+      <button class="e-btn on" data-e="good" onclick="setEnergy('good',this)">😊 Gut</button>
+      <button class="e-btn" data-e="top" onclick="setEnergy('top',this)">🔥 Top</button>
+    </div>
+  </div>
+  <div class="ring-wrap">
+    <div class="ring-text">
+      <h2 id="ring-text">—</h2>
+      <p id="ring-sub">—</p>
+    </div>
+    <svg width="60" height="60" viewBox="0 0 60 60" style="flex-shrink:0">
+      <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="5"/>
+      <circle id="ring-circle" cx="30" cy="30" r="24" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="150.8" stroke-dashoffset="150.8" stroke-linecap="round" transform="rotate(-90 30 30)" style="transition:stroke-dashoffset .5s"/>
+      <text x="30" y="35" text-anchor="middle" fill="white" font-size="13" font-weight="700" font-family="-apple-system" id="ring-pct">0%</text>
+    </svg>
+  </div>
+  <div class="section">
+    <div class="section-label"><span>Offene Aufgaben</span><span class="section-action" onclick="switchTab('tasks')">Alle ›</span></div>
+    <div class="card-group" id="home-task-list"></div>
+  </div>
+  <div class="quick-add">
+    <input type="text" id="home-input" placeholder="Aufgabe hinzufügen..." onkeydown="if(event.key==='Enter')addHomeTask()">
+    <button class="add-btn" onclick="addHomeTask()">+</button>
+  </div>
+  <div class="section" style="margin-top:8px">
+    <div class="section-label"><span>Tagesplan</span><span class="section-action" onclick="openEventSheet()">+ Termin</span></div>
+    <div class="time-grid" id="time-grid"></div>
+  </div>
+</div>
+
+<!-- ══════ AUFGABEN ══════ -->
+<div class="screen" id="s-tasks">
+  <div class="nav"><div class="sub">Alle Listen</div><h1>Aufgaben</h1></div>
+  <div class="section">
+    <div class="card-group">
+      <div class="row" onclick="showList('today')"><div class="row-icon ic-blue">📅</div><div class="row-body"><div class="row-title">Heute</div><div class="row-sub" id="cnt-today">–</div></div><div class="row-right"><div class="badge" id="badge-today">0</div><span class="chevron">›</span></div></div>
+      <div class="row" onclick="showList('shopping')"><div class="row-icon ic-green">🛒</div><div class="row-body"><div class="row-title">Einkaufsliste</div><div class="row-sub" id="cnt-shopping">–</div></div><div class="row-right"><div class="badge" id="badge-shopping">0</div><span class="chevron">›</span></div></div>
+      <div class="row" onclick="showList('work')"><div class="row-icon ic-purple">💼</div><div class="row-body"><div class="row-title">Arbeit / Thesis</div><div class="row-sub" id="cnt-work">–</div></div><div class="row-right"><span class="chevron">›</span></div></div>
+      <div class="row" onclick="showList('health')"><div class="row-icon ic-orange">🏃</div><div class="row-body"><div class="row-title">Gesundheit</div><div class="row-sub" id="cnt-health">–</div></div><div class="row-right"><span class="chevron">›</span></div></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-label"><span id="active-list-label">Heute</span><span class="section-action" id="share-list-btn" onclick="shareActiveList()" style="display:none">Teilen</span></div>
+    <div class="card-group" id="active-task-list"></div>
+  </div>
+  <div class="quick-add">
+    <input type="text" id="task-input" placeholder="Aufgabe hinzufügen..." onkeydown="if(event.key==='Enter')addTask()">
+    <button class="add-btn" onclick="addTask()">+</button>
+  </div>
+</div>
+
+<!-- ══════ KI ══════ -->
+<div class="screen" id="s-ai">
+  <div class="nav" style="padding-bottom:0">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0 10px">
+      <div style="width:38px;height:38px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🤖</div>
+      <div><div style="font-size:17px;font-weight:600">KI-Assistent</div><div id="ai-online" style="font-size:12px;color:var(--green)">● Verbunden</div></div>
+    </div>
+  </div>
+  <div id="api-setup">
+    <div class="setup-card">
+      <h3>🔑 Groq API Key</h3>
+      <p>Kostenlos auf console.groq.com → API Keys → Create Key. Beginnt mit gsk_</p>
+      <input type="password" class="api-inp" id="groq-inp" placeholder="gsk_...">
+      <button class="ios-btn" onclick="saveKey()">Verbinden</button>
+      <button class="ios-btn sec" onclick="demoMode()">Demo ohne API →</button>
+    </div>
+  </div>
+  <div id="chat-active" style="display:none;flex-direction:column;height:calc(100vh - var(--safe-top) - var(--tab-h) - 70px)">
+    <div class="chips">
+      <div class="chip" onclick="suggest('Was ist jetzt gerade dran und wie gehe ich es an?')">🎯 Fokus</div>
+      <div class="chip" onclick="suggest('Plane meinen restlichen Tag sinnvoll basierend auf meiner Energie.')">📅 Tag planen</div>
+      <div class="chip" onclick="suggest('Was fehlt noch auf meiner Einkaufsliste für die Woche?')">🛒 Einkauf</div>
+      <div class="chip" onclick="suggest('Hilf mir eine kurze, freundliche Nachricht zu schreiben für: ')">✉️ Nachricht</div>
+      <div class="chip" onclick="suggest('Mach mir 2-3 Vorschläge für heute Abend zum Entspannen.')">🌙 Abend</div>
+    </div>
+    <div class="chat-msgs" id="chat-msgs">
+      <div class="msg-time">Heute</div>
+      <div class="msg ai">Hey Steven! Ich kenne deinen Tagesplan, deine Aufgaben, Energie und Einkaufsliste – frag mich einfach was an. 🙂</div>
+    </div>
+    <div class="chat-bar">
+      <div class="chat-input-wrap"><textarea class="chat-input" id="chat-inp" placeholder="Schreib etwas..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea></div>
+      <button class="send-btn" id="send-btn" onclick="sendChat()">↑</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ HABITS ══════ -->
+<div class="screen" id="s-habits">
+  <div class="nav"><div class="sub">Dein Streak</div><h1>Gewohnheiten</h1></div>
+  <div class="section">
+    <div class="section-label">Diese Woche · Mo–So</div>
+    <div class="card-group" id="habit-list"></div>
+  </div>
+  <div class="quick-add">
+    <input type="text" id="habit-input" placeholder="Neue Gewohnheit..." onkeydown="if(event.key==='Enter')addHabit()">
+    <button class="add-btn" onclick="addHabit()">+</button>
+  </div>
+  <p style="font-size:13px;color:var(--label3);text-align:center;margin:8px 24px">Lange drücken zum Löschen</p>
+</div>
+
+<!-- ══════ MODULE ══════ -->
+<div class="screen" id="s-modules">
+  <div class="nav"><div class="sub">Dein Baukasten</div><h1>Module</h1></div>
+  <div class="section">
+    <div class="section-label">Aktiv</div>
+    <div class="mod-grid">
+      <div class="mod-card" onclick="switchTab('home')"><div class="mod-emoji">📅</div><div><div class="mod-name">Heute</div><div class="mod-count">Tagesplanung</div></div></div>
+      <div class="mod-card" onclick="switchTab('tasks')"><div class="mod-emoji">✅</div><div><div class="mod-name">Aufgaben</div><div class="mod-count">4 Listen</div></div></div>
+      <div class="mod-card" onclick="switchTab('habits')"><div class="mod-emoji">🔥</div><div><div class="mod-name">Gewohnheiten</div><div class="mod-count" id="mod-habit-count">—</div></div></div>
+      <div class="mod-card" onclick="switchTab('ai')"><div class="mod-emoji">🤖</div><div><div class="mod-name">KI-Assistent</div><div class="mod-count">Groq · gratis</div></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Integrationen</div>
+    <div class="card-group">
+      <div class="settings-row" onclick="shareList('shopping')"><span class="s-label">📤 Einkaufsliste teilen</span><span class="chevron">›</span></div>
+      <div class="settings-row" onclick="exportData()"><span class="s-label">💾 Daten exportieren</span><span class="chevron">›</span></div>
+      <div class="settings-row" onclick="document.getElementById('import-file').click()"><span class="s-label">📥 Daten importieren</span><span class="chevron">›</span></div>
+      <div class="settings-row" onclick="switchTab('shortcuts')"><span class="s-label">⚡ Apple Shortcuts</span><span class="s-val">Einrichten ›</span></div>
+    </div>
+    <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(this.files[0])">
+  </div>
+
+  <div class="section">
+    <div class="section-label">Bald verfügbar</div>
+    <div class="card-group">
+      <div class="row"><div class="row-icon ic-gray">📧</div><div class="row-body"><div class="row-title">Mail-Assistent</div><div class="row-sub">KI schreibt & beantwortet Mails</div></div><span style="font-size:12px;color:var(--blue);font-weight:600">Bald</span></div>
+      <div class="row"><div class="row-icon ic-gray">🏠</div><div class="row-body"><div class="row-title">Smarthome</div><div class="row-sub">HomeKit & Home Assistant</div></div><span style="font-size:12px;color:var(--blue);font-weight:600">Bald</span></div>
+      <div class="row"><div class="row-icon ic-gray">💰</div><div class="row-body"><div class="row-title">FinanzGuru</div><div class="row-sub">Budget-bewusste Planung</div></div><span style="font-size:12px;color:var(--blue);font-weight:600">Bald</span></div>
+      <div class="row"><div class="row-icon ic-gray">🔔</div><div class="row-body"><div class="row-title">Push-Nachrichten</div><div class="row-sub">Proaktive KI-Erinnerungen</div></div><span style="font-size:12px;color:var(--blue);font-weight:600">Bald</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Einstellungen</div>
+    <div class="card-group">
+      <div class="settings-row"><span class="s-label">🔑 Groq API Key</span><span class="s-val" id="key-status">–</span></div>
+      <div class="settings-row" onclick="resetKey()"><span class="s-label">API Key ändern</span><span class="chevron">›</span></div>
+    </div>
+    <button class="danger-btn" onclick="clearAll()">Alle Daten löschen</button>
+    <p style="font-size:12px;color:var(--label3);text-align:center;margin:12px 24px 0">Organizer v3 · Daten liegen nur lokal auf deinem Gerät</p>
+  </div>
+</div>
+
+<!-- ══════ SHORTCUTS GUIDE ══════ -->
+<div class="screen" id="s-shortcuts">
+  <div class="nav"><div class="sub" onclick="switchTab('modules')" style="color:var(--blue);cursor:pointer">‹ Module</div><h1>Shortcuts</h1></div>
+  <div class="section">
+    <div class="setup-card">
+      <h3>⚡ So verbindest du Apple Shortcuts</h3>
+      <p>Deine App hört auf URL-Befehle. Ein Shortcut öffnet einfach eine spezielle URL – die App führt die Aktion automatisch aus. Ersetze <b>DEINE-URL</b> mit deiner echten GitHub-Pages-Adresse.</p>
+    </div>
+    <div class="card-group" style="margin-bottom:16px">
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="s-label">📝 Aufgabe per Siri</span><span class="s-val" style="white-space:normal">"Aufgabe hinzufügen" → Text abfragen → URL öffnen:</span><div class="code-box">DEINE-URL/?action=add-task&text=[Eingabe]&list=today</div></div>
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="s-label">🛒 Auf Einkaufsliste</span><div class="code-box">DEINE-URL/?action=add-shopping&text=[Eingabe]</div></div>
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="s-label">📆 Kalender importieren</span><span class="s-val" style="white-space:normal">"Kalendereinträge suchen" (heute) → als JSON formatieren → URL öffnen:</span><div class="code-box">DEINE-URL/?action=import-calendar&data=[JSON]</div></div>
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="s-label">🤖 KI fragen</span><div class="code-box">DEINE-URL/?action=ask&q=[Eingabe]</div></div>
+    </div>
+    <div class="setup-card">
+      <p style="margin:0">Die genauen Shortcut-Rezepte (Schritt für Schritt) findest du in der <b>SETUP-Anleitung</b>, die zusammen mit der App geliefert wurde.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<nav class="tab-bar">
+  <div class="tab on" id="tab-home" onclick="switchTab('home')"><div class="tab-icon">⊙</div><div class="tab-label">Heute</div></div>
+  <div class="tab" id="tab-tasks" onclick="switchTab('tasks')"><div class="tab-icon">☑</div><div class="tab-label">Aufgaben</div></div>
+  <div class="tab" id="tab-ai" onclick="switchTab('ai')"><div class="tab-icon">◈</div><div class="tab-label">KI</div></div>
+  <div class="tab" id="tab-habits" onclick="switchTab('habits')"><div class="tab-icon">◎</div><div class="tab-label">Habits</div></div>
+  <div class="tab" id="tab-modules" onclick="switchTab('modules')"><div class="tab-icon">⊞</div><div class="tab-label">Module</div></div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<!-- EVENT SHEET -->
+<div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="event-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="event-sheet-title">Termin hinzufügen</div>
+  <label class="sheet-label">Uhrzeit</label>
+  <input type="time" id="ev-time" class="sheet-input">
+  <label class="sheet-label">Titel</label>
+  <input type="text" id="ev-text" class="sheet-input" placeholder="z.B. 🍽️ Mittagessen">
+  <label class="sheet-label">Notiz (optional)</label>
+  <input type="text" id="ev-sub" class="sheet-input" placeholder="z.B. mit Johanna">
+  <button class="ios-btn" style="margin-top:20px" onclick="saveEvent()">Speichern</button>
+  <button class="ios-btn sec" id="ev-delete-btn" onclick="deleteEvent()" style="display:none;color:var(--red)">Löschen</button>
+  <button class="ios-btn sec" onclick="closeSheet()">Abbrechen</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════
+const DEFAULT_STATE = {
+  version: 3,
+  tasks: {
+    today: [
+      {id:'t1',text:'Nachrichten beantworten',done:false,tag:'work'},
+      {id:'t2',text:'Einkaufen erledigen',done:false,tag:'personal'},
+      {id:'t3',text:'Frühstück vorbereiten',done:true,tag:'personal'}
+    ],
+    shopping: [
+      {id:'s1',text:'Vollmilch (2L)',done:false,tag:'shopping'},
+      {id:'s2',text:'Vollkornbrot',done:false,tag:'shopping'},
+      {id:'s3',text:'Kaffeebohnen',done:false,tag:'shopping'},
+      {id:'s4',text:'Bananen',done:false,tag:'shopping'},
+      {id:'s5',text:'Haferflocken',done:true,tag:'shopping'}
+    ],
+    work: [
+      {id:'w1',text:'OCR Pipeline finalisieren',done:false,tag:'work'},
+      {id:'w2',text:'Thesis Kapitel 3 schreiben',done:false,tag:'work'},
+      {id:'w3',text:'Jourfixe vorbereiten',done:false,tag:'work'}
+    ],
+    health: [
+      {id:'h1',text:'30 Min spazieren',done:false,tag:'health'},
+      {id:'h2',text:'2L Wasser trinken',done:false,tag:'health'}
+    ]
+  },
+  habits: [
+    {id:'hab1',emoji:'💧',name:'2L Wasser',days:[1,1,1,1,1,0,0]},
+    {id:'hab2',emoji:'📚',name:'Lesen · 20 Min',days:[1,1,0,1,0,0,0]},
+    {id:'hab3',emoji:'🏃',name:'Sport / Bewegung',days:[1,0,1,0,0,0,0]},
+    {id:'hab4',emoji:'🧘',name:'Meditieren',days:[1,1,1,1,1,1,1]},
+    {id:'hab5',emoji:'📵',name:'Phone-Free Abend',days:[0,0,0,0,1,0,0]}
+  ],
+  schedule: [
+    {id:'e1',time:'08:00',text:'☕ Morgenroutine',sub:'Kaffee · 30 Min',color:'',source:'manual'},
+    {id:'e2',time:'10:00',text:'📚 Thesis',sub:'OCR Pipeline · Leine',color:'ev-purple',source:'manual'},
+    {id:'e3',time:'13:00',text:'🍱 Mittagessen',sub:'Pause · 45 Min',color:'ev-green',source:'manual'},
+    {id:'e4',time:'18:00',text:'🛒 Einkaufen',sub:'Rewe · ~30 Min',color:'ev-orange',source:'manual'}
+  ],
+  calendarEvents: [],
+  energy: {level:'good',label:'Gut',pct:70},
+  activeList: 'today'
+};
+
+function loadState() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem('organizer_v3') || 'null'); } catch(e){}
+  if (!saved) { try { saved = JSON.parse(localStorage.getItem('organizer_v2') || 'null'); } catch(e){} }
+  const s = saved || JSON.parse(JSON.stringify(DEFAULT_STATE));
+  // ensure shape
+  for (const k of Object.keys(DEFAULT_STATE)) {
+    if (s[k] === undefined) s[k] = JSON.parse(JSON.stringify(DEFAULT_STATE[k]));
+  }
+  if (!s.tasks) s.tasks = JSON.parse(JSON.stringify(DEFAULT_STATE.tasks));
+  for (const lk of ['today','shopping','work','health']) if (!s.tasks[lk]) s.tasks[lk]=[];
+  if (!Array.isArray(s.calendarEvents)) s.calendarEvents = [];
+  return s;
+}
+
+let state = loadState();
+let groqKey = localStorage.getItem('organizer_groq_key') || '';
+
+function save(){ try{ localStorage.setItem('organizer_v3', JSON.stringify(state)); }catch(e){} }
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ════════════════════════════════════════════════════
+//  CLOCK
+// ════════════════════════════════════════════════════
+const DAYS=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+const MONTHS=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  document.getElementById('date-label').textContent=DAYS[n.getDay()]+', '+n.getDate()+'. '+MONTHS[n.getMonth()];
+  const h=n.getHours();
+  document.getElementById('greeting').textContent=h<11?'Guten Morgen ☀️':h<17?'Guten Tag 🌤️':h<22?'Guten Abend 🌙':'Gute Nacht 🌙';
+}
+updateClock(); setInterval(()=>{updateClock();if(document.getElementById('s-home').classList.contains('active'))renderHome();},30000);
+
+// ════════════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════════════
+function switchTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('s-'+name).classList.add('active');
+  const tabBtn=document.getElementById('tab-'+name);
+  if(tabBtn)tabBtn.classList.add('on');
+  if(name==='home')renderHome();
+  if(name==='tasks')renderTasks();
+  if(name==='habits')renderHabits();
+  if(name==='modules')renderModules();
+  window.scrollTo(0,0);
+}
+
+// ════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════
+function tagLabel(t){return{work:'Arbeit',shopping:'Einkauf',personal:'Privat',health:'Gesundheit'}[t]||'Privat'}
+function tagClass(t){return{work:'tag-work',shopping:'tag-buy',personal:'tag-personal',health:'tag-health'}[t]||'tag-personal'}
+function listTag(l){return{today:'personal',shopping:'shopping',work:'work',health:'health'}[l]||'personal'}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function getTodayIdx(){const d=new Date().getDay();return d===0?6:d-1}
+function nowMin(){const n=new Date();return n.getHours()*60+n.getMinutes()}
+function timeToMin(t){const[h,m]=t.split(':').map(Number);return h*60+(m||0)}
+
+function streakOf(h){
+  let s=0,i=getTodayIdx();
+  if(!h.days[i])i--;
+  while(i>=0&&h.days[i]){s++;i--}
+  return s;
+}
+function allEvents(){
+  return [...(state.schedule||[]),...(state.calendarEvents||[])].filter(e=>e.time).sort((a,b)=>a.time.localeCompare(b.time));
+}
+
+// ════════════════════════════════════════════════════
+//  HOME
+// ════════════════════════════════════════════════════
+function computeFocus(){
+  const cur=nowMin();
+  const evs=allEvents();
+  let upcoming=null;
+  for(const e of evs){const t=timeToMin(e.time);if(t>=cur-20){upcoming=e;break;}}
+  const open=state.tasks.today.filter(t=>!t.done);
+  if(upcoming){
+    const diff=timeToMin(upcoming.time)-cur;
+    if(diff<=60&&diff>=-20)return{type:'event',title:upcoming.text,sub:upcoming.time+' · '+(upcoming.sub||'Termin'),ref:upcoming};
+  }
+  if(open.length>0)return{type:'task',title:open[0].text,sub:tagLabel(open[0].tag)+' · offen',ref:open[0]};
+  if(upcoming)return{type:'event',title:upcoming.time+' '+upcoming.text,sub:upcoming.sub||'Als Nächstes',ref:upcoming};
+  return null;
+}
+
+function renderHome(){
+  const f=computeFocus();
+  const card=document.getElementById('focus-card');
+  const acts=document.getElementById('focus-actions');
+  if(f){
+    card.style.display='';
+    document.getElementById('focus-icon').textContent=f.type==='event'?'📍':'🎯';
+    document.getElementById('focus-title').textContent=f.title;
+    document.getElementById('focus-sub').textContent=f.sub;
+    if(f.type==='task'){
+      acts.innerHTML='<button class="focus-btn" onclick="completeFocus()">✓ Erledigt</button><button class="focus-btn" onclick="skipFocus()">→ Später</button><button class="focus-btn" onclick="askAboutFocus()">🤖 KI</button>';
+    }else{
+      acts.innerHTML='<button class="focus-btn" onclick="askAboutFocus()">🤖 KI fragen</button><button class="focus-btn" onclick="switchTab(\'home\');document.getElementById(\'time-grid\').scrollIntoView({behavior:\'smooth\'})">📅 Tagesplan</button>';
+    }
+  }else{
+    card.style.display='none';
+  }
+  // energy
+  document.getElementById('energy-label').textContent=state.energy.label;
+  document.getElementById('e-fill').style.width=state.energy.pct+'%';
+  document.querySelectorAll('.e-btn').forEach(b=>b.classList.toggle('on',b.dataset.e===state.energy.level));
+  // ring
+  const all=Object.values(state.tasks).flat();
+  const done=all.filter(t=>t.done).length,total=all.length;
+  const pct=total>0?Math.round(done/total*100):0;
+  const C=150.8;
+  document.getElementById('ring-circle').setAttribute('stroke-dashoffset',(C-C*pct/100).toFixed(1));
+  document.getElementById('ring-pct').textContent=pct+'%';
+  document.getElementById('ring-text').textContent=done+' von '+total+' erledigt';
+  document.getElementById('ring-sub').textContent=pct>=80?'Fast geschafft! 💪':pct>=50?'Gutes Tempo!':total===done?'Alles erledigt! 🎉':'Du schaffst das heute!';
+  // task preview
+  const list=document.getElementById('home-task-list');
+  list.innerHTML='';
+  const preview=state.tasks.today.filter(t=>!t.done).slice(0,4);
+  if(preview.length===0){
+    list.innerHTML='<div class="task-row"><div class="task-text" style="color:var(--green)">✓ Alle Aufgaben erledigt!</div></div>';
+  }else{
+    preview.forEach(t=>list.appendChild(makeTaskEl(t,'today')));
+  }
+  renderSchedule();
+}
+
+function renderSchedule(){
+  const grid=document.getElementById('time-grid');
+  grid.innerHTML='';
+  const evs=allEvents();
+  if(evs.length===0){
+    grid.innerHTML='<div class="time-slot" onclick="openEventSheet()"><div class="t-label"></div><div class="t-content"><div class="t-empty">+ Ersten Termin hinzufügen</div></div></div>';
+    return;
+  }
+  const cur=nowMin();let nowDrawn=false;
+  evs.forEach(ev=>{
+    if(!nowDrawn&&timeToMin(ev.time)>cur){const l=document.createElement('div');l.className='t-now-line';grid.appendChild(l);nowDrawn=true;}
+    const slot=document.createElement('div');
+    slot.className='time-slot';
+    const isCal=ev.source==='calendar';
+    slot.onclick=()=>isCal?showToast('📆 Aus Apple Kalender'):openEventSheet(ev.id);
+    slot.innerHTML='<div class="t-label">'+ev.time+'</div><div class="t-content"><div class="t-event '+(ev.color||'')+'">'+esc(ev.text)+(ev.sub?'<div class="t-event-sub">'+esc(ev.sub)+'</div>':'')+'</div></div>';
+    grid.appendChild(slot);
+  });
+}
+
+function completeFocus(){const o=state.tasks.today.filter(t=>!t.done);if(o[0]){o[0].done=true;save();renderHome();showToast('✓ Erledigt!');}}
+function skipFocus(){const o=state.tasks.today.filter(t=>!t.done);if(o.length>1){const t=o[0];const a=state.tasks.today;a.splice(a.indexOf(t),1);a.push(t);save();renderHome();}}
+function askAboutFocus(){const f=computeFocus();if(f){pendingAI='Ich will gerade hiermit weitermachen: "'+f.title+'". Gib mir einen kurzen, konkreten Tipp wie ich am besten reinkomme.';switchTab('ai');flushPendingAI();}}
+function addHomeTask(){const i=document.getElementById('home-input');const v=i.value.trim();if(!v)return;state.tasks.today.push({id:'t'+Date.now(),text:v,done:false,tag:'personal'});save();i.value='';renderHome();showToast('Aufgabe hinzugefügt');}
+
+// ════════════════════════════════════════════════════
+//  TASKS
+// ════════════════════════════════════════════════════
+function makeTaskEl(task,listKey){
+  const div=document.createElement('div');
+  div.className='task-row';
+  div.innerHTML='<div class="task-check'+(task.done?' done':'')+'">'+(task.done?'✓':'')+'</div><div class="task-text'+(task.done?' done':'')+'">'+esc(task.text)+'</div><span class="tag '+tagClass(task.tag)+'">'+tagLabel(task.tag)+'</span>';
+  div.querySelector('.task-check').onclick=e=>{e.stopPropagation();toggleTask(listKey,task.id);};
+  div.onclick=()=>toggleTask(listKey,task.id);
+  attachLongPress(div,()=>{if(confirm('"'+task.text+'" löschen?')){state.tasks[listKey]=state.tasks[listKey].filter(t=>t.id!==task.id);save();renderTasks();renderHome();showToast('Gelöscht');}});
+  return div;
+}
+function toggleTask(listKey,id){const t=state.tasks[listKey].find(x=>x.id===id);if(t){t.done=!t.done;save();renderTasks();renderHome();}}
+
+function renderTasks(){
+  ['today','shopping','work','health'].forEach(k=>{
+    const open=state.tasks[k].filter(t=>!t.done).length,total=state.tasks[k].length;
+    const c=document.getElementById('cnt-'+k);if(c)c.textContent=open+' offen · '+total+' gesamt';
+    const b=document.getElementById('badge-'+k);if(b){b.textContent=open;b.style.display=open>0?'flex':'none';}
+  });
+  showList(state.activeList);
+}
+function showList(key){
+  state.activeList=key;save();
+  document.getElementById('active-list-label').textContent={today:'Heute',shopping:'Einkaufsliste',work:'Arbeit / Thesis',health:'Gesundheit'}[key];
+  document.getElementById('share-list-btn').style.display=key==='shopping'?'block':'none';
+  const c=document.getElementById('active-task-list');c.innerHTML='';
+  const tasks=state.tasks[key]||[];
+  if(tasks.length===0){c.innerHTML='<div class="task-row"><div class="task-text" style="color:var(--label2)">Keine Aufgaben – füg unten was hinzu</div></div>';return;}
+  tasks.forEach(t=>c.appendChild(makeTaskEl(t,key)));
+}
+function addTask(){const i=document.getElementById('task-input');const v=i.value.trim();if(!v)return;const l=state.activeList;state.tasks[l].push({id:'t'+Date.now(),text:v,done:false,tag:listTag(l)});save();i.value='';renderTasks();showToast('Hinzugefügt');}
+function addTaskTo(list,text,tag){if(!state.tasks[list])list='today';state.tasks[list].push({id:'t'+Date.now(),text:text,done:false,tag:tag||listTag(list)});save();}
+
+// ════════════════════════════════════════════════════
+//  ENERGY
+// ════════════════════════════════════════════════════
+function setEnergy(level,btn){
+  const m={low:['Müde',20],good:['Gut',70],top:['Top!',100]};
+  state.energy={level,label:m[level][0],pct:m[level][1]};save();
+  document.getElementById('energy-label').textContent=m[level][0];
+  document.getElementById('e-fill').style.width=m[level][1]+'%';
+  document.querySelectorAll('.e-btn').forEach(b=>b.classList.toggle('on',b===btn));
+}
+
+// ════════════════════════════════════════════════════
+//  HABITS
+// ════════════════════════════════════════════════════
+function renderHabits(){
+  const c=document.getElementById('habit-list');c.innerHTML='';
+  const ti=getTodayIdx();
+  state.habits.forEach(h=>{
+    const row=document.createElement('div');row.className='habit-row';
+    const dots=h.days.map((d,i)=>'<div class="hdot'+(d?' done':'')+(i===ti?' today':'')+'" data-i="'+i+'">'+(d?'✓':'')+'</div>').join('');
+    row.innerHTML='<div style="font-size:22px">'+h.emoji+'</div><div class="row-body"><div class="row-title">'+esc(h.name)+'</div></div><div class="habit-dots">'+dots+'</div><div class="streak">🔥'+streakOf(h)+'</div>';
+    row.querySelectorAll('.hdot').forEach(dot=>{dot.onclick=()=>{const i=+dot.dataset.i;h.days[i]=h.days[i]?0:1;save();renderHabits();};});
+    attachLongPress(row,()=>{if(confirm('Gewohnheit "'+h.name+'" löschen?')){state.habits=state.habits.filter(x=>x.id!==h.id);save();renderHabits();showToast('Gelöscht');}});
+    c.appendChild(row);
+  });
+  const mc=document.getElementById('mod-habit-count');if(mc)mc.textContent=state.habits.length+' Habits';
+}
+function addHabit(){const i=document.getElementById('habit-input');const v=i.value.trim();if(!v)return;const emojis=['⭐','🎯','💪','🌱','✍️','🎸','🏊','🧠'];state.habits.push({id:'hab'+Date.now(),emoji:emojis[Math.floor(Math.random()*emojis.length)],name:v,days:[0,0,0,0,0,0,0]});save();i.value='';renderHabits();showToast('Gewohnheit hinzugefügt');}
+
+// ════════════════════════════════════════════════════
+//  LONG PRESS
+// ════════════════════════════════════════════════════
+function attachLongPress(el,cb){
+  let timer,moved;
+  const start=()=>{moved=false;timer=setTimeout(()=>{if(!moved){if(navigator.vibrate)navigator.vibrate(30);cb();}},550);};
+  const cancel=()=>clearTimeout(timer);
+  el.addEventListener('touchstart',start,{passive:true});
+  el.addEventListener('touchend',cancel);
+  el.addEventListener('touchmove',()=>{moved=true;cancel();},{passive:true});
+  el.addEventListener('mousedown',start);
+  el.addEventListener('mouseup',cancel);
+  el.addEventListener('mouseleave',cancel);
+}
+
+// ════════════════════════════════════════════════════
+//  EVENT SHEET
+// ════════════════════════════════════════════════════
+let editingEventId=null;
+function openEventSheet(id){
+  editingEventId=id||null;
+  const ev=id?state.schedule.find(e=>e.id===id):null;
+  document.getElementById('event-sheet-title').textContent=ev?'Termin bearbeiten':'Termin hinzufügen';
+  document.getElementById('ev-time').value=ev?ev.time:'';
+  document.getElementById('ev-text').value=ev?ev.text:'';
+  document.getElementById('ev-sub').value=ev?ev.sub:'';
+  document.getElementById('ev-delete-btn').style.display=ev?'block':'none';
+  document.getElementById('sheet-overlay').classList.add('show');
+  document.getElementById('event-sheet').classList.add('show');
+}
+function closeSheet(){document.getElementById('sheet-overlay').classList.remove('show');document.getElementById('event-sheet').classList.remove('show');}
+function saveEvent(){
+  const time=document.getElementById('ev-time').value;
+  const text=document.getElementById('ev-text').value.trim();
+  const sub=document.getElementById('ev-sub').value.trim();
+  if(!time||!text){showToast('Uhrzeit und Titel nötig');return;}
+  if(editingEventId){const e=state.schedule.find(x=>x.id===editingEventId);if(e){e.time=time;e.text=text;e.sub=sub;}}
+  else{state.schedule.push({id:'e'+Date.now(),time,text,sub,color:'',source:'manual'});}
+  save();closeSheet();renderHome();showToast('Termin gespeichert');
+}
+function deleteEvent(){if(editingEventId){state.schedule=state.schedule.filter(e=>e.id!==editingEventId);save();closeSheet();renderHome();showToast('Termin gelöscht');}}
+
+// ════════════════════════════════════════════════════
+//  EXPORT / IMPORT / SHARE
+// ════════════════════════════════════════════════════
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download='organizer-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  URL.revokeObjectURL(url);showToast('Backup heruntergeladen');
+}
+function importData(file){
+  if(!file)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.tasks)throw 0;state=d;for(const k of Object.keys(DEFAULT_STATE))if(state[k]===undefined)state[k]=JSON.parse(JSON.stringify(DEFAULT_STATE[k]));save();showToast('Daten importiert');location.reload();}catch(e){showToast('Ungültige Datei');}};
+  r.readAsText(file);
+}
+async function shareList(key){
+  const items=state.tasks[key].filter(t=>!t.done).map(t=>'• '+t.text).join('\n');
+  const title={shopping:'Einkaufsliste',today:'Aufgaben heute'}[key]||'Liste';
+  const text=title+':\n'+(items||'(leer)');
+  if(navigator.share){try{await navigator.share({title,text});}catch(e){}}
+  else{try{await navigator.clipboard.writeText(text);showToast('In Zwischenablage kopiert');}catch(e){showToast('Teilen nicht möglich');}}
+}
+function shareActiveList(){shareList(state.activeList);}
+
+// ════════════════════════════════════════════════════
+//  MODULES / SETTINGS
+// ════════════════════════════════════════════════════
+function renderModules(){
+  document.getElementById('key-status').textContent=groqKey?groqKey.slice(0,8)+'…':'Nicht gesetzt';
+  const mc=document.getElementById('mod-habit-count');if(mc)mc.textContent=state.habits.length+' Habits';
+}
+function resetKey(){groqKey='';localStorage.removeItem('organizer_groq_key');document.getElementById('api-setup').style.display='';document.getElementById('chat-active').style.display='none';switchTab('ai');showToast('API Key zurückgesetzt');}
+function clearAll(){if(confirm('Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden.')){localStorage.removeItem('organizer_v3');localStorage.removeItem('organizer_v2');location.reload();}}
+
+// ════════════════════════════════════════════════════
+//  AI CHAT (Groq)
+// ════════════════════════════════════════════════════
+let chatHistory=[];
+let pendingAI=null;
+
+function buildContext(){
+  const open=state.tasks.today.filter(t=>!t.done).map(t=>t.text);
+  const shop=state.tasks.shopping.filter(t=>!t.done).map(t=>t.text);
+  const work=state.tasks.work.filter(t=>!t.done).map(t=>t.text);
+  const hDone=state.habits.filter(h=>h.days[getTodayIdx()]).map(h=>h.name);
+  const hOpen=state.habits.filter(h=>!h.days[getTodayIdx()]).map(h=>h.name);
+  const sched=allEvents().map(e=>e.time+' '+e.text).join(', ');
+  const now=new Date();
+  return 'Du bist der persönliche KI-Assistent im Organizer von Steven.\n\n'+
+'PROFIL:\n- Steven, Bachelor-Student (Leuphana Lüneburg), schreibt Thesis über OCR-Systeme für klinische Dokumente (Pneumologie, MHH Hannover)\n- Arbeitet nebenbei in einem Tee-Laden mit Kulturraum\n- Raum Hannover, Partnerin seit 7 Jahren\n- Mag Fantasy (Rothfuss, Tolkien, Tad Williams) und Hörbücher\n- Studentisches Budget, kostenbewusst\n\n'+
+'AKTUELLER STAND ('+now.toLocaleDateString('de-DE')+', '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+'):\n'+
+'- Energie: '+state.energy.label+' ('+state.energy.pct+'%)\n'+
+'- Tagesplan: '+(sched||'leer')+'\n'+
+'- Offene Aufgaben heute: '+(open.join(', ')||'keine')+'\n'+
+'- Arbeit/Thesis offen: '+(work.join(', ')||'keine')+'\n'+
+'- Einkaufsliste offen: '+(shop.join(', ')||'leer')+'\n'+
+'- Habits heute erledigt: '+(hDone.join(', ')||'noch keine')+'\n'+
+'- Habits heute offen: '+(hOpen.join(', ')||'keine')+'\n\n'+
+'Antworte kurz, konkret, persönlich und auf Deutsch. Beziehe dich aktiv auf den Kontext. Sei ein hilfreicher, freundlicher Assistent – kein Geschwafel.';
+}
+
+if(groqKey){document.getElementById('api-setup').style.display='none';document.getElementById('chat-active').style.display='flex';}
+
+function saveKey(){const v=document.getElementById('groq-inp').value.trim();if(!v.startsWith('gsk_')){showToast('Key muss mit gsk_ beginnen');return;}groqKey=v;localStorage.setItem('organizer_groq_key',v);document.getElementById('api-setup').style.display='none';document.getElementById('chat-active').style.display='flex';showToast('Verbunden ✓');}
+function demoMode(){document.getElementById('api-setup').style.display='none';document.getElementById('chat-active').style.display='flex';}
+function appendMsg(role,text){const c=document.getElementById('chat-msgs');const d=document.createElement('div');d.className='msg '+role;d.textContent=text;c.appendChild(d);c.scrollTop=c.scrollHeight;return d;}
+function suggest(t){const i=document.getElementById('chat-inp');i.value=t;i.focus();if(!t.endsWith(': '))sendChat();}
+function flushPendingAI(){if(pendingAI){const q=pendingAI;pendingAI=null;document.getElementById('chat-inp').value=q;sendChat();}}
+
+async function sendChat(){
+  const i=document.getElementById('chat-inp'),btn=document.getElementById('send-btn');
+  const text=i.value.trim();if(!text)return;
+  i.value='';i.style.height='auto';
+  appendMsg('user',text);chatHistory.push({role:'user',content:text});
+  btn.disabled=true;
+  const thinking=appendMsg('ai','denkt nach …');thinking.classList.add('thinking');
+  if(!groqKey){setTimeout(()=>{thinking.remove();appendMsg('ai','Demo-Modus. Gib deinen Groq Key unter Module → Einstellungen → API Key ändern ein, dann antworte ich richtig.');btn.disabled=false;},600);return;}
+  try{
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+      body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:buildContext()},...chatHistory.slice(-12)],max_tokens:600,temperature:0.75})
+    });
+    thinking.remove();
+    if(!res.ok){const err=await res.text();appendMsg('ai',res.status===401?'API Key ungültig. Bitte unter Module neu eingeben.':'Fehler '+res.status+'. Versuch es nochmal.');btn.disabled=false;return;}
+    const data=await res.json();
+    const reply=data.choices?.[0]?.message?.content||'Keine Antwort erhalten.';
+    chatHistory.push({role:'assistant',content:reply});
+    appendMsg('ai',reply);
+  }catch(e){
+    thinking.remove();
+    appendMsg('ai','Verbindung fehlgeschlagen. Falls das dauerhaft passiert, blockiert evtl. dein Netzwerk die Groq-API – sag mir Bescheid, dann richten wir einen kostenlosen Proxy ein.');
+  }
+  btn.disabled=false;
+}
+
+// ════════════════════════════════════════════════════
+//  URL ACTIONS (Shortcuts / Share Target Integration)
+// ════════════════════════════════════════════════════
+function handleEntry(){
+  const p=new URLSearchParams(location.search);
+  if([...p.keys()].length===0)return;
+  let toast='',targetTab=p.get('tab');
+
+  const shareText=p.get('share_text')||p.get('share_title');
+  if(shareText){addTaskTo('today',shareText.trim(),'personal');toast='Aus Teilen hinzugefügt';}
+
+  const action=p.get('action');
+  if(action==='add-task'){const t=p.get('text');const l=p.get('list')||'today';if(t){addTaskTo(l,t,listTag(l));toast='Aufgabe: '+t;}}
+  else if(action==='add-shopping'){const t=p.get('text');if(t){addTaskTo('shopping',t,'shopping');toast='Einkauf: '+t;}}
+  else if(action==='set-energy'){const lv=p.get('level');const m={low:['Müde',20],good:['Gut',70],top:['Top!',100]};if(m[lv]){state.energy={level:lv,label:m[lv][0],pct:m[lv][1]};save();toast='Energie: '+m[lv][0];}}
+  else if(action==='log-habit'){const n=(p.get('name')||'').toLowerCase();const h=state.habits.find(x=>x.name.toLowerCase().includes(n));if(h){h.days[getTodayIdx()]=1;save();toast='✓ '+h.name;}}
+  else if(action==='add-event'){const time=p.get('time'),text=p.get('text'),sub=p.get('sub')||'';if(time&&text){state.schedule.push({id:'e'+Date.now(),time,text,sub,color:'',source:'manual'});save();toast='Termin: '+text;}}
+  else if(action==='import-calendar'){try{const evs=JSON.parse(p.get('data'));if(Array.isArray(evs)){state.calendarEvents=evs.map((e,i)=>({id:'cal'+i,time:(e.time||'').slice(0,5),text:e.text||e.title||'Termin',sub:e.sub||e.location||'',color:'ev-cal',source:'calendar'})).filter(e=>e.time);save();toast=state.calendarEvents.length+' Termine importiert';}}catch(e){toast='Kalender-Import fehlgeschlagen';}}
+  else if(action==='ask'){pendingAI=p.get('q');targetTab='ai';}
+  else if(action==='ask-open'){targetTab='ai';}
+  else if(action==='focus-add'){targetTab='home';setTimeout(()=>document.getElementById('home-input').focus(),300);}
+
+  if(p.get('list'))state.activeList=p.get('list');
+
+  history.replaceState({},'',location.pathname);
+  if(toast)setTimeout(()=>showToast(toast),400);
+  if(targetTab)setTimeout(()=>{switchTab(targetTab);flushPendingAI();},100);
+}
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+renderHome();renderTasks();renderHabits();renderModules();
+handleEntry();
+</script>
+</body>
+</html>
