@@ -68,20 +68,23 @@ Text muss URL-kodiert sein — Shortcuts macht das automatisch via *„URL kodie
 ### Rezept B — „Apple Kalender → Organizer"
 
 1. Aktion **Kalendereinträge suchen** → Filter: *Startdatum ist heute*
-2. Aktion **Wiederhole mit jedem** → darin **Wörterbuch** bauen:
-   - `time` = Startzeit (formatiert `HH:mm`)
-   - `text` = Titel
-   - `sub` = Ort
-3. Nach der Schleife: **Wörterbücher** → in **JSON / Text** umwandeln (Liste)
+2. Aktion **Wiederhole mit jedem** → darin eine **Text**-Aktion bauen:
+   `[Startzeit] | [Titel] | [Ort]`
+   (Startzeit vorher mit **Datum formatieren** auf `HH:mm` bringen)
+3. Nach der Schleife: **Text kombinieren** mit *Zeilenumbruch*
 4. **Text kodieren** (Für URL)
-5. **URL**: `https://DEINNAME.github.io/organizer/?action=import-calendar&data=` + kodiertes JSON
+5. **URL**: `https://DEINNAME.github.io/organizer/?action=import-calendar&data=` + kodierter Text
 6. **URLs öffnen**
 7. Als **Automation** täglich morgens laufen lassen → Tagesplan ist immer synchron
 
-JSON-Format das die App erwartet:
-```json
-[{"time":"14:00","text":"Zahnarzt","sub":"Praxis Müller"}]
+Die App versteht zwei Formate — nimm das einfachere Zeilen-Format:
 ```
+14:00 | Zahnarzt | Praxis Müller
+16:30 | Meeting | Zoom
+```
+(JSON wie `[{"time":"14:00","text":"Zahnarzt","sub":"..."}]` geht auch.)
+
+Tipp: In der App unter **Module → Apple Shortcuts** stehen alle URLs schon mit deiner echten Adresse fertig zum Kopieren, plus ein **Kalender-Import testen**-Button.
 
 ### Rezept C — „KI-Frage per Siri"
 

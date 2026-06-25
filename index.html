@@ -238,7 +238,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
     <button class="add-btn" onclick="addHomeTask()">+</button>
   </div>
   <div class="section" style="margin-top:8px">
-    <div class="section-label"><span>Tagesplan</span><span class="section-action" onclick="openEventSheet()">+ Termin</span></div>
+    <div class="section-label"><span>Tagesplan<span id="sync-status" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--label3)"></span></span><span class="section-action" onclick="openEventSheet()">+ Termin</span></div>
     <div class="time-grid" id="time-grid"></div>
   </div>
 </div>
@@ -364,17 +364,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
   <div class="nav"><div class="sub" onclick="switchTab('modules')" style="color:var(--blue);cursor:pointer">‹ Module</div><h1>Shortcuts</h1></div>
   <div class="section">
     <div class="setup-card">
-      <h3>⚡ So verbindest du Apple Shortcuts</h3>
-      <p>Deine App hört auf URL-Befehle. Ein Shortcut öffnet einfach eine spezielle URL – die App führt die Aktion automatisch aus. Ersetze <b>DEINE-URL</b> mit deiner echten GitHub-Pages-Adresse.</p>
+      <h3>⚡ Apple Shortcuts anbinden</h3>
+      <p style="margin-bottom:8px">Diese App hört auf URL-Befehle. Ein Shortcut öffnet die passende URL – die App führt die Aktion aus. Tipp auf eine URL, um sie zu kopieren.</p>
+      <div class="s-val" style="margin-bottom:4px">Deine App-Adresse</div>
+      <div class="code-box" id="base-url-box" onclick="copyText(getBaseUrl(),this)">—</div>
     </div>
-    <div class="card-group" style="margin-bottom:16px">
-      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="s-label">📝 Aufgabe per Siri</span><span class="s-val" style="white-space:normal">"Aufgabe hinzufügen" → Text abfragen → URL öffnen:</span><div class="code-box">DEINE-URL/?action=add-task&text=[Eingabe]&list=today</div></div>
-      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="s-label">🛒 Auf Einkaufsliste</span><div class="code-box">DEINE-URL/?action=add-shopping&text=[Eingabe]</div></div>
-      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="s-label">📆 Kalender importieren</span><span class="s-val" style="white-space:normal">"Kalendereinträge suchen" (heute) → als JSON formatieren → URL öffnen:</span><div class="code-box">DEINE-URL/?action=import-calendar&data=[JSON]</div></div>
-      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="s-label">🤖 KI fragen</span><div class="code-box">DEINE-URL/?action=ask&q=[Eingabe]</div></div>
+    <div class="card-group">
+      <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:6px"><span class="s-label">📆 Kalender importieren</span><span class="s-val" style="white-space:normal">Tagesplan automatisch füllen (Rezept unten)</span><div class="code-box" data-suffix="?action=import-calendar&data=[KALENDER]" onclick="copyUrl(this)">—</div></div>
+      <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:6px"><span class="s-label">📝 Aufgabe hinzufügen</span><div class="code-box" data-suffix="?action=add-task&list=today&text=[TEXT]" onclick="copyUrl(this)">—</div></div>
+      <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:6px"><span class="s-label">🛒 Auf Einkaufsliste</span><div class="code-box" data-suffix="?action=add-shopping&text=[TEXT]" onclick="copyUrl(this)">—</div></div>
+      <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:6px"><span class="s-label">🤖 KI fragen</span><div class="code-box" data-suffix="?action=ask&q=[FRAGE]" onclick="copyUrl(this)">—</div></div>
     </div>
+    <button class="ios-btn sec" style="margin:16px" onclick="testCalendar()">📆 Kalender-Import testen</button>
     <div class="setup-card">
-      <p style="margin:0">Die genauen Shortcut-Rezepte (Schritt für Schritt) findest du in der <b>SETUP-Anleitung</b>, die zusammen mit der App geliefert wurde.</p>
+      <h3 style="font-size:15px">📆 Kalender-Rezept (Kurzfassung)</h3>
+      <p style="margin:0;font-size:13px;line-height:1.6">1. Kurzbefehle → neuer Kurzbefehl<br>2. <b>Kalendereinträge suchen</b> · Filter: Startdatum = heute<br>3. <b>Wiederhole mit jedem</b> → darin <b>Text</b>:<br><span style="font-family:monospace;background:var(--fill);padding:2px 6px;border-radius:4px;display:inline-block;margin:2px 0">[Startzeit] | [Titel] | [Ort]</span><br>(Startzeit per „Datum formatieren" als HH:mm)<br>4. Nach der Schleife: <b>Text kombinieren</b> mit Zeilenumbruch<br>5. <b>Text URL-codieren</b><br>6. <b>URL</b> = App-Adresse + obige Kalender-URL (mit codiertem Text statt [KALENDER])<br>7. <b>URLs öffnen</b><br>8. Als Automation täglich morgens laufen lassen</p>
     </div>
   </div>
 </div>
@@ -449,6 +453,7 @@ const DEFAULT_STATE = {
     {id:'e4',time:'18:00',text:'🛒 Einkaufen',sub:'Rewe · ~30 Min',color:'ev-orange',source:'manual'}
   ],
   calendarEvents: [],
+  lastCalendarSync: null,
   energy: {level:'good',label:'Gut',pct:70},
   activeList: 'today'
 };
@@ -507,6 +512,7 @@ function switchTab(name){
   if(name==='tasks')renderTasks();
   if(name==='habits')renderHabits();
   if(name==='modules')renderModules();
+  if(name==='shortcuts')renderShortcuts();
   window.scrollTo(0,0);
 }
 
@@ -529,6 +535,29 @@ function streakOf(h){
 }
 function allEvents(){
   return [...(state.schedule||[]),...(state.calendarEvents||[])].filter(e=>e.time).sort((a,b)=>a.time.localeCompare(b.time));
+}
+
+// ── Integration helpers ──
+function getBaseUrl(){return location.origin+location.pathname.replace(/index\.html$/,'');}
+function copyText(text,el){if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>showToast('Kopiert ✓')).catch(()=>showToast('Kopieren nicht möglich'));}
+function copyUrl(el){copyText(getBaseUrl()+el.dataset.suffix,el);}
+function renderShortcuts(){
+  const base=getBaseUrl();
+  const b=document.getElementById('base-url-box');if(b)b.textContent=base;
+  document.querySelectorAll('#s-shortcuts .code-box[data-suffix]').forEach(el=>{el.textContent=base+el.dataset.suffix;});
+}
+function parseCalendarData(raw){
+  raw=(raw||'').trim();if(!raw)return[];
+  try{const j=JSON.parse(raw);if(Array.isArray(j))return j;}catch(e){}
+  return raw.split(/\r?\n+/).map(line=>{
+    line=line.trim();if(!line)return null;
+    if(line.includes('|')){const p=line.split('|').map(s=>s.trim());return{time:p[0],text:p[1]||'Termin',sub:p[2]||''};}
+    const m=line.match(/^(\d{1,2}:\d{2})\s+(.+)$/);return m?{time:m[1],text:m[2]}:null;
+  }).filter(Boolean);
+}
+function testCalendar(){
+  const sample='09:30 | 🩺 Test-Termin | Beispiel\n16:00 | 📞 Probe-Call | importiert';
+  location.href=getBaseUrl()+'?action=import-calendar&data='+encodeURIComponent(sample);
 }
 
 // ════════════════════════════════════════════════════
@@ -594,6 +623,8 @@ function renderHome(){
 function renderSchedule(){
   const grid=document.getElementById('time-grid');
   grid.innerHTML='';
+  const ss=document.getElementById('sync-status');
+  if(ss){const n=(state.calendarEvents||[]).length;if(state.lastCalendarSync){const d=new Date(state.lastCalendarSync);ss.textContent=' · '+n+' aus Kalender, '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}else{ss.textContent='';}}
   const evs=allEvents();
   if(evs.length===0){
     grid.innerHTML='<div class="time-slot" onclick="openEventSheet()"><div class="t-label"></div><div class="t-content"><div class="t-empty">+ Ersten Termin hinzufügen</div></div></div>';
@@ -833,7 +864,7 @@ function handleEntry(){
   else if(action==='set-energy'){const lv=p.get('level');const m={low:['Müde',20],good:['Gut',70],top:['Top!',100]};if(m[lv]){state.energy={level:lv,label:m[lv][0],pct:m[lv][1]};save();toast='Energie: '+m[lv][0];}}
   else if(action==='log-habit'){const n=(p.get('name')||'').toLowerCase();const h=state.habits.find(x=>x.name.toLowerCase().includes(n));if(h){h.days[getTodayIdx()]=1;save();toast='✓ '+h.name;}}
   else if(action==='add-event'){const time=p.get('time'),text=p.get('text'),sub=p.get('sub')||'';if(time&&text){state.schedule.push({id:'e'+Date.now(),time,text,sub,color:'',source:'manual'});save();toast='Termin: '+text;}}
-  else if(action==='import-calendar'){try{const evs=JSON.parse(p.get('data'));if(Array.isArray(evs)){state.calendarEvents=evs.map((e,i)=>({id:'cal'+i,time:(e.time||'').slice(0,5),text:e.text||e.title||'Termin',sub:e.sub||e.location||'',color:'ev-cal',source:'calendar'})).filter(e=>e.time);save();toast=state.calendarEvents.length+' Termine importiert';}}catch(e){toast='Kalender-Import fehlgeschlagen';}}
+  else if(action==='import-calendar'){const evs=parseCalendarData(p.get('data')||'');if(evs.length){state.calendarEvents=evs.map((e,i)=>({id:'cal'+i,time:(e.time||'').slice(0,5),text:e.text||e.title||'Termin',sub:e.sub||e.location||'',color:'ev-cal',source:'calendar'})).filter(e=>e.time);state.lastCalendarSync=Date.now();save();toast=state.calendarEvents.length+' Termine importiert';}else{toast='Keine Termine gefunden';}}
   else if(action==='ask'){pendingAI=p.get('q');targetTab='ai';}
   else if(action==='ask-open'){targetTab='ai';}
   else if(action==='focus-add'){targetTab='home';setTimeout(()=>document.getElementById('home-input').focus(),300);}
