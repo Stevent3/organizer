@@ -338,13 +338,45 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
     <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(this.files[0])">
   </div>
 
+  <!-- Worker Sync -->
+  <div class="section">
+    <div class="section-label">☁️ Cloud-Sync</div>
+    <div class="card-group">
+      <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:8px">
+        <span class="s-label">Cloudflare Worker URL</span>
+        <input type="url" id="worker-url-inp" class="api-inp" placeholder="https://organizer.DEIN-NAME.workers.dev" style="margin:0;font-family:var(--font);font-size:14px;letter-spacing:0">
+        <span class="s-label">Secret Token</span>
+        <input type="password" id="worker-secret-inp" class="api-inp" placeholder="dein-geheimer-token" style="margin:0;letter-spacing:1px">
+        <button class="ios-btn" onclick="saveWorkerConfig()" style="margin-top:4px">Verbinden</button>
+      </div>
+      <div class="settings-row" id="sync-status-row" style="display:none">
+        <span class="s-label">🟢 Worker verbunden</span>
+        <span class="s-val" id="worker-sync-label">–</span>
+      </div>
+      <div class="settings-row" id="sync-now-row" style="display:none" onclick="forceSyncNow()">
+        <span class="s-label">Jetzt synchronisieren</span>
+        <span class="chevron">›</span>
+      </div>
+      <div class="settings-row" id="worker-reset-row" style="display:none" onclick="resetWorker()">
+        <span class="s-label" style="color:var(--red)">Worker trennen</span>
+        <span class="chevron">›</span>
+      </div>
+    </div>
+    <div class="card-group" style="margin-top:12px" id="worker-url-card">
+      <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:6px">
+        <span class="s-label">📆 Kalender-Shortcut URL (POST)</span>
+        <div class="code-box" id="worker-cal-url" onclick="copyText(this.textContent,this)">– Worker erst verbinden –</div>
+      </div>
+    </div>
+  </div>
+
   <div class="section">
     <div class="section-label">Bald verfügbar</div>
     <div class="card-group">
       <div class="row"><div class="row-icon ic-gray">📧</div><div class="row-body"><div class="row-title">Mail-Assistent</div><div class="row-sub">KI schreibt & beantwortet Mails</div></div><span style="font-size:12px;color:var(--blue);font-weight:600">Bald</span></div>
       <div class="row"><div class="row-icon ic-gray">🏠</div><div class="row-body"><div class="row-title">Smarthome</div><div class="row-sub">HomeKit & Home Assistant</div></div><span style="font-size:12px;color:var(--blue);font-weight:600">Bald</span></div>
       <div class="row"><div class="row-icon ic-gray">💰</div><div class="row-body"><div class="row-title">FinanzGuru</div><div class="row-sub">Budget-bewusste Planung</div></div><span style="font-size:12px;color:var(--blue);font-weight:600">Bald</span></div>
-      <div class="row"><div class="row-icon ic-gray">🔔</div><div class="row-body"><div class="row-title">Push-Nachrichten</div><div class="row-sub">Proaktive KI-Erinnerungen</div></div><span style="font-size:12px;color:var(--blue);font-weight:600">Bald</span></div>
+      <div class="row"><div class="row-icon ic-gray">🔔</div><div class="row-body"><div class="row-title">Push-Nachrichten</div><div class="row-sub">Proaktive KI-Erinnerungen – nächster Schritt</div></div><span style="font-size:12px;color:var(--green);font-weight:600">Als Nächstes</span></div>
     </div>
   </div>
 
@@ -355,7 +387,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
       <div class="settings-row" onclick="resetKey()"><span class="s-label">API Key ändern</span><span class="chevron">›</span></div>
     </div>
     <button class="danger-btn" onclick="clearAll()">Alle Daten löschen</button>
-    <p style="font-size:12px;color:var(--label3);text-align:center;margin:12px 24px 0">Organizer v3 · Daten liegen nur lokal auf deinem Gerät</p>
+    <p style="font-size:12px;color:var(--label3);text-align:center;margin:12px 24px 0">Organizer v3 · Lokale Daten + optionaler Cloud-Sync</p>
   </div>
 </div>
 
@@ -781,6 +813,21 @@ function shareActiveList(){shareList(state.activeList);}
 function renderModules(){
   document.getElementById('key-status').textContent=groqKey?groqKey.slice(0,8)+'…':'Nicht gesetzt';
   const mc=document.getElementById('mod-habit-count');if(mc)mc.textContent=state.habits.length+' Habits';
+  // Worker UI
+  const hasWorker = !!(workerUrl && workerSecret);
+  document.getElementById('sync-status-row').style.display = hasWorker ? '' : 'none';
+  document.getElementById('sync-now-row').style.display = hasWorker ? '' : 'none';
+  document.getElementById('worker-reset-row').style.display = hasWorker ? '' : 'none';
+  if (hasWorker) {
+    document.getElementById('worker-url-inp').value = workerUrl;
+    document.getElementById('worker-secret-inp').value = workerSecret;
+    const last = state.lastCalendarSync ? new Date(state.lastCalendarSync).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}) : 'noch nie';
+    document.getElementById('worker-sync-label').textContent = 'Letzter Sync: ' + last;
+    const calUrl = workerUrl.replace(/\/$/,'') + '/calendar?s=' + encodeURIComponent(workerSecret);
+    document.getElementById('worker-cal-url').textContent = calUrl;
+  } else {
+    document.getElementById('worker-cal-url').textContent = '– Worker erst verbinden –';
+  }
 }
 function resetKey(){groqKey='';localStorage.removeItem('organizer_groq_key');document.getElementById('api-setup').style.display='';document.getElementById('chat-active').style.display='none';switchTab('ai');showToast('API Key zurückgesetzt');}
 function clearAll(){if(confirm('Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden.')){localStorage.removeItem('organizer_v3');localStorage.removeItem('organizer_v2');location.reload();}}
@@ -877,11 +924,109 @@ function handleEntry(){
 }
 
 // ════════════════════════════════════════════════════
+//  WORKER SYNC
+// ════════════════════════════════════════════════════
+let workerUrl    = localStorage.getItem('organizer_worker_url') || '';
+let workerSecret = localStorage.getItem('organizer_worker_secret') || '';
+
+function workerHeaders() {
+  return { 'Content-Type': 'application/json', 'X-Secret': workerSecret };
+}
+
+async function workerFetch(path, opts = {}) {
+  if (!workerUrl || !workerSecret) return null;
+  try {
+    const res = await fetch(workerUrl.replace(/\/$/, '') + path, {
+      headers: workerHeaders(), ...opts
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+async function syncCalendarFromWorker() {
+  const data = await workerFetch('/calendar');
+  if (!data || !Array.isArray(data.events) || data.events.length === 0) return false;
+  state.calendarEvents = data.events.map((e, i) => ({
+    id: 'cal' + i,
+    time: (e.time || '').slice(0, 5),
+    text: e.text || 'Termin',
+    sub: e.sub || '',
+    color: 'ev-cal',
+    source: 'calendar'
+  })).filter(e => e.time);
+  state.lastCalendarSync = Date.now();
+  save();
+  return true;
+}
+
+async function syncStateToWorker() {
+  if (!workerUrl || !workerSecret) return;
+  await workerFetch('/state', {
+    method: 'POST',
+    body: JSON.stringify(state)
+  });
+}
+
+async function syncStateFromWorker() {
+  const data = await workerFetch('/state');
+  if (!data || !data.state) return false;
+  const remote = data.state;
+  // Merge: use remote tasks/habits/schedule if they exist
+  if (remote.tasks) state.tasks = remote.tasks;
+  if (remote.habits) state.habits = remote.habits;
+  if (remote.schedule) state.schedule = remote.schedule;
+  if (Array.isArray(remote.calendarEvents)) state.calendarEvents = remote.calendarEvents;
+  if (remote.lastCalendarSync) state.lastCalendarSync = remote.lastCalendarSync;
+  save();
+  return true;
+}
+
+async function forceSyncNow() {
+  showToast('Synchronisiere…');
+  const calOk = await syncCalendarFromWorker();
+  await syncStateFromWorker();
+  renderHome(); renderTasks(); renderHabits();
+  showToast(calOk ? '✓ Kalender + Daten synchronisiert' : '✓ Daten synchronisiert');
+}
+
+function saveWorkerConfig() {
+  const url = document.getElementById('worker-url-inp').value.trim();
+  const secret = document.getElementById('worker-secret-inp').value.trim();
+  if (!url || !secret) { showToast('URL und Token ausfüllen'); return; }
+  workerUrl = url; workerSecret = secret;
+  localStorage.setItem('organizer_worker_url', url);
+  localStorage.setItem('organizer_worker_secret', secret);
+  renderModules();
+  showToast('Worker verbunden – teste die Verbindung…');
+  workerFetch('/ping').then(r => {
+    if (r && r.ok) showToast('✓ Worker erreichbar!');
+    else showToast('⚠️ Worker antwortet nicht – URL/Token prüfen');
+  });
+}
+
+function resetWorker() {
+  if (!confirm('Worker-Verbindung trennen?')) return;
+  workerUrl = workerSecret = '';
+  localStorage.removeItem('organizer_worker_url');
+  localStorage.removeItem('organizer_worker_secret');
+  renderModules(); showToast('Worker getrennt');
+}
+
+// Auto-sync calendar on load if worker is configured
+async function initWorkerSync() {
+  if (!workerUrl || !workerSecret) return;
+  const ok = await syncCalendarFromWorker();
+  if (ok) { renderHome(); }
+}
+
+// ════════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════════
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
 renderHome();renderTasks();renderHabits();renderModules();
 handleEntry();
+initWorkerSync();
 </script>
 </body>
 </html>
