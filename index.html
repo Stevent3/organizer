@@ -102,6 +102,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
 .t-event-sub{font-size:12px;opacity:.75;font-weight:400}
 .t-now-line{height:2px;background:var(--red);position:relative;margin:0 16px}
 .t-now-line::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--red)}
+.day-cal{position:relative;margin:0 16px;background:var(--surface);border-radius:var(--radius);overflow:hidden}
+.cal-line{position:absolute;left:48px;right:0;border-top:.5px solid var(--sep);pointer-events:none}
+.cal-hourlabel{position:absolute;left:0;width:42px;text-align:right;font-size:11px;color:var(--label3);font-variant-numeric:tabular-nums;transform:translateY(-6px);pointer-events:none}
+.cal-now{position:absolute;left:48px;right:0;height:2px;background:var(--red);z-index:3;pointer-events:none}
+.cal-now::before{content:'';position:absolute;left:-4px;top:-4px;width:9px;height:9px;border-radius:50%;background:var(--red)}
+.cal-ev{position:absolute;border-radius:6px;padding:4px 8px;font-size:13px;line-height:1.25;overflow:hidden;cursor:pointer;border-left:3px solid var(--blue);background:var(--blue-bg);color:var(--blue);box-sizing:border-box;z-index:2;transition:transform .1s}
+.cal-ev:active{transform:scale(.98)}
+.cal-ev .ce-t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-ev .ce-s{font-size:11px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-ev.ev-green{border-color:var(--green);background:rgba(52,199,89,.12);color:var(--green)}
+.cal-ev.ev-orange{border-color:var(--orange);background:rgba(255,149,0,.12);color:var(--orange)}
+.cal-ev.ev-purple{border-color:var(--purple);background:rgba(175,82,222,.12);color:var(--purple)}
+.cal-ev.ev-cal{border-color:var(--indigo);background:rgba(88,86,214,.12);color:var(--indigo)}
 
 .energy-wrap{margin:0 16px 16px;background:var(--surface);border-radius:var(--radius);padding:16px}
 .energy-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
@@ -694,25 +707,64 @@ function renderHome(){
 
 function renderSchedule(){
   const grid=document.getElementById('time-grid');
-  grid.innerHTML='';
   const ss=document.getElementById('sync-status');
   if(ss){const n=(state.calendarEvents||[]).length;if(state.lastCalendarSync){const d=new Date(state.lastCalendarSync);ss.textContent=' · '+n+' aus Kalender, '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}else{ss.textContent='';}}
+  grid.className='day-cal';
   const evs=allEvents();
-  if(evs.length===0){
-    grid.innerHTML='<div class="time-slot" onclick="openEventSheet()"><div class="t-label"></div><div class="t-content"><div class="t-empty">+ Ersten Termin hinzufügen</div></div></div>';
-    return;
+  const HH=58;                 // Pixel pro Stunde
+  const pxMin=HH/60;
+  const cur=nowMin();
+  // Sichtbarer Stundenbereich (mind. 7–22, erweitert um Termine + jetzt)
+  let minH=7,maxH=22;
+  evs.forEach(e=>{const s=Math.floor(toMin(e.time)/60);let enM=(e.end&&toMin(e.end)>toMin(e.time))?toMin(e.end):toMin(e.time)+60;const en=Math.ceil(enM/60);if(s<minH)minH=s;if(en>maxH)maxH=en;});
+  const nh=Math.floor(cur/60);minH=Math.min(minH,nh);maxH=Math.max(maxH,nh+1);
+  minH=Math.max(0,minH);maxH=Math.min(24,maxH);if(maxH<=minH)maxH=minH+1;
+  grid.style.height=((maxH-minH)*HH)+'px';
+
+  let html='';
+  for(let h=minH;h<=maxH;h++){
+    const y=(h-minH)*HH;
+    html+='<div class="cal-line" style="top:'+y+'px"></div>';
+    if(h<maxH)html+='<div class="cal-hourlabel" style="top:'+(y+2)+'px">'+String(h).padStart(2,'0')+':00</div>';
   }
-  const cur=nowMin();let nowDrawn=false;
-  evs.forEach(ev=>{
-    if(!nowDrawn&&timeToMin(ev.time)>cur){const l=document.createElement('div');l.className='t-now-line';grid.appendChild(l);nowDrawn=true;}
-    const slot=document.createElement('div');
-    slot.className='time-slot';
-    const isCal=ev.source==='calendar';
-    slot.onclick=()=>isCal?showToast('📆 Aus Apple Kalender'):openEventSheet(ev.id);
-    const sub2=[ev.end?('bis '+ev.end):'',ev.sub||'',depLabel(ev)].filter(Boolean).join(' · ');
-    slot.innerHTML='<div class="t-label">'+ev.time+'</div><div class="t-content"><div class="t-event '+(ev.color||'')+'">'+esc(ev.text)+(sub2?'<div class="t-event-sub">'+esc(sub2)+'</div>':'')+'</div></div>';
-    grid.appendChild(slot);
+  if(cur>=minH*60&&cur<=maxH*60){html+='<div class="cal-now" style="top:'+((cur-minH*60)*pxMin)+'px"></div>';}
+
+  // Termine mit Spalten-Layout bei Überschneidung
+  const items=evs.map(e=>{const s=toMin(e.time);let en=(e.end&&toMin(e.end)>s)?toMin(e.end):s+60;return{ev:e,s,en};}).sort((a,b)=>a.s-b.s||a.en-b.en);
+  const AL=50,AP=6;
+  let i=0;
+  while(i<items.length){
+    const group=[items[i]];let gEnd=items[i].en;let j=i+1;
+    while(j<items.length&&items[j].s<gEnd){group.push(items[j]);gEnd=Math.max(gEnd,items[j].en);j++;}
+    const colEnds=[];
+    group.forEach(it=>{let placed=false;for(let c=0;c<colEnds.length;c++){if(colEnds[c]<=it.s){it.col=c;colEnds[c]=it.en;placed=true;break;}}if(!placed){it.col=colEnds.length;colEnds.push(it.en);}});
+    const nCols=colEnds.length;
+    group.forEach(it=>{
+      const top=(it.s-minH*60)*pxMin;
+      const height=Math.max((it.en-it.s)*pxMin-2,24);
+      const colW='((100% - '+AL+'px - '+AP+'px) / '+nCols+')';
+      const left='calc('+AL+'px + '+it.col+' * '+colW+')';
+      const ev=it.ev;const isCal=ev.source==='calendar';
+      const range=ev.time+(ev.end?'–'+ev.end:'');
+      const sub=[range,depLabel(ev)||ev.sub||''].filter(Boolean).join(' · ');
+      html+='<div class="cal-ev '+(ev.color||'')+'" data-id="'+(ev.id||'')+'" data-cal="'+(isCal?1:0)+'" style="top:'+top+'px;height:'+height+'px;left:'+left+';width:calc('+colW+')">'+
+        '<div class="ce-t">'+esc(ev.text)+'</div>'+(height>=38?'<div class="ce-s">'+esc(sub)+'</div>':'')+'</div>';
+    });
+    i=j;
+  }
+  grid.innerHTML=html;
+
+  grid.querySelectorAll('.cal-ev').forEach(el=>{
+    el.onclick=(e)=>{e.stopPropagation();if(el.dataset.cal==='1')showToast('📆 Aus Apple Kalender – im Kalender bearbeiten');else openEventSheet(el.dataset.id);};
   });
+  // Tap auf leere Fläche → Termin zur angetippten Stunde
+  grid.onclick=(e)=>{
+    if(e.target.closest('.cal-ev'))return;
+    const rect=grid.getBoundingClientRect();
+    const mins=minH*60+Math.round(((e.clientY-rect.top)/pxMin)/15)*15;
+    const hh=String(Math.max(0,Math.floor(mins/60))).padStart(2,'0'),mm=String(mins%60).padStart(2,'0');
+    openEventSheet(null,hh+':'+mm);
+  };
 }
 
 function completeFocus(){const o=state.tasks.today.filter(t=>!t.done);if(o[0]){o[0].done=true;save();renderHome();showToast('✓ Erledigt!');}}
@@ -842,11 +894,11 @@ function attachLongPress(el,cb){
 //  EVENT SHEET
 // ════════════════════════════════════════════════════
 let editingEventId=null;
-function openEventSheet(id){
+function openEventSheet(id,prefillTime){
   editingEventId=id||null;
   const ev=id?state.schedule.find(e=>e.id===id):null;
   document.getElementById('event-sheet-title').textContent=ev?'Termin bearbeiten':'Termin hinzufügen';
-  document.getElementById('ev-time').value=ev?ev.time:'';
+  document.getElementById('ev-time').value=ev?ev.time:(prefillTime||'');
   document.getElementById('ev-text').value=ev?ev.text:'';
   document.getElementById('ev-sub').value=ev?ev.sub:'';
   document.getElementById('ev-delete-btn').style.display=ev?'block':'none';
