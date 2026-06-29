@@ -430,6 +430,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
       <h3 style="font-size:15px">📆 Kalender-Rezept (Kurzfassung)</h3>
       <p style="margin:0;font-size:13px;line-height:1.6">1. Kurzbefehle → neuer Kurzbefehl<br>2. <b>Kalendereinträge suchen</b> · Filter: Startdatum = heute<br>3. <b>Wiederhole mit jedem</b> → darin <b>Text</b>:<br><span style="font-family:monospace;background:var(--fill);padding:2px 6px;border-radius:4px;display:inline-block;margin:2px 0">[Startzeit] | [Titel] | [Ort]</span><br>(Startzeit per „Datum formatieren" als HH:mm)<br>4. Nach der Schleife: <b>Text kombinieren</b> mit Zeilenumbruch<br>5. <b>Text URL-codieren</b><br>6. <b>URL</b> = App-Adresse + obige Kalender-URL (mit codiertem Text statt [KALENDER])<br>7. <b>URLs öffnen</b><br>8. Als Automation täglich morgens laufen lassen</p>
     </div>
+    <div class="setup-card">
+      <h3 style="font-size:15px">🚶 Optional: echte Losgeh-Zeiten</h3>
+      <p style="margin:0;font-size:13px;line-height:1.6">Erweitere die Text-Zeile um die Fahrzeit als 5. Feld:<br><span style="font-family:monospace;background:var(--fill);padding:2px 6px;border-radius:4px;display:inline-block;margin:2px 0">[Start] | [Ende] | [Titel] | [Ort] | [Fahrzeit]</span><br>Dafür in der Schleife <b>vor</b> der Text-Aktion: <b>Wenn</b> „Ort" einen Wert hat → <b>Reisezeit abrufen</b> (Ziel: Ort des Ereignisses, Auto) → das Ergebnis ans Ende der Text-Zeile hängen. Die App rechnet daraus „los um HH:MM" und der Push warnt passend zur Fahrzeit.</p>
+    </div>
   </div>
 </div>
 
@@ -601,7 +605,8 @@ function parseCalendarData(raw){
         const p=line.split('|').map(s=>s.trim());
         let idx=1,end='';
         if(/^\d{1,2}:\d{2}/.test(p[1]||'')){end=p[1].slice(0,5);idx=2;}
-        return{time:(p[0]||'').slice(0,5),end,text:p[idx]||'Termin',sub:p[idx+1]||''};
+        const tm=(p[idx+2]||'').match(/\d+/);
+        return{time:(p[0]||'').slice(0,5),end,text:p[idx]||'Termin',sub:p[idx+1]||'',travel:tm?parseInt(tm[0],10):0};
       }
       const m=line.match(/^(\d{1,2}:\d{2})\s+(.+)$/);return m?{time:m[1],text:m[2]}:null;
     }).filter(Boolean);
@@ -616,10 +621,12 @@ function dedupeEvents(arr){
     const end=(e.end||'').slice(0,5);
     const key=t+'|'+end+'|'+(e.text||e.title||'').toLowerCase();
     if(seen.has(key))continue;seen.add(key);
-    out.push({time:t,end,text:e.text||e.title||'Termin',sub:e.sub||e.location||''});
+    out.push({time:t,end,text:e.text||e.title||'Termin',sub:e.sub||e.location||'',travel:e.travel||0});
   }
   return out;
 }
+function depMinutes(ev){ if(!ev.travel)return null; const d=toMin(ev.time)-ev.travel-3; return d>0?d:null; }
+function depLabel(ev){ const d=depMinutes(ev); if(d===null)return ''; return '🚶 los um '+String(Math.floor(d/60)).padStart(2,'0')+':'+String(d%60).padStart(2,'0')+' (~'+ev.travel+' Min)'; }
 function testCalendar(){
   const sample='09:30 | 🩺 Test-Termin | Beispiel\n16:00 | 📞 Probe-Call | importiert';
   location.href=getBaseUrl()+'?action=import-calendar&data='+encodeURIComponent(sample);
@@ -636,7 +643,7 @@ function computeFocus(){
   const open=state.tasks.today.filter(t=>!t.done);
   if(upcoming){
     const diff=timeToMin(upcoming.time)-cur;
-    if(diff<=60&&diff>=-20)return{type:'event',title:upcoming.text,sub:upcoming.time+' · '+(upcoming.sub||'Termin'),ref:upcoming};
+    if(diff<=60&&diff>=-20)return{type:'event',title:upcoming.text,sub:[upcoming.time+(upcoming.end?'–'+upcoming.end:''),depLabel(upcoming)||upcoming.sub||'Termin'].filter(Boolean).join(' · '),ref:upcoming};
   }
   if(open.length>0)return{type:'task',title:open[0].text,sub:tagLabel(open[0].tag)+' · offen',ref:open[0]};
   if(upcoming)return{type:'event',title:upcoming.time+' '+upcoming.text,sub:upcoming.sub||'Als Nächstes',ref:upcoming};
@@ -702,7 +709,7 @@ function renderSchedule(){
     slot.className='time-slot';
     const isCal=ev.source==='calendar';
     slot.onclick=()=>isCal?showToast('📆 Aus Apple Kalender'):openEventSheet(ev.id);
-    const sub2=[ev.end?('bis '+ev.end):'',ev.sub||''].filter(Boolean).join(' · ');
+    const sub2=[ev.end?('bis '+ev.end):'',ev.sub||'',depLabel(ev)].filter(Boolean).join(' · ');
     slot.innerHTML='<div class="t-label">'+ev.time+'</div><div class="t-content"><div class="t-event '+(ev.color||'')+'">'+esc(ev.text)+(sub2?'<div class="t-event-sub">'+esc(sub2)+'</div>':'')+'</div></div>';
     grid.appendChild(slot);
   });
@@ -791,7 +798,7 @@ async function generatePlan(){
   const btn=document.getElementById('plan-btn');
   if(!groqKey){showToast('Erst KI verbinden (KI-Tab)');switchTab('ai');return;}
   btn.disabled=true;btn.textContent='✨ Plane…';
-  const events=allEvents().map(e=>e.time+(e.end?'–'+e.end:'')+' '+e.text+(e.sub?' ('+e.sub+')':'')).join('; ')||'keine';
+  const events=allEvents().map(e=>e.time+(e.end?'–'+e.end:'')+' '+e.text+(e.sub?' ('+e.sub+')':'')+(e.travel?', Fahrt '+e.travel+' Min':'')).join('; ')||'keine';
   const tasks=Object.entries(state.tasks).flatMap(([k,arr])=>arr.filter(t=>!t.done).map(t=>t.text+' ['+tagLabel(t.tag)+']')).join('; ')||'keine';
   const now=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
   const sys='Du bist Stevens persönlicher Tagescoach. Erstelle einen realistischen, entspannten Tagesablauf als JSON. '+
@@ -1026,7 +1033,7 @@ function handleEntry(){
   else if(action==='add-shopping'){const t=p.get('text');if(t){addTaskTo('shopping',t,'shopping');toast='Einkauf: '+t;}}
   else if(action==='set-energy'){const lv=p.get('level');const m={low:['Müde',20],good:['Gut',70],top:['Top!',100]};if(m[lv]){state.energy={level:lv,label:m[lv][0],pct:m[lv][1]};save();toast='Energie: '+m[lv][0];}}
   else if(action==='add-event'){const time=p.get('time'),text=p.get('text'),sub=p.get('sub')||'';if(time&&text){state.schedule.push({id:'e'+Date.now(),time,text,sub,color:'',source:'manual'});save();toast='Termin: '+text;}}
-  else if(action==='import-calendar'){const evs=parseCalendarData(p.get('data')||'');if(evs.length){state.calendarEvents=evs.map((e,i)=>({id:'cal'+i,time:e.time,end:e.end||'',text:e.text,sub:e.sub||'',color:'ev-cal',source:'calendar'}));state.lastCalendarSync=Date.now();save();toast=state.calendarEvents.length+' Termine importiert';}else{toast='Keine Termine gefunden';}}
+  else if(action==='import-calendar'){const evs=parseCalendarData(p.get('data')||'');if(evs.length){state.calendarEvents=evs.map((e,i)=>({id:'cal'+i,time:e.time,end:e.end||'',text:e.text,sub:e.sub||'',travel:e.travel||0,color:'ev-cal',source:'calendar'}));state.lastCalendarSync=Date.now();save();toast=state.calendarEvents.length+' Termine importiert';}else{toast='Keine Termine gefunden';}}
   else if(action==='ask'){pendingAI=p.get('q');targetTab='ai';}
   else if(action==='ask-open'){targetTab='ai';}
   else if(action==='focus-add'){targetTab='home';setTimeout(()=>document.getElementById('home-input').focus(),300);}
@@ -1064,7 +1071,7 @@ async function syncCalendarFromWorker() {
   if (!data || !Array.isArray(data.events) || data.events.length === 0) return false;
   state.calendarEvents = dedupeEvents(data.events).map((e, i) => ({
     id: 'cal' + i, time: e.time, end: e.end || '', text: e.text, sub: e.sub || '',
-    color: 'ev-cal', source: 'calendar'
+    travel: e.travel || 0, color: 'ev-cal', source: 'calendar'
   }));
   state.lastCalendarSync = Date.now();
   save();
