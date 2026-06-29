@@ -301,17 +301,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
 </div>
 
 <!-- ══════ HABITS ══════ -->
-<div class="screen" id="s-habits">
-  <div class="nav"><div class="sub">Dein Streak</div><h1>Gewohnheiten</h1></div>
+<div class="screen" id="s-planner">
+  <div class="nav"><div class="sub">Dein KI-Tagescoach</div><h1>Planer</h1></div>
   <div class="section">
-    <div class="section-label">Diese Woche · Mo–So</div>
-    <div class="card-group" id="habit-list"></div>
+    <div style="margin:0 16px 12px">
+      <button class="ios-btn" onclick="generatePlan()" id="plan-btn">✨ Meinen Tag planen</button>
+      <p style="font-size:12px;color:var(--label3);text-align:center;margin:8px 8px 0" id="plan-meta">Erstellt aus Kalender, Aufgaben & Energie einen optimierten Ablauf.</p>
+    </div>
+    <div id="plan-output"></div>
   </div>
-  <div class="quick-add">
-    <input type="text" id="habit-input" placeholder="Neue Gewohnheit..." onkeydown="if(event.key==='Enter')addHabit()">
-    <button class="add-btn" onclick="addHabit()">+</button>
-  </div>
-  <p style="font-size:13px;color:var(--label3);text-align:center;margin:8px 24px">Lange drücken zum Löschen</p>
 </div>
 
 <!-- ══════ MODULE ══════ -->
@@ -322,7 +320,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
     <div class="mod-grid">
       <div class="mod-card" onclick="switchTab('home')"><div class="mod-emoji">📅</div><div><div class="mod-name">Heute</div><div class="mod-count">Tagesplanung</div></div></div>
       <div class="mod-card" onclick="switchTab('tasks')"><div class="mod-emoji">✅</div><div><div class="mod-name">Aufgaben</div><div class="mod-count">4 Listen</div></div></div>
-      <div class="mod-card" onclick="switchTab('habits')"><div class="mod-emoji">🔥</div><div><div class="mod-name">Gewohnheiten</div><div class="mod-count" id="mod-habit-count">—</div></div></div>
+      <div class="mod-card" onclick="switchTab('planner')"><div class="mod-emoji">🗺️</div><div><div class="mod-name">Planer</div><div class="mod-count">KI-Tagescoach</div></div></div>
       <div class="mod-card" onclick="switchTab('ai')"><div class="mod-emoji">🤖</div><div><div class="mod-name">KI-Assistent</div><div class="mod-count">Groq · gratis</div></div></div>
     </div>
   </div>
@@ -440,7 +438,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
   <div class="tab on" id="tab-home" onclick="switchTab('home')"><div class="tab-icon">⊙</div><div class="tab-label">Heute</div></div>
   <div class="tab" id="tab-tasks" onclick="switchTab('tasks')"><div class="tab-icon">☑</div><div class="tab-label">Aufgaben</div></div>
   <div class="tab" id="tab-ai" onclick="switchTab('ai')"><div class="tab-icon">◈</div><div class="tab-label">KI</div></div>
-  <div class="tab" id="tab-habits" onclick="switchTab('habits')"><div class="tab-icon">◎</div><div class="tab-label">Habits</div></div>
+  <div class="tab" id="tab-planner" onclick="switchTab('planner')"><div class="tab-icon">🗺</div><div class="tab-label">Planer</div></div>
   <div class="tab" id="tab-modules" onclick="switchTab('modules')"><div class="tab-icon">⊞</div><div class="tab-label">Module</div></div>
 </nav>
 
@@ -491,13 +489,7 @@ const DEFAULT_STATE = {
       {id:'h2',text:'2L Wasser trinken',done:false,tag:'health'}
     ]
   },
-  habits: [
-    {id:'hab1',emoji:'💧',name:'2L Wasser',days:[1,1,1,1,1,0,0]},
-    {id:'hab2',emoji:'📚',name:'Lesen · 20 Min',days:[1,1,0,1,0,0,0]},
-    {id:'hab3',emoji:'🏃',name:'Sport / Bewegung',days:[1,0,1,0,0,0,0]},
-    {id:'hab4',emoji:'🧘',name:'Meditieren',days:[1,1,1,1,1,1,1]},
-    {id:'hab5',emoji:'📵',name:'Phone-Free Abend',days:[0,0,0,0,1,0,0]}
-  ],
+  dayPlan: null,
   schedule: [
     {id:'e1',time:'08:00',text:'☕ Morgenroutine',sub:'Kaffee · 30 Min',color:'',source:'manual'},
     {id:'e2',time:'10:00',text:'📚 Thesis',sub:'OCR Pipeline · Leine',color:'ev-purple',source:'manual'},
@@ -562,7 +554,7 @@ function switchTab(name){
   if(tabBtn)tabBtn.classList.add('on');
   if(name==='home')renderHome();
   if(name==='tasks')renderTasks();
-  if(name==='habits')renderHabits();
+  if(name==='planner')renderPlanner();
   if(name==='modules')renderModules();
   if(name==='shortcuts')renderShortcuts();
   window.scrollTo(0,0);
@@ -600,12 +592,33 @@ function renderShortcuts(){
 }
 function parseCalendarData(raw){
   raw=(raw||'').trim();if(!raw)return[];
-  try{const j=JSON.parse(raw);if(Array.isArray(j))return j;}catch(e){}
-  return raw.split(/\r?\n+/).map(line=>{
-    line=line.trim();if(!line)return null;
-    if(line.includes('|')){const p=line.split('|').map(s=>s.trim());return{time:p[0],text:p[1]||'Termin',sub:p[2]||''};}
-    const m=line.match(/^(\d{1,2}:\d{2})\s+(.+)$/);return m?{time:m[1],text:m[2]}:null;
-  }).filter(Boolean);
+  let arr=[];
+  try{const j=JSON.parse(raw);if(Array.isArray(j))arr=j;}catch(e){}
+  if(!arr.length){
+    arr=raw.split(/\r?\n+/).map(line=>{
+      line=line.trim();if(!line)return null;
+      if(line.includes('|')){
+        const p=line.split('|').map(s=>s.trim());
+        let idx=1,end='';
+        if(/^\d{1,2}:\d{2}/.test(p[1]||'')){end=p[1].slice(0,5);idx=2;}
+        return{time:(p[0]||'').slice(0,5),end,text:p[idx]||'Termin',sub:p[idx+1]||''};
+      }
+      const m=line.match(/^(\d{1,2}:\d{2})\s+(.+)$/);return m?{time:m[1],text:m[2]}:null;
+    }).filter(Boolean);
+  }
+  return dedupeEvents(arr);
+}
+function dedupeEvents(arr){
+  const seen=new Set();const out=[];
+  for(const e of arr){
+    if(!e||!e.time)continue;
+    const t=(e.time||'').slice(0,5);
+    const end=(e.end||'').slice(0,5);
+    const key=t+'|'+end+'|'+(e.text||e.title||'').toLowerCase();
+    if(seen.has(key))continue;seen.add(key);
+    out.push({time:t,end,text:e.text||e.title||'Termin',sub:e.sub||e.location||''});
+  }
+  return out;
 }
 function testCalendar(){
   const sample='09:30 | 🩺 Test-Termin | Beispiel\n16:00 | 📞 Probe-Call | importiert';
@@ -689,7 +702,8 @@ function renderSchedule(){
     slot.className='time-slot';
     const isCal=ev.source==='calendar';
     slot.onclick=()=>isCal?showToast('📆 Aus Apple Kalender'):openEventSheet(ev.id);
-    slot.innerHTML='<div class="t-label">'+ev.time+'</div><div class="t-content"><div class="t-event '+(ev.color||'')+'">'+esc(ev.text)+(ev.sub?'<div class="t-event-sub">'+esc(ev.sub)+'</div>':'')+'</div></div>';
+    const sub2=[ev.end?('bis '+ev.end):'',ev.sub||''].filter(Boolean).join(' · ');
+    slot.innerHTML='<div class="t-label">'+ev.time+'</div><div class="t-content"><div class="t-event '+(ev.color||'')+'">'+esc(ev.text)+(sub2?'<div class="t-event-sub">'+esc(sub2)+'</div>':'')+'</div></div>';
     grid.appendChild(slot);
   });
 }
@@ -745,22 +759,62 @@ function setEnergy(level,btn){
 }
 
 // ════════════════════════════════════════════════════
-//  HABITS
+//  PLANER (KI-Tagescoach)
 // ════════════════════════════════════════════════════
-function renderHabits(){
-  const c=document.getElementById('habit-list');c.innerHTML='';
-  const ti=getTodayIdx();
-  state.habits.forEach(h=>{
-    const row=document.createElement('div');row.className='habit-row';
-    const dots=h.days.map((d,i)=>'<div class="hdot'+(d?' done':'')+(i===ti?' today':'')+'" data-i="'+i+'">'+(d?'✓':'')+'</div>').join('');
-    row.innerHTML='<div style="font-size:22px">'+h.emoji+'</div><div class="row-body"><div class="row-title">'+esc(h.name)+'</div></div><div class="habit-dots">'+dots+'</div><div class="streak">🔥'+streakOf(h)+'</div>';
-    row.querySelectorAll('.hdot').forEach(dot=>{dot.onclick=()=>{const i=+dot.dataset.i;h.days[i]=h.days[i]?0:1;save();renderHabits();};});
-    attachLongPress(row,()=>{if(confirm('Gewohnheit "'+h.name+'" löschen?')){state.habits=state.habits.filter(x=>x.id!==h.id);save();renderHabits();showToast('Gelöscht');}});
-    c.appendChild(row);
+const PLAN_ICON={event:'📍',task:'✅',focus:'🎯',break:'☕',travel:'🚶',meal:'🍽️',free:'🌤️',routine:'🔁'};
+const PLAN_COLOR={event:'ev-cal',task:'',focus:'ev-purple',break:'ev-green',travel:'ev-orange',meal:'ev-green',free:'',routine:'ev-purple'};
+
+function renderPlanner(){
+  const out=document.getElementById('plan-output');
+  const meta=document.getElementById('plan-meta');
+  if(!state.dayPlan||!state.dayPlan.blocks||!state.dayPlan.blocks.length){
+    out.innerHTML='<div style="margin:0 16px;padding:24px 16px;text-align:center;color:var(--label2);background:var(--surface);border-radius:var(--radius)">Noch kein Plan für heute.<br>Tipp oben auf „Meinen Tag planen".</div>';
+    return;
+  }
+  const p=state.dayPlan;
+  if(meta&&p.generatedAt){const d=new Date(p.generatedAt);meta.textContent='Erstellt um '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+(p.date&&p.date!==todayKey()?' (veraltet)':'');}
+  let html='<div class="time-grid" style="margin-bottom:16px">';
+  p.blocks.forEach(b=>{
+    const ic=PLAN_ICON[b.type]||'•';
+    const col=PLAN_COLOR[b.type]||'';
+    const range=b.end?(b.time+'–'+b.end):b.time;
+    html+='<div class="time-slot"><div class="t-label">'+esc((b.time||'').slice(0,5))+'</div><div class="t-content"><div class="t-event '+col+'">'+ic+' '+esc(b.title||'')+(b.note?'<div class="t-event-sub">'+esc(b.note)+'</div>':'')+'</div></div></div>';
   });
-  const mc=document.getElementById('mod-habit-count');if(mc)mc.textContent=state.habits.length+' Habits';
+  html+='</div>';
+  if(p.summary)html='<div style="margin:0 16px 12px;padding:14px 16px;background:var(--blue);color:#fff;border-radius:var(--radius);font-size:15px;line-height:1.4">'+esc(p.summary)+'</div>'+html;
+  out.innerHTML=html;
 }
-function addHabit(){const i=document.getElementById('habit-input');const v=i.value.trim();if(!v)return;const emojis=['⭐','🎯','💪','🌱','✍️','🎸','🏊','🧠'];state.habits.push({id:'hab'+Date.now(),emoji:emojis[Math.floor(Math.random()*emojis.length)],name:v,days:[0,0,0,0,0,0,0]});save();i.value='';renderHabits();showToast('Gewohnheit hinzugefügt');}
+
+function todayKey(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+
+async function generatePlan(){
+  const btn=document.getElementById('plan-btn');
+  if(!groqKey){showToast('Erst KI verbinden (KI-Tab)');switchTab('ai');return;}
+  btn.disabled=true;btn.textContent='✨ Plane…';
+  const events=allEvents().map(e=>e.time+(e.end?'–'+e.end:'')+' '+e.text+(e.sub?' ('+e.sub+')':'')).join('; ')||'keine';
+  const tasks=Object.entries(state.tasks).flatMap(([k,arr])=>arr.filter(t=>!t.done).map(t=>t.text+' ['+tagLabel(t.tag)+']')).join('; ')||'keine';
+  const now=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  const sys='Du bist Stevens persönlicher Tagescoach. Erstelle einen realistischen, entspannten Tagesablauf als JSON. '+
+    'Berücksichtige Fixtermine (nicht verschieben!), plane offene Aufgaben in freie Lücken, baue Pausen/Mahlzeiten ein, und gib bei Terminen mit Ort einen Losgeh-Hinweis (Typ travel, ~15-20 Min vorher, als Schätzung). '+
+    'Antworte NUR mit JSON: {"summary":"1 motivierender Satz","blocks":[{"time":"HH:MM","end":"HH:MM optional","title":"...","type":"event|task|focus|break|travel|meal|free","note":"kurzer Tipp"}]}. '+
+    'Sortiere blocks nach Zeit. Halte dich an Realität, max 12 Blöcke.';
+  const usr='Jetzt ist '+now+'. Energie: '+state.energy.label+'. Fixtermine heute: '+events+'. Offene Aufgaben: '+tasks+'.';
+  try{
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+      body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:sys},{role:'user',content:usr}],max_tokens:1100,temperature:0.6,response_format:{type:'json_object'}})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error?.message||res.status);
+    let parsed=JSON.parse(data.choices[0].message.content);
+    const blocks=(parsed.blocks||[]).filter(b=>b.time).sort((a,b)=>a.time.localeCompare(b.time));
+    state.dayPlan={generatedAt:Date.now(),date:todayKey(),summary:parsed.summary||'',blocks};
+    save();renderPlanner();showToast('Plan erstellt ✨');
+  }catch(e){
+    showToast('Konnte Plan nicht erstellen');
+  }
+  btn.disabled=false;btn.textContent='✨ Meinen Tag planen';
+}
 
 // ════════════════════════════════════════════════════
 //  LONG PRESS
@@ -832,7 +886,6 @@ function shareActiveList(){shareList(state.activeList);}
 // ════════════════════════════════════════════════════
 function renderModules(){
   document.getElementById('key-status').textContent=groqKey?groqKey.slice(0,8)+'…':'Nicht gesetzt';
-  const mc=document.getElementById('mod-habit-count');if(mc)mc.textContent=state.habits.length+' Habits';
   // Worker UI
   const hasWorker = !!(workerUrl && workerSecret);
   document.getElementById('sync-status-row').style.display = hasWorker ? '' : 'none';
@@ -863,9 +916,7 @@ function buildContext(){
   const open=state.tasks.today.filter(t=>!t.done).map(t=>t.text);
   const shop=state.tasks.shopping.filter(t=>!t.done).map(t=>t.text);
   const work=state.tasks.work.filter(t=>!t.done).map(t=>t.text);
-  const hDone=state.habits.filter(h=>h.days[getTodayIdx()]).map(h=>h.name);
-  const hOpen=state.habits.filter(h=>!h.days[getTodayIdx()]).map(h=>h.name);
-  const sched=allEvents().map(e=>e.time+' '+e.text).join(', ');
+  const sched=allEvents().map(e=>e.time+(e.end?'–'+e.end:'')+' '+e.text).join(', ');
   const now=new Date();
   return 'Du bist der persönliche KI-Assistent im Organizer von Steven.\n\n'+
 'PROFIL:\n- Steven, Bachelor-Student (Leuphana Lüneburg), schreibt Thesis über OCR-Systeme für klinische Dokumente (Pneumologie, MHH Hannover)\n- Arbeitet nebenbei in einem Tee-Laden mit Kulturraum\n- Raum Hannover, Partnerin seit 7 Jahren\n- Mag Fantasy (Rothfuss, Tolkien, Tad Williams) und Hörbücher\n- Studentisches Budget, kostenbewusst\n\n'+
@@ -874,10 +925,9 @@ function buildContext(){
 '- Tagesplan: '+(sched||'leer')+'\n'+
 '- Offene Aufgaben heute: '+(open.join(', ')||'keine')+'\n'+
 '- Arbeit/Thesis offen: '+(work.join(', ')||'keine')+'\n'+
-'- Einkaufsliste offen: '+(shop.join(', ')||'leer')+'\n'+
-'- Habits heute erledigt: '+(hDone.join(', ')||'noch keine')+'\n'+
-'- Habits heute offen: '+(hOpen.join(', ')||'keine')+'\n\n'+
-'Antworte kurz, konkret, persönlich und auf Deutsch. Beziehe dich aktiv auf den Kontext. Sei ein hilfreicher, freundlicher Assistent – kein Geschwafel.';
+'- Einkaufsliste offen: '+(shop.join(', ')||'leer')+'\n\n'+
+'Du kannst Aktionen ausführen: Aufgaben/Einkäufe/Termine hinzufügen, Aufgaben abhaken, Energie setzen – nutze dafür die bereitgestellten Tools, wenn Steven darum bittet. Frag nicht unnötig nach, handle direkt und bestätige knapp.\n'+
+'Antworte kurz, konkret, persönlich und auf Deutsch. Kein Geschwafel.';
 }
 
 if(groqKey){document.getElementById('api-setup').style.display='none';document.getElementById('chat-active').style.display='flex';}
@@ -888,6 +938,35 @@ function appendMsg(role,text){const c=document.getElementById('chat-msgs');const
 function suggest(t){const i=document.getElementById('chat-inp');i.value=t;i.focus();if(!t.endsWith(': '))sendChat();}
 function flushPendingAI(){if(pendingAI){const q=pendingAI;pendingAI=null;document.getElementById('chat-inp').value=q;sendChat();}}
 
+const AI_TOOLS=[
+  {type:'function',function:{name:'add_task',description:'Fügt eine Aufgabe zu einer Liste hinzu',parameters:{type:'object',properties:{text:{type:'string'},list:{type:'string',enum:['today','work','health']}},required:['text']}}},
+  {type:'function',function:{name:'add_shopping_item',description:'Fügt einen Artikel zur Einkaufsliste hinzu',parameters:{type:'object',properties:{text:{type:'string'}},required:['text']}}},
+  {type:'function',function:{name:'add_calendar_event',description:'Trägt einen Termin in den Tagesplan ein',parameters:{type:'object',properties:{time:{type:'string',description:'HH:MM'},end:{type:'string',description:'HH:MM optional'},title:{type:'string'},location:{type:'string'}},required:['time','title']}}},
+  {type:'function',function:{name:'complete_task',description:'Hakt eine offene Aufgabe von heute ab (Teiltext genügt)',parameters:{type:'object',properties:{text:{type:'string'}},required:['text']}}},
+  {type:'function',function:{name:'set_energy',description:'Setzt das Energielevel',parameters:{type:'object',properties:{level:{type:'string',enum:['low','good','top']}},required:['level']}}}
+];
+
+function executeTool(name,args){
+  try{
+    if(name==='add_task'){const l=['today','work','health'].includes(args.list)?args.list:'today';addTaskTo(l,args.text,listTag(l));return'Aufgabe „'+args.text+'" zu '+tagLabel(listTag(l))+' hinzugefügt.';}
+    if(name==='add_shopping_item'){addTaskTo('shopping',args.text,'shopping');return'„'+args.text+'" auf die Einkaufsliste gesetzt.';}
+    if(name==='add_calendar_event'){state.schedule.push({id:'e'+Date.now()+Math.random().toString(36).slice(2,5),time:(args.time||'').slice(0,5),end:(args.end||'').slice(0,5),text:args.title,sub:args.location||'',color:'',source:'manual'});save();return'Termin „'+args.title+'" um '+args.time+' eingetragen.';}
+    if(name==='complete_task'){const q=(args.text||'').toLowerCase();const t=state.tasks.today.find(x=>!x.done&&x.text.toLowerCase().includes(q));if(t){t.done=true;save();return'„'+t.text+'" abgehakt.';}return'Keine passende offene Aufgabe gefunden.';}
+    if(name==='set_energy'){const m={low:['Müde',20],good:['Gut',70],top:['Top!',100]};if(m[args.level]){state.energy={level:args.level,label:m[args.level][0],pct:m[args.level][1]};save();return'Energie auf '+m[args.level][0]+' gesetzt.';}return'Unbekanntes Level.';}
+  }catch(e){return'Fehler: '+e.message;}
+  return'Unbekanntes Tool.';
+}
+
+async function groqCall(messages,useTools){
+  const body={model:'llama-3.3-70b-versatile',messages,max_tokens:700,temperature:0.7};
+  if(useTools){body.tools=AI_TOOLS;body.tool_choice='auto';}
+  const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},body:JSON.stringify(body)
+  });
+  if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t);}
+  return res.json();
+}
+
 async function sendChat(){
   const i=document.getElementById('chat-inp'),btn=document.getElementById('send-btn');
   const text=i.value.trim();if(!text)return;
@@ -895,22 +974,38 @@ async function sendChat(){
   appendMsg('user',text);chatHistory.push({role:'user',content:text});
   btn.disabled=true;
   const thinking=appendMsg('ai','denkt nach …');thinking.classList.add('thinking');
-  if(!groqKey){setTimeout(()=>{thinking.remove();appendMsg('ai','Demo-Modus. Gib deinen Groq Key unter Module → Einstellungen → API Key ändern ein, dann antworte ich richtig.');btn.disabled=false;},600);return;}
+  if(!groqKey){setTimeout(()=>{thinking.remove();appendMsg('ai','Demo-Modus. Gib deinen Groq Key unter Module → API Key ändern ein, dann antworte ich richtig.');btn.disabled=false;},600);return;}
   try{
-    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
-      body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:buildContext()},...chatHistory.slice(-12)],max_tokens:600,temperature:0.75})
-    });
+    const msgs=[{role:'system',content:buildContext()},...chatHistory.slice(-12)];
+    let data=await groqCall(msgs,true);
+    let msg=data.choices[0].message;
+
+    // Tool-Calls ausführen
+    if(msg.tool_calls&&msg.tool_calls.length){
+      msgs.push(msg);
+      chatHistory.push({role:'assistant',content:msg.content||'',tool_calls:msg.tool_calls});
+      const done=[];
+      for(const tc of msg.tool_calls){
+        let args={};try{args=JSON.parse(tc.function.arguments||'{}');}catch(e){}
+        const result=executeTool(tc.function.name,args);
+        done.push(result);
+        msgs.push({role:'tool',tool_call_id:tc.id,content:result});
+        chatHistory.push({role:'tool',tool_call_id:tc.id,content:result});
+      }
+      // sichtbare Bestätigung + UI aktualisieren
+      renderHome();renderTasks();
+      data=await groqCall(msgs,false);
+      msg=data.choices[0].message;
+    }
+
     thinking.remove();
-    if(!res.ok){const err=await res.text();appendMsg('ai',res.status===401?'API Key ungültig. Bitte unter Module neu eingeben.':'Fehler '+res.status+'. Versuch es nochmal.');btn.disabled=false;return;}
-    const data=await res.json();
-    const reply=data.choices?.[0]?.message?.content||'Keine Antwort erhalten.';
+    const reply=msg.content||'Erledigt ✓';
     chatHistory.push({role:'assistant',content:reply});
     appendMsg('ai',reply);
   }catch(e){
     thinking.remove();
-    appendMsg('ai','Verbindung fehlgeschlagen. Falls das dauerhaft passiert, blockiert evtl. dein Netzwerk die Groq-API – sag mir Bescheid, dann richten wir einen kostenlosen Proxy ein.');
+    const m=String(e.message||e);
+    appendMsg('ai',m.startsWith('401')?'API Key ungültig – bitte unter Module neu eingeben.':'Verbindung fehlgeschlagen. Versuch es nochmal.');
   }
   btn.disabled=false;
 }
@@ -930,9 +1025,8 @@ function handleEntry(){
   if(action==='add-task'){const t=p.get('text');const l=p.get('list')||'today';if(t){addTaskTo(l,t,listTag(l));toast='Aufgabe: '+t;}}
   else if(action==='add-shopping'){const t=p.get('text');if(t){addTaskTo('shopping',t,'shopping');toast='Einkauf: '+t;}}
   else if(action==='set-energy'){const lv=p.get('level');const m={low:['Müde',20],good:['Gut',70],top:['Top!',100]};if(m[lv]){state.energy={level:lv,label:m[lv][0],pct:m[lv][1]};save();toast='Energie: '+m[lv][0];}}
-  else if(action==='log-habit'){const n=(p.get('name')||'').toLowerCase();const h=state.habits.find(x=>x.name.toLowerCase().includes(n));if(h){h.days[getTodayIdx()]=1;save();toast='✓ '+h.name;}}
   else if(action==='add-event'){const time=p.get('time'),text=p.get('text'),sub=p.get('sub')||'';if(time&&text){state.schedule.push({id:'e'+Date.now(),time,text,sub,color:'',source:'manual'});save();toast='Termin: '+text;}}
-  else if(action==='import-calendar'){const evs=parseCalendarData(p.get('data')||'');if(evs.length){state.calendarEvents=evs.map((e,i)=>({id:'cal'+i,time:(e.time||'').slice(0,5),text:e.text||e.title||'Termin',sub:e.sub||e.location||'',color:'ev-cal',source:'calendar'})).filter(e=>e.time);state.lastCalendarSync=Date.now();save();toast=state.calendarEvents.length+' Termine importiert';}else{toast='Keine Termine gefunden';}}
+  else if(action==='import-calendar'){const evs=parseCalendarData(p.get('data')||'');if(evs.length){state.calendarEvents=evs.map((e,i)=>({id:'cal'+i,time:e.time,end:e.end||'',text:e.text,sub:e.sub||'',color:'ev-cal',source:'calendar'}));state.lastCalendarSync=Date.now();save();toast=state.calendarEvents.length+' Termine importiert';}else{toast='Keine Termine gefunden';}}
   else if(action==='ask'){pendingAI=p.get('q');targetTab='ai';}
   else if(action==='ask-open'){targetTab='ai';}
   else if(action==='focus-add'){targetTab='home';setTimeout(()=>document.getElementById('home-input').focus(),300);}
@@ -968,14 +1062,10 @@ async function workerFetch(path, opts = {}) {
 async function syncCalendarFromWorker() {
   const data = await workerFetch('/calendar');
   if (!data || !Array.isArray(data.events) || data.events.length === 0) return false;
-  state.calendarEvents = data.events.map((e, i) => ({
-    id: 'cal' + i,
-    time: (e.time || '').slice(0, 5),
-    text: e.text || 'Termin',
-    sub: e.sub || '',
-    color: 'ev-cal',
-    source: 'calendar'
-  })).filter(e => e.time);
+  state.calendarEvents = dedupeEvents(data.events).map((e, i) => ({
+    id: 'cal' + i, time: e.time, end: e.end || '', text: e.text, sub: e.sub || '',
+    color: 'ev-cal', source: 'calendar'
+  }));
   state.lastCalendarSync = Date.now();
   save();
   return true;
@@ -995,7 +1085,6 @@ async function syncStateFromWorker() {
   const remote = data.state;
   // Merge: use remote tasks/habits/schedule if they exist
   if (remote.tasks) state.tasks = remote.tasks;
-  if (remote.habits) state.habits = remote.habits;
   if (remote.schedule) state.schedule = remote.schedule;
   if (Array.isArray(remote.calendarEvents)) state.calendarEvents = remote.calendarEvents;
   if (remote.lastCalendarSync) state.lastCalendarSync = remote.lastCalendarSync;
@@ -1007,7 +1096,7 @@ async function forceSyncNow() {
   showToast('Synchronisiere…');
   const calOk = await syncCalendarFromWorker();
   await syncStateFromWorker();
-  renderHome(); renderTasks(); renderHabits();
+  renderHome(); renderTasks(); renderPlanner();
   showToast(calOk ? '✓ Kalender + Daten synchronisiert' : '✓ Daten synchronisiert');
 }
 
@@ -1115,7 +1204,7 @@ async function testNotification() {
 //  INIT
 // ════════════════════════════════════════════════════
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
-renderHome();renderTasks();renderHabits();renderModules();
+renderHome();renderTasks();renderModules();renderPlanner();
 handleEntry();
 initWorkerSync();
 </script>
