@@ -587,6 +587,7 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 function getTodayIdx(){const d=new Date().getDay();return d===0?6:d-1}
 function nowMin(){const n=new Date();return n.getHours()*60+n.getMinutes()}
 function timeToMin(t){const[h,m]=t.split(':').map(Number);return h*60+(m||0)}
+function toMin(t){return timeToMin(t);}
 
 function streakOf(h){
   let s=0,i=getTodayIdx();
