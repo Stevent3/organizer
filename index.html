@@ -92,7 +92,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
 .time-slot{background:var(--surface);display:flex;min-height:54px;cursor:pointer;transition:background .1s}
 .time-slot:active{background:var(--fill)}
 .time-slot+.time-slot{border-top:.5px solid var(--sep)}
-.t-label{width:50px;padding:12px 6px 10px 14px;font-size:12px;color:var(--label2);flex-shrink:0;font-variant-numeric:tabular-nums}
+.t-label{width:88px;padding:12px 4px 10px 12px;font-size:11.5px;color:var(--label2);flex-shrink:0;font-variant-numeric:tabular-nums}
 .t-content{flex:1;padding:7px 12px 7px 0;border-left:.5px solid var(--sep);display:flex;align-items:center}
 .t-event{border-left:3px solid var(--blue);background:var(--blue-bg);border-radius:5px;padding:6px 10px;font-size:14px;font-weight:500;color:var(--blue);width:100%}
 .ev-green{background:rgba(52,199,89,.1);border-color:var(--green);color:var(--green)}
@@ -102,13 +102,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
 .t-event-sub{font-size:12px;opacity:.75;font-weight:400}
 .t-now-line{height:2px;background:var(--red);position:relative;margin:0 16px}
 .t-now-line::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--red)}
-.day-cal{position:relative;margin:0 16px;background:var(--surface);border-radius:var(--radius);overflow:hidden}
+.cal-viewport{margin:0 16px;height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--surface);border-radius:var(--radius);position:relative}
+.day-cal{position:relative}
 .cal-line{position:absolute;left:48px;right:0;border-top:.5px solid var(--sep);pointer-events:none}
 .cal-hourlabel{position:absolute;left:0;width:42px;text-align:right;font-size:11px;color:var(--label3);font-variant-numeric:tabular-nums;transform:translateY(-6px);pointer-events:none}
 .cal-now{position:absolute;left:48px;right:0;height:2px;background:var(--red);z-index:3;pointer-events:none}
 .cal-now::before{content:'';position:absolute;left:-4px;top:-4px;width:9px;height:9px;border-radius:50%;background:var(--red)}
-.cal-ev{position:absolute;border-radius:6px;padding:4px 8px;font-size:13px;line-height:1.25;overflow:hidden;cursor:pointer;border-left:3px solid var(--blue);background:var(--blue-bg);color:var(--blue);box-sizing:border-box;z-index:2;transition:transform .1s}
-.cal-ev:active{transform:scale(.98)}
+.cal-ev{position:absolute;border-radius:6px;padding:4px 8px;font-size:13px;line-height:1.25;overflow:hidden;cursor:grab;border-left:3px solid var(--blue);background:var(--blue-bg);color:var(--blue);box-sizing:border-box;z-index:2;transition:box-shadow .1s;touch-action:none;user-select:none;-webkit-user-select:none}
+.cal-ev.dragging{z-index:10;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:grabbing;opacity:.95}
+.cal-ev:active{box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .cal-ev .ce-t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-ev .ce-s{font-size:11px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-ev.ev-green{border-color:var(--green);background:rgba(52,199,89,.12);color:var(--green)}
@@ -117,11 +119,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
 .cal-ev.ev-cal{border-color:var(--indigo);background:rgba(88,86,214,.12);color:var(--indigo)}
 
 .energy-wrap{margin:0 16px 16px;background:var(--surface);border-radius:var(--radius);padding:16px}
-.energy-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.energy-title{font-size:15px;font-weight:600}
-.energy-val{font-size:15px;color:var(--blue);font-weight:600}
-.e-track{height:6px;background:var(--fill);border-radius:3px;overflow:hidden;margin-bottom:12px}
-.e-fill{height:100%;background:var(--green);border-radius:3px;transition:width .35s}
+.energy-title{font-size:15px;font-weight:600;margin-bottom:12px}
+.energy-hint{font-size:12px;color:var(--label3);margin-top:10px;text-align:center}
+.e-btns{display:flex;gap:8px}
+.e-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--fill);border:2px solid transparent;border-radius:12px;padding:12px 4px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--label);cursor:pointer;transition:all .12s}
+.e-emoji{font-size:24px}
+.e-btn:active{transform:scale(.96)}
+.e-btn.on{border-color:var(--blue);background:var(--blue-bg);color:var(--blue);font-weight:600}
 .e-btns{display:flex;gap:8px}
 .e-btn{flex:1;background:var(--fill);border:none;border-radius:8px;padding:9px 4px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--label);cursor:pointer;transition:all .1s}
 .e-btn:active{transform:scale(.96)}
@@ -223,13 +227,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
     <div class="focus-actions" id="focus-actions"></div>
   </div>
   <div class="energy-wrap">
-    <div class="energy-top"><span class="energy-title">⚡ Energie</span><span class="energy-val" id="energy-label">Gut</span></div>
-    <div class="e-track"><div class="e-fill" id="e-fill" style="width:70%"></div></div>
+    <div class="energy-title">Wie viel Energie hast du gerade?</div>
     <div class="e-btns">
-      <button class="e-btn" data-e="low" onclick="setEnergy('low',this)">😴 Müde</button>
-      <button class="e-btn on" data-e="good" onclick="setEnergy('good',this)">😊 Gut</button>
-      <button class="e-btn" data-e="top" onclick="setEnergy('top',this)">🔥 Top</button>
+      <button class="e-btn" data-e="low" onclick="setEnergy('low')"><span class="e-emoji">😴</span>Müde</button>
+      <button class="e-btn" data-e="good" onclick="setEnergy('good')"><span class="e-emoji">🙂</span>Okay</button>
+      <button class="e-btn" data-e="top" onclick="setEnergy('top')"><span class="e-emoji">⚡</span>Voll da</button>
     </div>
+    <div class="energy-hint">Dein KI-Coach passt Plan &amp; Tipps daran an.</div>
   </div>
   <div class="ring-wrap">
     <div class="ring-text">
@@ -467,7 +471,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
   <div class="sheet-handle"></div>
   <div class="sheet-title" id="event-sheet-title">Termin hinzufügen</div>
   <label class="sheet-label">Uhrzeit</label>
-  <input type="time" id="ev-time" class="sheet-input">
+  <div style="display:flex;gap:10px">
+    <div style="flex:1"><input type="time" id="ev-time" class="sheet-input" style="margin:0"></div>
+    <div style="display:flex;align-items:center;color:var(--label3)">–</div>
+    <div style="flex:1"><input type="time" id="ev-end" class="sheet-input" style="margin:0"></div>
+  </div>
   <label class="sheet-label">Titel</label>
   <input type="text" id="ev-text" class="sheet-input" placeholder="z.B. 🍽️ Mittagessen">
   <label class="sheet-label">Notiz (optional)</label>
@@ -507,6 +515,7 @@ const DEFAULT_STATE = {
     ]
   },
   dayPlan: null,
+  calOverrides: {},
   schedule: [
     {id:'e1',time:'08:00',text:'☕ Morgenroutine',sub:'Kaffee · 30 Min',color:'',source:'manual'},
     {id:'e2',time:'10:00',text:'📚 Thesis',sub:'OCR Pipeline · Leine',color:'ev-purple',source:'manual'},
@@ -537,7 +546,14 @@ function loadState() {
 let state = loadState();
 let groqKey = localStorage.getItem('organizer_groq_key') || '';
 
-function save(){ try{ localStorage.setItem('organizer_v3', JSON.stringify(state)); }catch(e){} }
+let _syncTimer=null;
+function save(){
+  state.updatedAt=Date.now();
+  try{ localStorage.setItem('organizer_v3', JSON.stringify(state)); }catch(e){}
+  // Debounced: Änderungen 3s nach der letzten Aktion in die Cloud spiegeln
+  clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(()=>{ syncStateToWorker(); },3000);
+}
 
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -589,12 +605,6 @@ function nowMin(){const n=new Date();return n.getHours()*60+n.getMinutes()}
 function timeToMin(t){const[h,m]=t.split(':').map(Number);return h*60+(m||0)}
 function toMin(t){return timeToMin(t);}
 
-function streakOf(h){
-  let s=0,i=getTodayIdx();
-  if(!h.days[i])i--;
-  while(i>=0&&h.days[i]){s++;i--}
-  return s;
-}
 function allEvents(){
   return [...(state.schedule||[]),...(state.calendarEvents||[])].filter(e=>e.time).sort((a,b)=>a.time.localeCompare(b.time));
 }
@@ -641,6 +651,26 @@ function dedupeEvents(arr){
 }
 function depMinutes(ev){ if(!ev.travel)return null; const d=toMin(ev.time)-ev.travel-3; return d>0?d:null; }
 function depLabel(ev){ const d=depMinutes(ev); if(d===null)return ''; return '🚶 los um '+String(Math.floor(d/60)).padStart(2,'0')+':'+String(d%60).padStart(2,'0')+' (~'+ev.travel+' Min)'; }
+function calKey(origTime,text){ return (origTime||'')+'|'+(text||'').toLowerCase(); }
+function buildCalEvents(rawEvents){
+  const ov=state.calOverrides||{};
+  const out=[];
+  dedupeEvents(rawEvents).forEach((e,i)=>{
+    const key=calKey(e.time,e.text);
+    const o=ov[key];
+    if(o&&o.deleted)return;
+    out.push({
+      id:'cal'+i,key,origTime:e.time,
+      time:(o&&o.time)||e.time,
+      end:(o&&o.end!==undefined)?o.end:(e.end||''),
+      text:(o&&o.text)||e.text,
+      sub:(o&&o.sub!==undefined)?o.sub:(e.sub||''),
+      travel:e.travel||0,
+      color:'ev-cal',source:'calendar'
+    });
+  });
+  return out;
+}
 function testCalendar(){
   const sample='09:30 | 🩺 Test-Termin | Beispiel\n16:00 | 📞 Probe-Call | importiert';
   location.href=getBaseUrl()+'?action=import-calendar&data='+encodeURIComponent(sample);
@@ -682,8 +712,6 @@ function renderHome(){
     card.style.display='none';
   }
   // energy
-  document.getElementById('energy-label').textContent=state.energy.label;
-  document.getElementById('e-fill').style.width=state.energy.pct+'%';
   document.querySelectorAll('.e-btn').forEach(b=>b.classList.toggle('on',b.dataset.e===state.energy.level));
   // ring
   const all=Object.values(state.tasks).flat();
@@ -706,21 +734,24 @@ function renderHome(){
   renderSchedule();
 }
 
+let dragState=null;
+function fmtMin(m){m=((Math.round(m)%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
+
 function renderSchedule(){
   const grid=document.getElementById('time-grid');
   const ss=document.getElementById('sync-status');
   if(ss){const n=(state.calendarEvents||[]).length;if(state.lastCalendarSync){const d=new Date(state.lastCalendarSync);ss.textContent=' · '+n+' aus Kalender, '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}else{ss.textContent='';}}
-  grid.className='day-cal';
+  grid.className='cal-viewport';
+  const prevScroll=grid.scrollTop;
+  const firstBuild=!grid.querySelector('.day-cal');
+
   const evs=allEvents();
-  const HH=58;                 // Pixel pro Stunde
-  const pxMin=HH/60;
-  const cur=nowMin();
-  // Sichtbarer Stundenbereich (mind. 7–22, erweitert um Termine + jetzt)
+  const HH=58, pxMin=HH/60, cur=nowMin();
   let minH=7,maxH=22;
   evs.forEach(e=>{const s=Math.floor(toMin(e.time)/60);let enM=(e.end&&toMin(e.end)>toMin(e.time))?toMin(e.end):toMin(e.time)+60;const en=Math.ceil(enM/60);if(s<minH)minH=s;if(en>maxH)maxH=en;});
   const nh=Math.floor(cur/60);minH=Math.min(minH,nh);maxH=Math.max(maxH,nh+1);
   minH=Math.max(0,minH);maxH=Math.min(24,maxH);if(maxH<=minH)maxH=minH+1;
-  grid.style.height=((maxH-minH)*HH)+'px';
+  const totalH=(maxH-minH)*HH;
 
   let html='';
   for(let h=minH;h<=maxH;h++){
@@ -730,7 +761,6 @@ function renderSchedule(){
   }
   if(cur>=minH*60&&cur<=maxH*60){html+='<div class="cal-now" style="top:'+((cur-minH*60)*pxMin)+'px"></div>';}
 
-  // Termine mit Spalten-Layout bei Überschneidung
   const items=evs.map(e=>{const s=toMin(e.time);let en=(e.end&&toMin(e.end)>s)?toMin(e.end):s+60;return{ev:e,s,en};}).sort((a,b)=>a.s-b.s||a.en-b.en);
   const AL=50,AP=6;
   let i=0;
@@ -745,27 +775,97 @@ function renderSchedule(){
       const height=Math.max((it.en-it.s)*pxMin-2,24);
       const colW='((100% - '+AL+'px - '+AP+'px) / '+nCols+')';
       const left='calc('+AL+'px + '+it.col+' * '+colW+')';
-      const ev=it.ev;const isCal=ev.source==='calendar';
+      const ev=it.ev;
       const range=ev.time+(ev.end?'–'+ev.end:'');
       const sub=[range,depLabel(ev)||ev.sub||''].filter(Boolean).join(' · ');
-      html+='<div class="cal-ev '+(ev.color||'')+'" data-id="'+(ev.id||'')+'" data-cal="'+(isCal?1:0)+'" style="top:'+top+'px;height:'+height+'px;left:'+left+';width:calc('+colW+')">'+
+      html+='<div class="cal-ev '+(ev.color||'')+'" data-id="'+(ev.id||'')+'" style="top:'+top+'px;height:'+height+'px;left:'+left+';width:calc('+colW+')">'+
         '<div class="ce-t">'+esc(ev.text)+'</div>'+(height>=38?'<div class="ce-s">'+esc(sub)+'</div>':'')+'</div>';
     });
     i=j;
   }
-  grid.innerHTML=html;
+  grid.innerHTML='<div class="day-cal" style="height:'+totalH+'px">'+html+'</div>';
+  const inner=grid.querySelector('.day-cal');
 
-  grid.querySelectorAll('.cal-ev').forEach(el=>{
-    el.onclick=(e)=>{e.stopPropagation();if(el.dataset.cal==='1')showToast('📆 Aus Apple Kalender – im Kalender bearbeiten');else openEventSheet(el.dataset.id);};
+  // Events: Tippen = bearbeiten · kurz halten & ziehen = verschieben · sofort wischen = scrollen
+  const byId=id=>evs.find(e=>e.id===id);
+  inner.querySelectorAll('.cal-ev').forEach(el=>{
+    el.addEventListener('pointerdown',e=>{
+      if(e.button&&e.button!==0)return;
+      dragState={el,ev:byId(el.dataset.id),startY:e.clientY,startTop:parseFloat(el.style.top)||0,moved:false,armed:false,scrolling:false,lastY:e.clientY};
+      dragState.timer=setTimeout(()=>{
+        if(dragState&&dragState.el===el&&!dragState.scrolling){
+          dragState.armed=true;el.classList.add('dragging');
+          if(navigator.vibrate)navigator.vibrate(25);
+        }
+      },350);
+      try{el.setPointerCapture(e.pointerId);}catch(_){}
+    });
+    el.addEventListener('pointermove',e=>{
+      if(!dragState||dragState.el!==el)return;
+      const dy=e.clientY-dragState.startY;
+      if(dragState.armed){
+        // Verschieben (15-Min-Raster)
+        dragState.moved=true;
+        const snapped=Math.max(0,Math.round((dragState.startTop+dy)/(pxMin*15))*(pxMin*15));
+        el.style.top=snapped+'px';
+        const mins=minH*60+Math.round(snapped/pxMin);
+        const t=el.querySelector('.ce-t');if(t&&dragState.ev)t.textContent='→ '+fmtMin(mins)+' · '+dragState.ev.text;
+      }else{
+        // Vor dem Long-Press: Bewegung = Scrollen des Fensters
+        if(Math.abs(dy)>6)dragState.scrolling=true;
+        if(dragState.scrolling){
+          clearTimeout(dragState.timer);
+          grid.scrollTop-=(e.clientY-dragState.lastY);
+        }
+      }
+      dragState.lastY=e.clientY;
+    });
+    const finish=()=>{
+      if(!dragState||dragState.el!==el)return;
+      const ds=dragState;dragState=null;clearTimeout(ds.timer);el.classList.remove('dragging');
+      if(ds.armed&&ds.moved){
+        const newStart=minH*60+Math.round((parseFloat(el.style.top)||0)/pxMin/15)*15;
+        if(ds.ev){moveEvent(ds.ev,newStart);showToast('Verschoben auf '+fmtMin(newStart));}
+        renderHome();
+      }else if(!ds.scrolling&&!ds.armed){
+        openEventSheet(el.dataset.id);
+      }else if(ds.armed&&!ds.moved){
+        renderSchedule();
+      }
+    };
+    el.addEventListener('pointerup',finish);
+    el.addEventListener('pointercancel',()=>{if(dragState&&dragState.el===el){clearTimeout(dragState.timer);dragState=null;el.classList.remove('dragging');renderSchedule();}});
   });
-  // Tap auf leere Fläche → Termin zur angetippten Stunde
-  grid.onclick=(e)=>{
+
+  // Tippen auf leere Fläche → neuer Termin zur Uhrzeit
+  inner.addEventListener('click',e=>{
     if(e.target.closest('.cal-ev'))return;
-    const rect=grid.getBoundingClientRect();
+    const rect=inner.getBoundingClientRect();
     const mins=minH*60+Math.round(((e.clientY-rect.top)/pxMin)/15)*15;
-    const hh=String(Math.max(0,Math.floor(mins/60))).padStart(2,'0'),mm=String(mins%60).padStart(2,'0');
-    openEventSheet(null,hh+':'+mm);
-  };
+    openEventSheet(null,fmtMin(mins));
+  });
+
+  if(firstBuild){grid.scrollTop=Math.max(0,(cur-minH*60)*pxMin-100);}
+  else{grid.scrollTop=prevScroll;}
+}
+
+function moveEvent(ev,newStartMin){
+  const oldStart=toMin(ev.time);
+  let dur=ev.end?(toMin(ev.end)-oldStart):0; if(dur<0)dur=0;
+  newStartMin=Math.max(0,Math.min(newStartMin,1440-(dur||1)));
+  const nt=fmtMin(newStartMin);
+  const ne=ev.end?fmtMin(newStartMin+dur):'';
+  if(ev.source==='calendar'){
+    const key=ev.key||calKey(ev.origTime||ev.time,ev.text);
+    const o=state.calOverrides[key]||{};
+    o.time=nt;o.end=ne;state.calOverrides[key]=o;
+    const obj=(state.calendarEvents||[]).find(x=>x.id===ev.id)||(state.calendarEvents||[]).find(x=>x.key===key);
+    if(obj){obj.time=nt;obj.end=ne;}
+  }else{
+    const obj=(state.schedule||[]).find(x=>x.id===ev.id);
+    if(obj){obj.time=nt;if(ev.end)obj.end=ne;}
+  }
+  save();
 }
 
 function completeFocus(){const o=state.tasks.today.filter(t=>!t.done);if(o[0]){o[0].done=true;save();renderHome();showToast('✓ Erledigt!');}}
@@ -810,12 +910,11 @@ function addTaskTo(list,text,tag){if(!state.tasks[list])list='today';state.tasks
 // ════════════════════════════════════════════════════
 //  ENERGY
 // ════════════════════════════════════════════════════
-function setEnergy(level,btn){
-  const m={low:['Müde',20],good:['Gut',70],top:['Top!',100]};
+function setEnergy(level){
+  const m={low:['Müde',20],good:['Okay',70],top:['Voll da',100]};
+  if(!m[level])return;
   state.energy={level,label:m[level][0],pct:m[level][1]};save();
-  document.getElementById('energy-label').textContent=m[level][0];
-  document.getElementById('e-fill').style.width=m[level][1]+'%';
-  document.querySelectorAll('.e-btn').forEach(b=>b.classList.toggle('on',b===btn));
+  document.querySelectorAll('.e-btn').forEach(b=>b.classList.toggle('on',b.dataset.e===level));
 }
 
 // ════════════════════════════════════════════════════
@@ -838,7 +937,7 @@ function renderPlanner(){
     const ic=PLAN_ICON[b.type]||'•';
     const col=PLAN_COLOR[b.type]||'';
     const range=b.end?(b.time+'–'+b.end):b.time;
-    html+='<div class="time-slot"><div class="t-label">'+esc((b.time||'').slice(0,5))+'</div><div class="t-content"><div class="t-event '+col+'">'+ic+' '+esc(b.title||'')+(b.note?'<div class="t-event-sub">'+esc(b.note)+'</div>':'')+'</div></div></div>';
+    html+='<div class="time-slot"><div class="t-label">'+esc(range)+'</div><div class="t-content"><div class="t-event '+col+'">'+ic+' '+esc(b.title||'')+(b.note?'<div class="t-event-sub">'+esc(b.note)+'</div>':'')+'</div></div></div>';
   });
   html+='</div>';
   if(p.summary)html='<div style="margin:0 16px 12px;padding:14px 16px;background:var(--blue);color:#fff;border-radius:var(--radius);font-size:15px;line-height:1.4">'+esc(p.summary)+'</div>'+html;
@@ -894,14 +993,15 @@ function attachLongPress(el,cb){
 // ════════════════════════════════════════════════════
 //  EVENT SHEET
 // ════════════════════════════════════════════════════
-let editingEventId=null;
+let editingEvent=null;
 function openEventSheet(id,prefillTime){
-  editingEventId=id||null;
-  const ev=id?state.schedule.find(e=>e.id===id):null;
+  const ev=id?allEvents().find(e=>e.id===id):null;
+  editingEvent=ev||null;
   document.getElementById('event-sheet-title').textContent=ev?'Termin bearbeiten':'Termin hinzufügen';
   document.getElementById('ev-time').value=ev?ev.time:(prefillTime||'');
+  document.getElementById('ev-end').value=ev&&ev.end?ev.end:'';
   document.getElementById('ev-text').value=ev?ev.text:'';
-  document.getElementById('ev-sub').value=ev?ev.sub:'';
+  document.getElementById('ev-sub').value=ev?(ev.sub||''):'';
   document.getElementById('ev-delete-btn').style.display=ev?'block':'none';
   document.getElementById('sheet-overlay').classList.add('show');
   document.getElementById('event-sheet').classList.add('show');
@@ -909,14 +1009,39 @@ function openEventSheet(id,prefillTime){
 function closeSheet(){document.getElementById('sheet-overlay').classList.remove('show');document.getElementById('event-sheet').classList.remove('show');}
 function saveEvent(){
   const time=document.getElementById('ev-time').value;
+  const end=document.getElementById('ev-end').value;
   const text=document.getElementById('ev-text').value.trim();
   const sub=document.getElementById('ev-sub').value.trim();
   if(!time||!text){showToast('Uhrzeit und Titel nötig');return;}
-  if(editingEventId){const e=state.schedule.find(x=>x.id===editingEventId);if(e){e.time=time;e.text=text;e.sub=sub;}}
-  else{state.schedule.push({id:'e'+Date.now(),time,text,sub,color:'',source:'manual'});}
+  if(end&&toMin(end)<=toMin(time)){showToast('Ende muss nach dem Start liegen');return;}
+  if(editingEvent){
+    if(editingEvent.source==='calendar'){
+      const key=editingEvent.key||calKey(editingEvent.origTime||editingEvent.time,editingEvent.text);
+      const o=state.calOverrides[key]||{};
+      o.time=time;o.end=end;o.text=text;o.sub=sub;
+      state.calOverrides[key]=o;
+      const obj=(state.calendarEvents||[]).find(x=>x.id===editingEvent.id)||(state.calendarEvents||[]).find(x=>x.key===key);
+      if(obj){obj.time=time;obj.end=end;obj.text=text;obj.sub=sub;}
+    }else{
+      const e=state.schedule.find(x=>x.id===editingEvent.id);
+      if(e){e.time=time;e.end=end;e.text=text;e.sub=sub;}
+    }
+  }else{
+    state.schedule.push({id:'e'+Date.now(),time,end,text,sub,color:'',source:'manual'});
+  }
   save();closeSheet();renderHome();showToast('Termin gespeichert');
 }
-function deleteEvent(){if(editingEventId){state.schedule=state.schedule.filter(e=>e.id!==editingEventId);save();closeSheet();renderHome();showToast('Termin gelöscht');}}
+function deleteEvent(){
+  if(!editingEvent)return;
+  if(editingEvent.source==='calendar'){
+    const key=editingEvent.key||calKey(editingEvent.origTime||editingEvent.time,editingEvent.text);
+    state.calOverrides[key]={deleted:true};
+    state.calendarEvents=(state.calendarEvents||[]).filter(e=>e.id!==editingEvent.id);
+  }else{
+    state.schedule=state.schedule.filter(e=>e.id!==editingEvent.id);
+  }
+  save();closeSheet();renderHome();showToast('Termin gelöscht');
+}
 
 // ════════════════════════════════════════════════════
 //  EXPORT / IMPORT / SHARE
@@ -1012,7 +1137,7 @@ function executeTool(name,args){
     if(name==='add_shopping_item'){addTaskTo('shopping',args.text,'shopping');return'„'+args.text+'" auf die Einkaufsliste gesetzt.';}
     if(name==='add_calendar_event'){state.schedule.push({id:'e'+Date.now()+Math.random().toString(36).slice(2,5),time:(args.time||'').slice(0,5),end:(args.end||'').slice(0,5),text:args.title,sub:args.location||'',color:'',source:'manual'});save();return'Termin „'+args.title+'" um '+args.time+' eingetragen.';}
     if(name==='complete_task'){const q=(args.text||'').toLowerCase();const t=state.tasks.today.find(x=>!x.done&&x.text.toLowerCase().includes(q));if(t){t.done=true;save();return'„'+t.text+'" abgehakt.';}return'Keine passende offene Aufgabe gefunden.';}
-    if(name==='set_energy'){const m={low:['Müde',20],good:['Gut',70],top:['Top!',100]};if(m[args.level]){state.energy={level:args.level,label:m[args.level][0],pct:m[args.level][1]};save();return'Energie auf '+m[args.level][0]+' gesetzt.';}return'Unbekanntes Level.';}
+    if(name==='set_energy'){const m={low:['Müde',20],good:['Okay',70],top:['Voll da',100]};if(m[args.level]){state.energy={level:args.level,label:m[args.level][0],pct:m[args.level][1]};save();return'Energie auf '+m[args.level][0]+' gesetzt.';}return'Unbekanntes Level.';}
   }catch(e){return'Fehler: '+e.message;}
   return'Unbekanntes Tool.';
 }
@@ -1084,9 +1209,9 @@ function handleEntry(){
   const action=p.get('action');
   if(action==='add-task'){const t=p.get('text');const l=p.get('list')||'today';if(t){addTaskTo(l,t,listTag(l));toast='Aufgabe: '+t;}}
   else if(action==='add-shopping'){const t=p.get('text');if(t){addTaskTo('shopping',t,'shopping');toast='Einkauf: '+t;}}
-  else if(action==='set-energy'){const lv=p.get('level');const m={low:['Müde',20],good:['Gut',70],top:['Top!',100]};if(m[lv]){state.energy={level:lv,label:m[lv][0],pct:m[lv][1]};save();toast='Energie: '+m[lv][0];}}
+  else if(action==='set-energy'){const lv=p.get('level');const m={low:['Müde',20],good:['Okay',70],top:['Voll da',100]};if(m[lv]){state.energy={level:lv,label:m[lv][0],pct:m[lv][1]};save();toast='Energie: '+m[lv][0];}}
   else if(action==='add-event'){const time=p.get('time'),text=p.get('text'),sub=p.get('sub')||'';if(time&&text){state.schedule.push({id:'e'+Date.now(),time,text,sub,color:'',source:'manual'});save();toast='Termin: '+text;}}
-  else if(action==='import-calendar'){const evs=parseCalendarData(p.get('data')||'');if(evs.length){state.calendarEvents=evs.map((e,i)=>({id:'cal'+i,time:e.time,end:e.end||'',text:e.text,sub:e.sub||'',travel:e.travel||0,color:'ev-cal',source:'calendar'}));state.lastCalendarSync=Date.now();save();toast=state.calendarEvents.length+' Termine importiert';}else{toast='Keine Termine gefunden';}}
+  else if(action==='import-calendar'){const evs=parseCalendarData(p.get('data')||'');if(evs.length){state.calendarEvents=buildCalEvents(evs);state.lastCalendarSync=Date.now();save();toast=state.calendarEvents.length+' Termine importiert';}else{toast='Keine Termine gefunden';}}
   else if(action==='ask'){pendingAI=p.get('q');targetTab='ai';}
   else if(action==='ask-open'){targetTab='ai';}
   else if(action==='focus-add'){targetTab='home';setTimeout(()=>document.getElementById('home-input').focus(),300);}
@@ -1122,10 +1247,7 @@ async function workerFetch(path, opts = {}) {
 async function syncCalendarFromWorker() {
   const data = await workerFetch('/calendar');
   if (!data || !Array.isArray(data.events) || data.events.length === 0) return false;
-  state.calendarEvents = dedupeEvents(data.events).map((e, i) => ({
-    id: 'cal' + i, time: e.time, end: e.end || '', text: e.text, sub: e.sub || '',
-    travel: e.travel || 0, color: 'ev-cal', source: 'calendar'
-  }));
+  state.calendarEvents = buildCalEvents(data.events);
   state.lastCalendarSync = Date.now();
   save();
   return true;
@@ -1143,12 +1265,15 @@ async function syncStateFromWorker() {
   const data = await workerFetch('/state');
   if (!data || !data.state) return false;
   const remote = data.state;
-  // Merge: use remote tasks/habits/schedule if they exist
+  // Schutz: Remote nur übernehmen, wenn es NEUER ist als der lokale Stand
+  if ((remote.updatedAt || 0) <= (state.updatedAt || 0)) return false;
   if (remote.tasks) state.tasks = remote.tasks;
   if (remote.schedule) state.schedule = remote.schedule;
-  if (Array.isArray(remote.calendarEvents)) state.calendarEvents = remote.calendarEvents;
-  if (remote.lastCalendarSync) state.lastCalendarSync = remote.lastCalendarSync;
-  save();
+  if (remote.calOverrides) state.calOverrides = remote.calOverrides;
+  if (remote.dayPlan) state.dayPlan = remote.dayPlan;
+  if (remote.energy) state.energy = remote.energy;
+  state.updatedAt = remote.updatedAt;
+  try{ localStorage.setItem('organizer_v3', JSON.stringify(state)); }catch(e){}
   return true;
 }
 
@@ -1183,11 +1308,14 @@ function resetWorker() {
   renderModules(); showToast('Worker getrennt');
 }
 
-// Auto-sync calendar on load if worker is configured
+// Auto-sync on load if worker is configured
 async function initWorkerSync() {
   if (!workerUrl || !workerSecret) return;
-  const ok = await syncCalendarFromWorker();
-  if (ok) { renderHome(); }
+  const stateOk = await syncStateFromWorker();
+  const calOk = await syncCalendarFromWorker();
+  if (stateOk || calOk) { renderHome(); renderTasks(); }
+  // Frischen Stand hochspiegeln (für Briefing & Smart-Tipps im Worker)
+  syncStateToWorker();
 }
 
 // ════════════════════════════════════════════════════
