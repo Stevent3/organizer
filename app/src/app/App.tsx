@@ -3,8 +3,9 @@ import { TabBar } from '../components/TabBar'
 import { TABS, type TabId } from './tabs'
 import { TodayScreen } from '../screens/TodayScreen'
 import { MoreScreen } from '../screens/MoreScreen'
-import { PlaceholderScreen } from '../screens/PlaceholderScreen'
 import { CalendarScreen } from '../screens/CalendarScreen'
+import { TasksScreen } from '../screens/TasksScreen'
+import { AiBubble } from '../components/ai/AiBubble'
 import { autoImportOnce } from '../lib/importV3'
 import { applySetupFromUrl } from '../lib/setupLink'
 import { startSyncEngine } from '../lib/syncEngine'
@@ -21,15 +22,15 @@ export default function App() {
   return (
     <div className="flex min-h-full flex-col">
       <main
-        className="flex-1 overflow-y-auto pt-safe"
-        style={{ paddingBottom: 'calc(var(--tabbar-h) + var(--safe-bottom) + 16px)' }}
+        className="flex-1 overflow-y-auto"
+        style={{ paddingTop: 'calc(var(--safe-top) + 24px)', paddingBottom: 'calc(var(--tabbar-h) + var(--safe-bottom) + 96px)' }}
       >
-        {tab === 'today' && <TodayScreen onOpenCalendar={() => setTab('calendar')} />}
+        {tab === 'today' && <TodayScreen />}
         {tab === 'calendar' && <CalendarScreen />}
-        {tab === 'tasks' && <PlaceholderScreen title="Aufgaben" hint="Listen und Bring-Einkaufsliste folgen in Meilenstein 4." />}
-        {tab === 'ai' && <PlaceholderScreen title="KI" hint="Chat mit Tool-Calling folgt in Meilenstein 4." />}
+        {tab === 'tasks' && <TasksScreen />}
         {tab === 'more' && <MoreScreen />}
       </main>
+      <AiBubble />
       <TabBar tabs={TABS} active={tab} onChange={setTab} />
     </div>
   )

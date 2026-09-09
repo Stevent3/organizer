@@ -34,6 +34,8 @@ export type AppState = {
   events: EventItem[]
   calOverrides: Record<string, CalOverride>
   lastCalendarSync: number | null
+  /** Kaufverlauf für Empfehlungen: Basisname → Anzahl + letzter Kauf (wie v7) */
+  shopHistory: Record<string, { n: number; ts: number }>
   /** v7-Felder, die v8 (noch) nicht modelliert (dayPlan, mealPlan, …) – werden beim Sync durchgereicht */
   extra: Record<string, unknown>
 }
@@ -46,8 +48,16 @@ export const EMPTY_STATE: AppState = {
   events: [],
   calOverrides: {},
   lastCalendarSync: null,
+  shopHistory: {},
   extra: {},
 }
+
+export const LISTS: { id: ListId; label: string; emoji: string }[] = [
+  { id: 'today', label: 'Heute', emoji: '☀️' },
+  { id: 'work', label: 'Arbeit', emoji: '💼' },
+  { id: 'health', label: 'Gesundheit', emoji: '💚' },
+  { id: 'shopping', label: 'Einkauf', emoji: '🛒' },
+]
 
 export const ENERGY_LEVELS: { level: EnergyLevel; label: string; pct: number; hint: string }[] = [
   { level: 'low', label: 'Wenig', pct: 33, hint: 'Leichtes Programm' },

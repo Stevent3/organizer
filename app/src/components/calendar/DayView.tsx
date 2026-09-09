@@ -6,9 +6,9 @@ import { roundToStep, todayKey } from '../../lib/time'
 
 export const HOUR_H = 56
 
-type Props = { day: string; events: EventItem[]; onTapSlot: (min: number) => void; onTapEvent: (ev: EventItem) => void }
+type Props = { day: string; events: EventItem[]; fill?: boolean; onTapSlot: (min: number) => void; onTapEvent: (ev: EventItem) => void }
 
-export function DayView({ day, events, onTapSlot, onTapEvent }: Props) {
+export function DayView({ day, events, fill = false, onTapSlot, onTapEvent }: Props) {
   const dayEvents = useMemo(() => eventsOnDay(events, day), [events, day])
   const allDay = dayEvents.filter((e) => e.allDay || isMultiDay(e))
   const placed = useMemo(() => layoutDay(dayEvents), [dayEvents])
@@ -53,7 +53,7 @@ export function DayView({ day, events, onTapSlot, onTapEvent }: Props) {
           ))}
         </div>
       )}
-      <div className="max-h-[62vh] overflow-y-auto no-scrollbar">
+      <div className={'no-scrollbar overflow-y-auto ' + (fill ? 'max-h-[calc(100dvh-var(--safe-top)-var(--safe-bottom)-190px)]' : 'max-h-[62vh]')}>
         <div ref={gridRef} className="relative ml-12 mr-2 cursor-pointer" style={{ height: 24 * HOUR_H }} onClick={onGridClick}>
           {Array.from({ length: 24 }, (_, h) => (
             <div key={h} className="absolute inset-x-0 border-t border-line" style={{ top: h * HOUR_H }}>

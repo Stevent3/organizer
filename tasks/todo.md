@@ -34,10 +34,10 @@ Koexistenz-Regel: v8 pusht v8-Felder + v7-kompatible `schedule`/`calendarEvents`
 - [ ] Offline-Fall: Fehlerzustand freundlich, Retry beim Sichtbarwerden (Basis vorhanden)
 
 ## M4 – Feature-Parität
-- [ ] Aufgaben: Listen, Bring-Einkaufsliste (Katalog, Korb, Verlauf, Empfehlungen)
-- [ ] KI-Chat mit Tool-Calling (+ neue Tools: Termin mit Datum, open_app)
+- [x] Aufgaben: 4 Listen (umbenennen, verschieben, löschen, aufräumen), Bring-Einkaufsliste (Katalog-Vorschläge, Kacheln nach Kategorie, Korb, Verlauf, Empfehlungen aus Essensplan + Verlauf)
+- [x] KI-Chat als schwebende Sprechblase + Vollbild-Chat, Tool-Calling (Aufgaben, Einkauf, Termine mit Datum/mehrtägig, Termin löschen, abhaken, Energie); open_app folgt
 - [ ] Planer: KI-Tagesplan („Plan übernehmen" → echte Termine), Essensplaner
-- [ ] Energie-Karte, Fokus-Karte, Shortcut-URLs
+- [x] Energie als Pillen-Zeile, Fokus-Karte, Kalender-Widget mit Vollbild-Overlay (Steven-Feedback 10.09.); Shortcut-URLs offen
 
 ## M5 – Cutover
 - [ ] v7 nach `legacy/`, neue App auf `/organizer/` (Base ändern), SW-Cache-Wechsel sauber (alte Caches löschen)

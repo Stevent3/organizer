@@ -3,7 +3,7 @@ import { applyCalendar, buildCalendarEvents, extractExtra, mergeRemoteState, toW
 import { EMPTY_STATE, type AppState, type EventItem } from '../lib/model'
 
 const DAY = '2026-09-10'
-const base = (p: Partial<AppState> = {}): AppState => ({ ...EMPTY_STATE, tasks: { today: [], shopping: [], work: [], health: [] }, extra: {}, ...p })
+const base = (p: Partial<AppState> = {}): AppState => ({ ...EMPTY_STATE, tasks: { today: [], shopping: [], work: [], health: [] }, shopHistory: {}, extra: {}, ...p })
 const ev = (p: Partial<EventItem> & { text: string }): EventItem => ({ id: p.text, date: DAY, allDay: false, color: 'accent', source: 'manual', ...p })
 
 describe('Kalender aus dem Worker', () => {

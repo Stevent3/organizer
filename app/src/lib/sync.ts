@@ -49,7 +49,7 @@ export function applyCalendar(state: AppState, raw: RawCalEvent[], day: string):
   return { ...state, events: [...keep, ...fresh], lastCalendarSync: Date.now() }
 }
 
-const V8_FIELDS = ['version', 'updatedAt', 'energy', 'tasks', 'events', 'calOverrides', 'lastCalendarSync', 'extra'] as const
+const V8_FIELDS = ['version', 'updatedAt', 'energy', 'tasks', 'events', 'calOverrides', 'lastCalendarSync', 'shopHistory', 'extra'] as const
 const V7_ONLY = ['schedule', 'calendarEvents'] as const
 
 /** Alle Felder, die v8 nicht modelliert (dayPlan, mealPlan, …), zum Durchreichen aufheben */
@@ -81,6 +81,7 @@ export function mergeRemoteState(local: AppState, remote: Record<string, unknown
       events: r.events,
       calOverrides: r.calOverrides ?? {},
       lastCalendarSync: r.lastCalendarSync ?? local.lastCalendarSync,
+      shopHistory: r.shopHistory ?? local.shopHistory,
       extra: { ...local.extra, ...(r.extra ?? {}), ...extractExtra(remote) },
     }
   }
@@ -95,6 +96,7 @@ export function mergeRemoteState(local: AppState, remote: Record<string, unknown
     events: [...others, ...m.events],
     calOverrides: m.calOverrides,
     lastCalendarSync: m.lastCalendarSync ?? local.lastCalendarSync,
+    shopHistory: Object.keys(m.shopHistory).length ? m.shopHistory : local.shopHistory,
     extra: { ...local.extra, ...m.extra },
   }
 }
@@ -124,6 +126,7 @@ export function toWireState(state: AppState, day: string): Record<string, unknow
     events: state.events,
     calOverrides: state.calOverrides,
     lastCalendarSync: state.lastCalendarSync,
+    shopHistory: state.shopHistory,
     schedule,
     calendarEvents,
   }

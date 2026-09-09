@@ -4,9 +4,9 @@ import App from '../app/App'
 import { APP_VERSION } from '../lib/version'
 
 describe('App-Shell', () => {
-  it('startet auf „Heute" und zeigt alle fünf Tabs', () => {
+  it('startet auf „Heute" und zeigt alle vier Tabs', () => {
     render(<App />)
-    for (const label of ['Heute', 'Kalender', 'Aufgaben', 'KI', 'Mehr']) {
+    for (const label of ['Heute', 'Kalender', 'Aufgaben', 'Mehr']) {
       expect(screen.getByRole('tab', { name: label })).toBeInTheDocument()
     }
     expect(screen.getByRole('tab', { name: 'Heute' })).toHaveAttribute('aria-selected', 'true')

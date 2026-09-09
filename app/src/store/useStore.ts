@@ -14,6 +14,11 @@ type Actions = {
   addTask: (list: ListId, text: string) => Task
   toggleTask: (list: ListId, id: string) => void
   deleteTask: (list: ListId, id: string) => void
+  renameTask: (list: ListId, id: string, text: string) => void
+  moveTask: (from: ListId, to: ListId, id: string) => void
+  clearDone: (list: ListId) => void
+  /** Korb abschließen: erledigte Einkäufe in den Verlauf, von der Liste nehmen. Liefert Anzahl. */
+  completeShopping: () => number
   /** Kompletten Stand setzen (Sync/Import) – ohne updatedAt zu verändern */
   replaceState: (s: AppState) => void
   /** Reiner Datenstand ohne Aktionen */
@@ -24,7 +29,7 @@ export type Store = AppState & Actions
 
 const touch = (s: AppState): Pick<AppState, 'updatedAt'> => ({ updatedAt: Math.max(Date.now(), s.updatedAt + 1) })
 
-const DATA_KEYS: (keyof AppState)[] = ['version', 'updatedAt', 'energy', 'tasks', 'events', 'calOverrides', 'lastCalendarSync', 'extra']
+const DATA_KEYS: (keyof AppState)[] = ['version', 'updatedAt', 'energy', 'tasks', 'events', 'calOverrides', 'lastCalendarSync', 'shopHistory', 'extra']
 
 function pickData(s: AppState): AppState {
   const out = {} as Record<string, unknown>
@@ -37,6 +42,7 @@ export const useStore = create<Store>()(
     (set, get) => ({
       ...EMPTY_STATE,
       tasks: { ...EMPTY_STATE.tasks },
+      shopHistory: {},
       extra: {},
 
       addEvent: (e) => {
@@ -75,7 +81,29 @@ export const useStore = create<Store>()(
         set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].map((t) => (t.id === id ? { ...t, done: !t.done } : t)) }, ...touch(s) })),
       deleteTask: (list, id) =>
         set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].filter((t) => t.id !== id) }, ...touch(s) })),
-      replaceState: (n) => set({ ...pickData(n), tasks: { ...EMPTY_STATE.tasks, ...n.tasks }, extra: n.extra ?? {} }),
+      renameTask: (list, id, text) =>
+        set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].map((t) => (t.id === id ? { ...t, text } : t)) }, ...touch(s) })),
+      moveTask: (from, to, id) => {
+        const s = get()
+        const t = s.tasks[from].find((x) => x.id === id)
+        if (!t || from === to) return
+        set({ tasks: { ...s.tasks, [from]: s.tasks[from].filter((x) => x.id !== id), [to]: [...s.tasks[to], t] }, ...touch(s) })
+      },
+      clearDone: (list) => set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].filter((t) => !t.done) }, ...touch(s) })),
+      completeShopping: () => {
+        const s = get()
+        const cart = s.tasks.shopping.filter((t) => t.done)
+        if (!cart.length) return 0
+        const history = { ...s.shopHistory }
+        for (const t of cart) {
+          const n = t.text.toLowerCase().replace(/\(.*?\)/g, '').trim()
+          if (!n) continue
+          history[n] = { n: (history[n]?.n ?? 0) + 1, ts: Date.now() }
+        }
+        set({ tasks: { ...s.tasks, shopping: s.tasks.shopping.filter((t) => !t.done) }, shopHistory: history, ...touch(s) })
+        return cart.length
+      },
+      replaceState: (n) => set({ ...pickData(n), tasks: { ...EMPTY_STATE.tasks, ...n.tasks }, shopHistory: n.shopHistory ?? {}, extra: n.extra ?? {} }),
       snapshot: () => pickData(get()),
     }),
     {

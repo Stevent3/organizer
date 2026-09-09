@@ -1,17 +1,17 @@
 import { format } from 'date-fns'
 import { de } from 'date-fns/locale'
-import { Check, ChevronRight, Plus, Zap } from 'lucide-react'
+import { Check, Plus, Zap } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { EventRow } from '../components/calendar/EventRow'
+import { CalendarWidget } from '../components/calendar/CalendarWidget'
 import { EventSheet, type Draft } from '../components/calendar/EventSheet'
 import { Card, SectionLabel } from '../components/Card'
 import { Screen } from '../components/Screen'
 import { eventsOnDay, timedRange } from '../lib/calendar'
-import { colorVar } from '../lib/colors'
 import { ENERGY_LEVELS, type EventItem } from '../lib/model'
 import { useSyncStatus } from '../lib/syncEngine'
 import { todayKey } from '../lib/time'
 import { useStore } from '../store/useStore'
+import { CalendarOverlay } from './CalendarScreen'
 
 function greeting(h: number) {
   if (h < 5) return 'Gute Nacht'
@@ -20,7 +20,7 @@ function greeting(h: number) {
   return 'Guten Abend'
 }
 
-export function TodayScreen({ onOpenCalendar }: { onOpenCalendar: () => void }) {
+export function TodayScreen() {
   const now = new Date()
   const day = todayKey()
   const events = useStore((s) => s.events)
@@ -33,6 +33,7 @@ export function TodayScreen({ onOpenCalendar }: { onOpenCalendar: () => void }) 
   const deleteEvent = useStore((s) => s.deleteEvent)
   const sync = useSyncStatus()
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [calendar, setCalendar] = useState<{ open: boolean; day?: string }>({ open: false })
   const [newTask, setNewTask] = useState('')
   const [nowMin, setNowMin] = useState(now.getHours() * 60 + now.getMinutes())
   useEffect(() => {
@@ -51,7 +52,7 @@ export function TodayScreen({ onOpenCalendar }: { onOpenCalendar: () => void }) 
   }, [todays, nowMin])
 
   const open = tasks.filter((t) => !t.done)
-  const done = tasks.length - open.length
+  const done = tasks.filter((t) => t.done)
 
   const submitTask = () => {
     const t = newTask.trim()
@@ -70,8 +71,27 @@ export function TodayScreen({ onOpenCalendar }: { onOpenCalendar: () => void }) 
         </span>
       }
     >
+      {/* Energie: eine schlanke Zeile statt Karte */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex items-center gap-1 text-[12px] font-semibold uppercase tracking-wider text-text-3"><Zap size={13} /> Energie</span>
+        <div className="flex gap-1.5">
+          {ENERGY_LEVELS.map((l) => {
+            const on = energy?.level === l.level
+            return (
+              <button
+                key={l.level}
+                onClick={() => setEnergy(on ? null : { level: l.level, label: l.label, pct: l.pct })}
+                className={'press rounded-full px-3 py-1 text-[12px] font-semibold transition-colors ' + (on ? 'bg-accent text-on-accent' : 'bg-fill text-text-2')}
+              >
+                {l.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {sync.status === 'unconfigured' && (
-        <Card tone="soft" className="mt-2">
+        <Card tone="soft" className="mb-3">
           <p className="text-[15px] font-semibold text-accent">Noch nicht mit der Cloud verbunden</p>
           <p className="mt-1 text-[13px] text-text-2">
             Am einfachsten: In der bisherigen App unter Module, Cloud-Sync auf „Neue App öffnen" tippen. Dann kommen Zugang und Daten automatisch hierher.
@@ -80,7 +100,7 @@ export function TodayScreen({ onOpenCalendar }: { onOpenCalendar: () => void }) 
         </Card>
       )}
 
-      <Card tone="accent" className="mt-2">
+      <Card tone="accent">
         {focus ? (
           <button onClick={() => setDraft({ ...focus.ev })} className="w-full text-left">
             <p className="text-[12px] font-semibold uppercase tracking-wider opacity-80">{focus.kind === 'now' ? 'Jetzt dran' : 'Als Nächstes'}</p>
@@ -101,61 +121,24 @@ export function TodayScreen({ onOpenCalendar }: { onOpenCalendar: () => void }) 
         )}
       </Card>
 
-      <SectionLabel>Energie heute</SectionLabel>
-      <Card className="p-2">
-        <div className="grid grid-cols-3 gap-2">
-          {ENERGY_LEVELS.map((l) => {
-            const on = energy?.level === l.level
-            return (
-              <button
-                key={l.level}
-                onClick={() => setEnergy(on ? null : { level: l.level, label: l.label, pct: l.pct })}
-                className={'press flex flex-col items-center gap-0.5 rounded-md py-2.5 transition-colors ' + (on ? 'bg-accent text-on-accent' : 'bg-fill')}
-              >
-                <Zap size={16} fill={on ? 'currentColor' : 'none'} />
-                <span className="text-[14px] font-semibold">{l.label}</span>
-                <span className={'text-[11px] ' + (on ? 'opacity-80' : 'text-text-3')}>{l.hint}</span>
-              </button>
-            )
-          })}
-        </div>
-      </Card>
+      <SectionLabel>Kalender</SectionLabel>
+      <CalendarWidget events={events} nowMin={nowMin} onOpen={(d) => setCalendar({ open: true, day: d })} onTapEvent={(e) => setDraft({ ...e })} />
 
-      <SectionLabel>Termine</SectionLabel>
+      <SectionLabel>Aufgaben {tasks.length > 0 && <span className="normal-case tracking-normal">· {done.length}/{tasks.length}</span>}</SectionLabel>
       <Card className="p-0">
-        {todays.length === 0 ? (
-          <p className="px-4 py-3 text-[13px] text-text-3">Keine Termine heute</p>
-        ) : (
-          <div className="py-1">
-            {todays.map((ev) => <EventRow key={ev.id} ev={ev} onClick={(e) => setDraft({ ...e })} />)}
+        {open.map((t) => <TaskLine key={t.id} text={t.text} done={false} onToggle={() => toggleTask('today', t.id)} />)}
+        <form onSubmit={(e) => { e.preventDefault(); submitTask() }} className={'flex items-center gap-2 px-3 py-2 ' + (open.length ? 'border-t border-line' : '')}>
+          <span className="grid h-6 w-6 shrink-0 place-items-center text-accent"><Plus size={18} strokeWidth={2.5} /></span>
+          <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Aufgabe hinzufügen" enterKeyHint="done" className="flex-1 bg-transparent py-1 text-[15px] outline-none placeholder:text-text-3" />
+        </form>
+        {done.length > 0 && (
+          <div className="border-t border-line">
+            {done.map((t) => <TaskLine key={t.id} text={t.text} done onToggle={() => toggleTask('today', t.id)} />)}
           </div>
         )}
-        <button onClick={onOpenCalendar} className="press flex w-full items-center justify-between border-t border-line px-4 py-3 text-[14px] font-semibold text-accent">
-          Zum Kalender <ChevronRight size={16} />
-        </button>
       </Card>
 
-      <SectionLabel>Aufgaben {tasks.length > 0 && <span className="normal-case tracking-normal">· {done}/{tasks.length}</span>}</SectionLabel>
-      <Card className="p-0">
-        {tasks.map((t) => (
-          <button key={t.id} onClick={() => toggleTask('today', t.id)} className="press flex w-full items-center gap-3 px-4 py-2.5 text-left">
-            <span className={'grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 transition-colors ' + (t.done ? 'border-accent bg-accent text-on-accent' : 'border-fill-strong')}>
-              {t.done && <Check size={14} strokeWidth={3} />}
-            </span>
-            <span className={'text-[15px] ' + (t.done ? 'text-text-3 line-through' : '')}>{t.text}</span>
-          </button>
-        ))}
-        <form onSubmit={(e) => { e.preventDefault(); submitTask() }} className="flex items-center gap-2 border-t border-line px-3 py-2">
-          <span className="grid h-6 w-6 shrink-0 place-items-center text-text-3"><Plus size={16} /></span>
-          <input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Aufgabe hinzufügen" className="flex-1 bg-transparent py-1 text-[15px] outline-none placeholder:text-text-3" />
-        </form>
-      </Card>
-
-      <p className="mt-6 text-center text-[11px] text-text-3">
-        <span className="inline-block h-2 w-2 rounded-full align-middle" style={{ background: colorVar('teal') }} /> Apple Kalender ·{' '}
-        <span className="inline-block h-2 w-2 rounded-full align-middle" style={{ background: colorVar('accent') }} /> Eigene Termine
-      </p>
-
+      <CalendarOverlay open={calendar.open} initialDay={calendar.day} onClose={() => setCalendar({ open: false })} />
       <EventSheet
         draft={draft}
         onClose={() => setDraft(null)}
@@ -163,6 +146,17 @@ export function TodayScreen({ onOpenCalendar }: { onOpenCalendar: () => void }) 
         onDelete={(id) => { deleteEvent(id); setDraft(null) }}
       />
     </Screen>
+  )
+}
+
+function TaskLine({ text, done, onToggle }: { text: string; done: boolean; onToggle: () => void }) {
+  return (
+    <button onClick={onToggle} className="press flex w-full items-center gap-3 px-4 py-2.5 text-left">
+      <span className={'grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 transition-colors ' + (done ? 'border-accent bg-accent text-on-accent' : 'border-fill-strong')}>
+        {done && <Check size={14} strokeWidth={3} />}
+      </span>
+      <span className={'text-[15px] ' + (done ? 'text-text-3 line-through' : '')}>{text}</span>
+    </button>
   )
 }
 

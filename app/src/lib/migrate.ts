@@ -11,6 +11,7 @@ export type V3State = {
   calendarEvents?: { id?: string; key?: string; origTime?: string; time?: string; end?: string; text?: string; sub?: string; travel?: number; date?: string }[]
   calOverrides?: Record<string, { time?: string; end?: string; text?: string; sub?: string; deleted?: boolean }>
   lastCalendarSync?: number | null
+  shopHistory?: Record<string, { n: number; ts: number }>
 }
 
 const V7_COLORS: Record<string, ColorKey> = {
@@ -31,10 +32,10 @@ const isTime = (t?: string) => !!t && /^\d{1,2}:\d{2}$/.test(t)
  * v7 zu v8: Termine hatten nur eine Uhrzeit (immer "heute"). Sie bekommen das Datum day
  * (Standard: heute). Apple-Termine behalten ihren Override-Key.
  */
-const KNOWN = new Set(['version', 'updatedAt', 'energy', 'tasks', 'schedule', 'calendarEvents', 'calOverrides', 'lastCalendarSync', 'events', 'extra'])
+const KNOWN = new Set(['version', 'updatedAt', 'energy', 'tasks', 'schedule', 'calendarEvents', 'calOverrides', 'lastCalendarSync', 'events', 'extra', 'shopHistory'])
 
 export function migrateV3(raw: V3State | null | undefined, day: string = todayKey()): AppState {
-  if (!raw) return { ...EMPTY_STATE, tasks: { ...EMPTY_STATE.tasks }, extra: {} }
+  if (!raw) return { ...EMPTY_STATE, tasks: { ...EMPTY_STATE.tasks }, shopHistory: {}, extra: {} }
   const events: EventItem[] = []
   const extra: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(raw as Record<string, unknown>)) if (!KNOWN.has(k)) extra[k] = v
@@ -87,6 +88,7 @@ export function migrateV3(raw: V3State | null | undefined, day: string = todayKe
     events,
     calOverrides: { ...(raw.calOverrides ?? {}) },
     lastCalendarSync: raw.lastCalendarSync ?? null,
+    shopHistory: { ...(raw.shopHistory ?? {}) },
     extra,
   }
 }
