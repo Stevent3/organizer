@@ -6,12 +6,14 @@ import { MoreScreen } from '../screens/MoreScreen'
 import { PlaceholderScreen } from '../screens/PlaceholderScreen'
 import { CalendarScreen } from '../screens/CalendarScreen'
 import { autoImportOnce } from '../lib/importV3'
+import { applySetupFromUrl } from '../lib/setupLink'
 import { startSyncEngine } from '../lib/syncEngine'
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('today')
 
   useEffect(() => {
+    applySetupFromUrl()
     autoImportOnce()
     startSyncEngine()
   }, [])

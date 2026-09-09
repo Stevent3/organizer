@@ -416,7 +416,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
         <span class="s-label" style="color:var(--red)">Worker trennen</span>
         <span class="chevron">›</span>
       </div>
+      <div class="settings-row" onclick="openNextApp()">
+        <span class="s-label" style="color:var(--blue)">🚀 Neue App (v8) öffnen</span>
+        <span class="chevron">›</span>
+      </div>
+      <div class="settings-row" onclick="copyNextAppLink()">
+        <span class="s-label">Link zur neuen App kopieren</span>
+        <span class="chevron">›</span>
+      </div>
     </div>
+    <p style="font-size:12px;color:var(--label3);text-align:center;margin:10px 24px 0">Die neue App übernimmt Worker-Zugang und Groq-Key über den Link; deine Daten holt sie aus der Cloud. Öffnet sich in Safari – dort „Zum Home-Bildschirm" hinzufügen.</p>
     <div class="card-group" style="margin-top:12px" id="worker-url-card">
       <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:6px">
         <span class="s-label">📆 Kalender-Shortcut URL (POST)</span>
@@ -546,7 +555,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
 // ════════════════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════════════════
-const APP_VERSION='v7';
+const APP_VERSION='v7.1';
 const DEFAULT_STATE = {
   version: 3,
   tasks: {
@@ -675,6 +684,14 @@ function allEvents(){
 function getBaseUrl(){return location.origin+location.pathname.replace(/index\.html$/,'');}
 function copyText(text,el){if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>showToast('Kopiert ✓')).catch(()=>showToast('Kopieren nicht möglich'));}
 function copyUrl(el){copyText(getBaseUrl()+el.dataset.suffix,el);}
+// Übergabe an die neue App (v8): Zugangsdaten per Link, weil iOS-Homescreen-Apps getrennten Speicher haben
+function nextAppUrl(){
+  const payload={u:workerUrl||'',s:workerSecret||'',g:groqKey||''};
+  const b64=btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  return getBaseUrl()+'next/?setup='+b64;
+}
+function openNextApp(){const w=window.open(nextAppUrl(),'_blank');if(!w)location.href=nextAppUrl();}
+function copyNextAppLink(){copyText(nextAppUrl());}
 function renderShortcuts(){
   const base=getBaseUrl();
   const b=document.getElementById('base-url-box');if(b)b.textContent=base;

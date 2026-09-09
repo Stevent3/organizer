@@ -70,6 +70,16 @@ export function TodayScreen({ onOpenCalendar }: { onOpenCalendar: () => void }) 
         </span>
       }
     >
+      {sync.status === 'unconfigured' && (
+        <Card tone="soft" className="mt-2">
+          <p className="text-[15px] font-semibold text-accent">Noch nicht mit der Cloud verbunden</p>
+          <p className="mt-1 text-[13px] text-text-2">
+            Am einfachsten: In der bisherigen App unter Module, Cloud-Sync auf „Neue App öffnen" tippen. Dann kommen Zugang und Daten automatisch hierher.
+            Alternativ unter „Mehr" die Worker-Adresse und das Token eintragen.
+          </p>
+        </Card>
+      )}
+
       <Card tone="accent" className="mt-2">
         {focus ? (
           <button onClick={() => setDraft({ ...focus.ev })} className="w-full text-left">
