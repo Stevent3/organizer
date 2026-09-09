@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { EMPTY_STATE, type AppState, type CalOverride, type EventItem, type Energy, type ListId, type Task, uid } from '../lib/model'
 
-/** Eigener localStorage-Key – v7 (`organizer_v3`) bleibt unangetastet, bis der Umzug fertig ist. */
+/** Eigener localStorage-Key – v7 (organizer_v3) bleibt unangetastet, bis der Umzug fertig ist. */
 export const STORAGE_KEY = 'organizer_v8'
 
 type Actions = {
@@ -13,18 +13,31 @@ type Actions = {
   setEnergy: (e: Energy | null) => void
   addTask: (list: ListId, text: string) => Task
   toggleTask: (list: ListId, id: string) => void
+  deleteTask: (list: ListId, id: string) => void
+  /** Kompletten Stand setzen (Sync/Import) – ohne updatedAt zu verändern */
   replaceState: (s: AppState) => void
+  /** Reiner Datenstand ohne Aktionen */
+  snapshot: () => AppState
 }
 
 export type Store = AppState & Actions
 
 const touch = (s: AppState): Pick<AppState, 'updatedAt'> => ({ updatedAt: Math.max(Date.now(), s.updatedAt + 1) })
 
+const DATA_KEYS: (keyof AppState)[] = ['version', 'updatedAt', 'energy', 'tasks', 'events', 'calOverrides', 'lastCalendarSync', 'extra']
+
+function pickData(s: AppState): AppState {
+  const out = {} as Record<string, unknown>
+  for (const k of DATA_KEYS) out[k] = s[k]
+  return out as AppState
+}
+
 export const useStore = create<Store>()(
   persist(
     (set, get) => ({
       ...EMPTY_STATE,
       tasks: { ...EMPTY_STATE.tasks },
+      extra: {},
 
       addEvent: (e) => {
         const ev: EventItem = { ...e, id: e.id ?? uid('e') }
@@ -60,15 +73,15 @@ export const useStore = create<Store>()(
       },
       toggleTask: (list, id) =>
         set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].map((t) => (t.id === id ? { ...t, done: !t.done } : t)) }, ...touch(s) })),
-      replaceState: (n) => set({ ...n }),
+      deleteTask: (list, id) =>
+        set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].filter((t) => t.id !== id) }, ...touch(s) })),
+      replaceState: (n) => set({ ...pickData(n), tasks: { ...EMPTY_STATE.tasks, ...n.tasks }, extra: n.extra ?? {} }),
+      snapshot: () => pickData(get()),
     }),
     {
       name: STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({
-        version: s.version, updatedAt: s.updatedAt, energy: s.energy, tasks: s.tasks,
-        events: s.events, calOverrides: s.calOverrides, lastCalendarSync: s.lastCalendarSync,
-      }),
+      partialize: (s) => pickData(s),
     },
   ),
 )

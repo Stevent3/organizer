@@ -38,6 +38,22 @@ export default defineConfig({
       },
     }),
   ],
+  // Nur lokal: Der Worker erlaubt per CORS nur stevent3.github.io. Der Dev-Proxy unter /__worker
+  // leitet an den Live-Worker weiter und setzt das Secret aus der Umgebung (ORGANIZER_SECRET) selbst.
+  server: {
+    proxy: process.env.ORGANIZER_SECRET
+      ? {
+          '/__worker': {
+            target: 'https://organizer.steven-ec0.workers.dev',
+            changeOrigin: true,
+            rewrite: (p) => p.replace(/^\/__worker/, ''),
+            configure: (proxy) => {
+              proxy.on('proxyReq', (req) => req.setHeader('X-Secret', process.env.ORGANIZER_SECRET ?? ''))
+            },
+          },
+        }
+      : undefined,
+  },
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
     __BUILD_TIME__: JSON.stringify(process.env.VITE_BUILD_TIME ?? new Date().toISOString()),

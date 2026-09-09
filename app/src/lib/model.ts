@@ -34,6 +34,8 @@ export type AppState = {
   events: EventItem[]
   calOverrides: Record<string, CalOverride>
   lastCalendarSync: number | null
+  /** v7-Felder, die v8 (noch) nicht modelliert (dayPlan, mealPlan, …) – werden beim Sync durchgereicht */
+  extra: Record<string, unknown>
 }
 
 export const EMPTY_STATE: AppState = {
@@ -44,7 +46,14 @@ export const EMPTY_STATE: AppState = {
   events: [],
   calOverrides: {},
   lastCalendarSync: null,
+  extra: {},
 }
+
+export const ENERGY_LEVELS: { level: EnergyLevel; label: string; pct: number; hint: string }[] = [
+  { level: 'low', label: 'Wenig', pct: 33, hint: 'Leichtes Programm' },
+  { level: 'good', label: 'Gut', pct: 66, hint: 'Normaler Tag' },
+  { level: 'top', label: 'Top', pct: 100, hint: 'Volle Kraft' },
+]
 
 export const COLORS: { key: ColorKey; label: string }[] = [
   { key: 'accent', label: 'Indigo' },

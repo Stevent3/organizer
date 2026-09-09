@@ -12,9 +12,11 @@
 >
 > **Deploy-Workflow ab jetzt:** Frontend = `git push` (GitHub Pages; Repo heißt jetzt `Stevent3/organizer`); Worker = `wrangler deploy`; Secrets = `wrangler secret put NAME`; Rollback = `wrangler rollback`.
 >
-> **Offen:** Steven drückt in der iPhone-App den Push-Test (beweist: Cron + Secrets nach dem Wrangler-Deploy intakt).
+> **Push-Test (09.09.2026):** bestanden. Das Token in der App war veraltet, neu eingetragen, Sync läuft wieder.
 >
-> Danach: Meilenstein-Planung gemäß §13.
+> **v8-REDESIGN LÄUFT (seit 10.09.2026):** Neue App in `app/` (Vite + React + TypeScript + Tailwind v4 + vitest), deployt per GitHub Actions nach `https://stevent3.github.io/organizer/next/`. v7 bleibt im Root live, bis Feature-Parität erreicht ist. Plan und Stand: `tasks/todo.md` (Meilensteine M0–M5). Lokal: `cd app && npm run dev`, Tests `npm test -- --run`. Sync gegen den Live-Worker lokal nur über den Dev-Proxy: `ORGANIZER_SECRET=<SECRET> npm run dev`, dann in der App Worker-URL `http://localhost:5173/__worker` und ein beliebiges Token (CORS des Workers lässt nur die Pages-Origin zu). Jede Auslieferung: `APP_VERSION` in `app/src/lib/version.ts` hochzählen.
+>
+> ⚠️ Bash-Tool auf diesem Rechner: Heredocs mit Template-Literalen oder vielen Anführungszeichen scheitern sporadisch mit „unexpected EOF". Solche Dateien mit dem Write-Tool anlegen.
 
 > Diese Datei ist die vollständige Übergabe aus der bisherigen Entwicklung (Claude Chat, Juni–Juli 2026).
 > Sie ist Kontext UND Arbeitsanweisung für Claude Code. Lies sie vollständig, bevor du Änderungen machst.

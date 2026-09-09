@@ -31,9 +31,13 @@ const isTime = (t?: string) => !!t && /^\d{1,2}:\d{2}$/.test(t)
  * v7 zu v8: Termine hatten nur eine Uhrzeit (immer "heute"). Sie bekommen das Datum day
  * (Standard: heute). Apple-Termine behalten ihren Override-Key.
  */
+const KNOWN = new Set(['version', 'updatedAt', 'energy', 'tasks', 'schedule', 'calendarEvents', 'calOverrides', 'lastCalendarSync', 'events', 'extra'])
+
 export function migrateV3(raw: V3State | null | undefined, day: string = todayKey()): AppState {
-  if (!raw) return { ...EMPTY_STATE, tasks: { ...EMPTY_STATE.tasks } }
+  if (!raw) return { ...EMPTY_STATE, tasks: { ...EMPTY_STATE.tasks }, extra: {} }
   const events: EventItem[] = []
+  const extra: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) if (!KNOWN.has(k)) extra[k] = v
 
   for (const s of raw.schedule ?? []) {
     if (!s.text) continue
@@ -83,5 +87,6 @@ export function migrateV3(raw: V3State | null | undefined, day: string = todayKe
     events,
     calOverrides: { ...(raw.calOverrides ?? {}) },
     lastCalendarSync: raw.lastCalendarSync ?? null,
+    extra,
   }
 }
