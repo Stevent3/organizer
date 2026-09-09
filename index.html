@@ -117,6 +117,37 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
 .cal-ev.ev-orange{border-color:var(--orange);background:rgba(255,149,0,.12);color:var(--orange)}
 .cal-ev.ev-purple{border-color:var(--purple);background:rgba(175,82,222,.12);color:var(--purple)}
 .cal-ev.ev-cal{border-color:var(--indigo);background:rgba(88,86,214,.12);color:var(--indigo)}
+/* ── Bring-Stil Einkaufsliste ── */
+.shop-cat-label{font-size:12px;font-weight:600;color:var(--label2);text-transform:uppercase;letter-spacing:.4px;margin:14px 16px 8px}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:0 16px}
+.shop-tile{background:var(--surface);border-radius:12px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border:2px solid transparent;transition:transform .1s;user-select:none;-webkit-user-select:none}
+.shop-tile:active{transform:scale(.95)}
+.shop-tile .st-emoji{font-size:28px;line-height:1.1}
+.shop-tile .st-name{font-size:12px;font-weight:500;text-align:center;line-height:1.2;word-break:break-word}
+.shop-tile.in-cart{opacity:.55;border-color:var(--green);background:rgba(52,199,89,.08)}
+.shop-tile.in-cart .st-name{text-decoration:line-through}
+.shop-reco-row{display:flex;gap:8px;overflow-x:auto;padding:2px 16px 4px;-webkit-overflow-scrolling:touch}
+.shop-reco{flex-shrink:0;background:var(--fill);border:none;border-radius:16px;padding:7px 12px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--label);cursor:pointer}
+.shop-reco:active{background:var(--blue);color:#fff}
+.shop-done-btn{display:block;margin:16px;width:calc(100% - 32px);background:var(--green);color:#fff;border:none;border-radius:12px;padding:14px;font-family:var(--font);font-size:16px;font-weight:600;cursor:pointer}
+/* ── Essensplaner ── */
+.seg-wrap{display:flex;gap:6px;margin:0 16px 14px;background:var(--fill);border-radius:10px;padding:3px}
+.seg{flex:1;border:none;background:transparent;border-radius:8px;padding:8px;font-family:var(--font);font-size:14px;font-weight:600;color:var(--label2);cursor:pointer}
+.seg.on{background:var(--surface);color:var(--label);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.food-q{margin:0 16px 12px;background:var(--surface);border-radius:var(--radius);padding:16px}
+.food-q h3{font-size:16px;margin:0 0 4px}
+.food-progress{font-size:12px;color:var(--label3);margin-bottom:10px}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{background:var(--fill);border:2px solid transparent;border-radius:16px;padding:8px 14px;font-family:var(--font);font-size:14px;font-weight:500;color:var(--label);cursor:pointer}
+.chip:active,.chip.on{border-color:var(--blue);background:var(--blue-bg);color:var(--blue)}
+.meal-day{margin:0 16px 12px;background:var(--surface);border-radius:var(--radius);overflow:hidden}
+.meal-day-head{padding:10px 14px;font-weight:700;font-size:14px;border-bottom:.5px solid var(--sep);display:flex;justify-content:space-between;align-items:center}
+.meal-row{display:flex;gap:10px;padding:10px 14px;border-bottom:.5px solid var(--sep);cursor:pointer;align-items:center}
+.meal-row:last-child{border-bottom:none}
+.meal-row .m-ic{font-size:20px;flex-shrink:0}
+.meal-row .m-body{flex:1;min-width:0}
+.meal-row .m-name{font-size:14px;font-weight:600}
+.meal-row .m-sub{font-size:12px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .energy-wrap{margin:0 16px 16px;background:var(--surface);border-radius:var(--radius);padding:16px}
 .energy-title{font-size:15px;font-weight:600;margin-bottom:12px}
@@ -319,13 +350,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
 
 <!-- ══════ HABITS ══════ -->
 <div class="screen" id="s-planner">
-  <div class="nav"><div class="sub">Dein KI-Tagescoach</div><h1>Planer</h1></div>
-  <div class="section">
-    <div style="margin:0 16px 12px">
-      <button class="ios-btn" onclick="generatePlan()" id="plan-btn">✨ Meinen Tag planen</button>
-      <p style="font-size:12px;color:var(--label3);text-align:center;margin:8px 8px 0" id="plan-meta">Erstellt aus Kalender, Aufgaben & Energie einen optimierten Ablauf.</p>
+  <div class="nav"><div class="sub">Dein KI-Coach</div><h1>Planer</h1></div>
+  <div class="seg-wrap">
+    <button class="seg on" id="seg-day" onclick="switchPlannerMode('day')">🗺 Tag</button>
+    <button class="seg" id="seg-food" onclick="switchPlannerMode('food')">🍽 Essen</button>
+  </div>
+  <div id="planner-day">
+    <div class="section">
+      <div style="margin:0 16px 12px">
+        <button class="ios-btn" onclick="generatePlan()" id="plan-btn">✨ Meinen Tag planen</button>
+        <p style="font-size:12px;color:var(--label3);text-align:center;margin:8px 8px 0" id="plan-meta">Erstellt aus Kalender, Aufgaben & Energie einen optimierten Ablauf.</p>
+      </div>
+      <div id="plan-output"></div>
     </div>
-    <div id="plan-output"></div>
+  </div>
+  <div id="planner-food" style="display:none">
+    <div class="section" id="food-root"></div>
   </div>
 </div>
 
@@ -381,6 +421,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
       <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:6px">
         <span class="s-label">📆 Kalender-Shortcut URL (POST)</span>
         <div class="code-box" id="worker-cal-url" onclick="copyText(this.textContent,this)">– Worker erst verbinden –</div>
+        <span class="s-label" style="margin-top:6px">🔑 Header im Shortcut: <b>X-Secret</b> = dein Token</span>
+        <div class="code-box" id="worker-header-secret" onclick="copyText(this.textContent,this)">–</div>
+        <span class="s-val" style="white-space:normal;font-size:11px">Im Shortcut unter „Header" eintragen – nicht mehr in die URL (sicherer).</span>
       </div>
     </div>
   </div>
@@ -411,7 +454,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
       <div class="row"><div class="row-icon ic-gray">📧</div><div class="row-body"><div class="row-title">Mail-Assistent</div><div class="row-sub">KI schreibt & beantwortet Mails</div></div><span style="font-size:12px;color:var(--blue);font-weight:600">Bald</span></div>
       <div class="row"><div class="row-icon ic-gray">🏠</div><div class="row-body"><div class="row-title">Smarthome</div><div class="row-sub">HomeKit & Home Assistant</div></div><span style="font-size:12px;color:var(--blue);font-weight:600">Bald</span></div>
       <div class="row"><div class="row-icon ic-gray">💰</div><div class="row-body"><div class="row-title">FinanzGuru</div><div class="row-sub">Budget-bewusste Planung</div></div><span style="font-size:12px;color:var(--blue);font-weight:600">Bald</span></div>
-      <div class="row"><div class="row-icon ic-gray">🔔</div><div class="row-body"><div class="row-title">Push-Nachrichten</div><div class="row-sub">Proaktive KI-Erinnerungen – nächster Schritt</div></div><span style="font-size:12px;color:var(--green);font-weight:600">Als Nächstes</span></div>
+      <div class="row"><div class="row-icon ic-gray">🔔</div><div class="row-body"><div class="row-title">Push &amp; Smart-Tipps</div><div class="row-sub">Abfahrt · Briefing · KI-Empfehlungen</div></div><span style="font-size:12px;color:var(--green);font-weight:600">Aktiv ✓</span></div>
     </div>
   </div>
 
@@ -422,7 +465,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
       <div class="settings-row" onclick="resetKey()"><span class="s-label">API Key ändern</span><span class="chevron">›</span></div>
     </div>
     <button class="danger-btn" onclick="clearAll()">Alle Daten löschen</button>
-    <p style="font-size:12px;color:var(--label3);text-align:center;margin:12px 24px 0">Organizer v3 · Lokale Daten + optionaler Cloud-Sync</p>
+    <p id="version-footer" style="font-size:12px;color:var(--label3);text-align:center;margin:12px 24px 0">Organizer</p>
   </div>
 </div>
 
@@ -444,8 +487,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
     </div>
     <button class="ios-btn sec" style="margin:16px" onclick="testCalendar()">📆 Kalender-Import testen</button>
     <div class="setup-card">
-      <h3 style="font-size:15px">📆 Kalender-Rezept (Kurzfassung)</h3>
-      <p style="margin:0;font-size:13px;line-height:1.6">1. Kurzbefehle → neuer Kurzbefehl<br>2. <b>Kalendereinträge suchen</b> · Filter: Startdatum = heute<br>3. <b>Wiederhole mit jedem</b> → darin <b>Text</b>:<br><span style="font-family:monospace;background:var(--fill);padding:2px 6px;border-radius:4px;display:inline-block;margin:2px 0">[Startzeit] | [Titel] | [Ort]</span><br>(Startzeit per „Datum formatieren" als HH:mm)<br>4. Nach der Schleife: <b>Text kombinieren</b> mit Zeilenumbruch<br>5. <b>Text URL-codieren</b><br>6. <b>URL</b> = App-Adresse + obige Kalender-URL (mit codiertem Text statt [KALENDER])<br>7. <b>URLs öffnen</b><br>8. Als Automation täglich morgens laufen lassen</p>
+      <h3 style="font-size:15px">📆 Kalender-Rezept (Cloud, empfohlen)</h3>
+      <p style="margin:0;font-size:13px;line-height:1.6">1. Kurzbefehle → neuer Kurzbefehl<br>2. <b>Kalendereinträge suchen</b> · Filter: Startdatum = heute<br>3. <b>Wiederhole mit jedem</b> → darin <b>Text</b>:<br><span style="font-family:monospace;background:var(--fill);padding:2px 6px;border-radius:4px;display:inline-block;margin:2px 0">[Start] | [Ende] | [Titel] | [Ort]</span><br>(Zeiten per „Datum formatieren" als HH:mm)<br>4. Nach der Schleife: <b>Text kombinieren</b> mit Zeilenumbruch<br>5. <b>Inhalte abrufen</b> von deiner Kalender-URL (unter Module → Cloud-Sync):<br>· Methode: <b>POST</b><br>· <b>Header</b>: Schlüssel <span style="font-family:monospace">X-Secret</span> = dein Token<br>· Haupttext JSON: <span style="font-family:monospace">text</span> = Kombinierter Text<br>6. Als Automation täglich morgens laufen lassen – fertig, läuft stumm im Hintergrund</p>
     </div>
     <div class="setup-card">
       <h3 style="font-size:15px">🚶 Optional: echte Losgeh-Zeiten</h3>
@@ -466,7 +509,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
 <div class="toast" id="toast"></div>
 
 <!-- EVENT SHEET -->
-<div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+<div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet();closeMealSheet()"></div>
 <div class="sheet" id="event-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title" id="event-sheet-title">Termin hinzufügen</div>
@@ -485,10 +528,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--label);max-width:4
   <button class="ios-btn sec" onclick="closeSheet()">Abbrechen</button>
 </div>
 
+<!-- Gericht-Sheet -->
+<div class="sheet" id="meal-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="meal-sheet-title">Gericht</div>
+  <label class="sheet-label">Gericht</label>
+  <input type="text" id="meal-name-inp" class="sheet-input">
+  <label class="sheet-label">Zutaten (Komma-getrennt)</label>
+  <input type="text" id="meal-ing-inp" class="sheet-input">
+  <button class="ios-btn" style="margin-top:20px" id="meal-reroll-btn" onclick="rerollMeal()">🎲 Neu würfeln</button>
+  <button class="ios-btn" style="background:var(--green)" onclick="mealToShopping()">🛒 Zutaten auf die Liste</button>
+  <button class="ios-btn sec" onclick="saveMeal()">Speichern</button>
+  <button class="ios-btn sec" onclick="closeMealSheet()">Abbrechen</button>
+</div>
+
 <script>
 // ════════════════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════════════════
+const APP_VERSION='v7';
 const DEFAULT_STATE = {
   version: 3,
   tasks: {
@@ -516,6 +574,10 @@ const DEFAULT_STATE = {
   },
   dayPlan: null,
   calOverrides: {},
+  shopHistory: {},
+  foodProfile: null,
+  mealPlan: null,
+  plannerMode: 'day',
   schedule: [
     {id:'e1',time:'08:00',text:'☕ Morgenroutine',sub:'Kaffee · 30 Min',color:'',source:'manual'},
     {id:'e2',time:'10:00',text:'📚 Thesis',sub:'OCR Pipeline · Leine',color:'ev-purple',source:'manual'},
@@ -587,7 +649,7 @@ function switchTab(name){
   if(tabBtn)tabBtn.classList.add('on');
   if(name==='home')renderHome();
   if(name==='tasks')renderTasks();
-  if(name==='planner')renderPlanner();
+  if(name==='planner'){renderPlanner();switchPlannerMode(state.plannerMode||'day');}
   if(name==='modules')renderModules();
   if(name==='shortcuts')renderShortcuts();
   window.scrollTo(0,0);
@@ -900,12 +962,104 @@ function showList(key){
   document.getElementById('active-list-label').textContent={today:'Heute',shopping:'Einkaufsliste',work:'Arbeit / Thesis',health:'Gesundheit'}[key];
   document.getElementById('share-list-btn').style.display=key==='shopping'?'block':'none';
   const c=document.getElementById('active-task-list');c.innerHTML='';
+  if(key==='shopping'){c.style.background='transparent';renderShoppingView(c);return;}
+  c.style.background='';
   const tasks=state.tasks[key]||[];
   if(tasks.length===0){c.innerHTML='<div class="task-row"><div class="task-text" style="color:var(--label2)">Keine Aufgaben – füg unten was hinzu</div></div>';return;}
   tasks.forEach(t=>c.appendChild(makeTaskEl(t,key)));
 }
 function addTask(){const i=document.getElementById('task-input');const v=i.value.trim();if(!v)return;const l=state.activeList;state.tasks[l].push({id:'t'+Date.now(),text:v,done:false,tag:listTag(l)});save();i.value='';renderTasks();showToast('Hinzugefügt');}
 function addTaskTo(list,text,tag){if(!state.tasks[list])list='today';state.tasks[list].push({id:'t'+Date.now(),text:text,done:false,tag:tag||listTag(list)});save();}
+
+// ════════════════════════════════════════════════════
+//  EINKAUFSLISTE (Bring-Stil)
+// ════════════════════════════════════════════════════
+const SHOP_CATS=[
+  {id:'obst',name:'Obst & Gemüse',emoji:'🥦'},
+  {id:'brot',name:'Brot & Backwaren',emoji:'🍞'},
+  {id:'milch',name:'Milchprodukte & Eier',emoji:'🧀'},
+  {id:'fleisch',name:'Fleisch & Fisch',emoji:'🍗'},
+  {id:'vorrat',name:'Vorrat, Nudeln & Gewürze',emoji:'🥫'},
+  {id:'tk',name:'Tiefkühl',emoji:'🧊'},
+  {id:'getraenke',name:'Getränke',emoji:'🧃'},
+  {id:'suess',name:'Süßes & Snacks',emoji:'🍫'},
+  {id:'haushalt',name:'Haushalt & Pflege',emoji:'🧻'},
+  {id:'sonst',name:'Sonstiges',emoji:'🛒'}
+];
+const SHOP_CATALOG={
+  apfel:['🍎','obst'],banane:['🍌','obst'],birne:['🍐','obst'],orange:['🍊','obst'],zitrone:['🍋','obst'],traube:['🍇','obst'],erdbeere:['🍓','obst'],blaubeere:['🫐','obst'],himbeere:['🍓','obst'],melone:['🍉','obst'],kiwi:['🥝','obst'],mango:['🥭','obst'],avocado:['🥑','obst'],
+  tomate:['🍅','obst'],gurke:['🥒','obst'],paprika:['🫑','obst'],salat:['🥬','obst'],spinat:['🥬','obst'],karotte:['🥕','obst'],möhre:['🥕','obst'],kartoffel:['🥔','obst'],zwiebel:['🧅','obst'],knoblauch:['🧄','obst'],brokkoli:['🥦','obst'],blumenkohl:['🥦','obst'],zucchini:['🥒','obst'],aubergine:['🍆','obst'],pilze:['🍄','obst'],champignon:['🍄','obst'],ingwer:['🫚','obst'],mais:['🌽','obst'],kürbis:['🎃','obst'],lauch:['🥬','obst'],porree:['🥬','obst'],kohl:['🥬','obst'],radieschen:['🥕','obst'],rucola:['🥬','obst'],basilikum:['🌿','obst'],petersilie:['🌿','obst'],koriander:['🌿','obst'],schnittlauch:['🌿','obst'],kräuter:['🌿','obst'],
+  brot:['🍞','brot'],brötchen:['🥐','brot'],toast:['🍞','brot'],baguette:['🥖','brot'],croissant:['🥐','brot'],wrap:['🌯','brot'],tortilla:['🌯','brot'],vollkorn:['🍞','brot'],
+  milch:['🥛','milch'],butter:['🧈','milch'],käse:['🧀','milch'],gouda:['🧀','milch'],mozzarella:['🧀','milch'],parmesan:['🧀','milch'],feta:['🧀','milch'],joghurt:['🥛','milch'],quark:['🥛','milch'],sahne:['🥛','milch'],schmand:['🥛','milch'],frischkäse:['🧀','milch'],ei:['🥚','milch'],eier:['🥚','milch'],hafermilch:['🥛','milch'],sojamilch:['🥛','milch'],
+  hähnchen:['🍗','fleisch'],huhn:['🍗','fleisch'],hühnchen:['🍗','fleisch'],pute:['🍗','fleisch'],rind:['🥩','fleisch'],hack:['🥩','fleisch'],schwein:['🥩','fleisch'],steak:['🥩','fleisch'],wurst:['🌭','fleisch'],schinken:['🥓','fleisch'],speck:['🥓','fleisch'],salami:['🍕','fleisch'],lachs:['🐟','fleisch'],fisch:['🐟','fleisch'],thunfisch:['🐟','fleisch'],garnele:['🦐','fleisch'],tofu:['🧊','fleisch'],
+  nudel:['🍝','vorrat'],pasta:['🍝','vorrat'],spaghetti:['🍝','vorrat'],reis:['🍚','vorrat'],couscous:['🍚','vorrat'],quinoa:['🍚','vorrat'],mehl:['🌾','vorrat'],zucker:['🍬','vorrat'],salz:['🧂','vorrat'],pfeffer:['🧂','vorrat'],öl:['🫒','vorrat'],olivenöl:['🫒','vorrat'],essig:['🫒','vorrat'],honig:['🍯','vorrat'],marmelade:['🍯','vorrat'],müsli:['🥣','vorrat'],haferflocken:['🥣','vorrat'],cornflakes:['🥣','vorrat'],linsen:['🥫','vorrat'],bohnen:['🥫','vorrat'],kichererbsen:['🥫','vorrat'],tomatenmark:['🥫','vorrat'],passierte:['🥫','vorrat'],kokosmilch:['🥥','vorrat'],sojasauce:['🥢','vorrat'],curry:['🍛','vorrat'],gewürz:['🧂','vorrat'],brühe:['🥣','vorrat'],nüsse:['🥜','vorrat'],erdnuss:['🥜','vorrat'],mandel:['🥜','vorrat'],
+  pizza:['🍕','tk'],pommes:['🍟','tk'],tiefkühl:['🧊','tk'],eis:['🍨','tk'],
+  wasser:['💧','getraenke'],saft:['🧃','getraenke'],apfelsaft:['🧃','getraenke'],orangensaft:['🧃','getraenke'],cola:['🥤','getraenke'],limo:['🥤','getraenke'],bier:['🍺','getraenke'],wein:['🍷','getraenke'],kaffee:['☕','getraenke'],tee:['🍵','getraenke'],
+  schokolade:['🍫','suess'],schoko:['🍫','suess'],keks:['🍪','suess'],chips:['🥨','suess'],gummibär:['🍬','suess'],bonbon:['🍬','suess'],kuchen:['🍰','suess'],
+  klopapier:['🧻','haushalt'],toilettenpapier:['🧻','haushalt'],küchenrolle:['🧻','haushalt'],spülmittel:['🧴','haushalt'],waschmittel:['🧴','haushalt'],putzmittel:['🧴','haushalt'],müllbeutel:['🗑️','haushalt'],zahnpasta:['🪥','haushalt'],shampoo:['🧴','haushalt'],seife:['🧼','haushalt'],deo:['🧴','haushalt'],alufolie:['🧻','haushalt'],frischhaltefolie:['🧻','haushalt'],backpapier:['🧻','haushalt'],batterie:['🔋','haushalt']
+};
+function shopInfo(text){
+  const n=(text||'').toLowerCase().replace(/\(.*?\)/g,'').trim();
+  if(SHOP_CATALOG[n])return{emoji:SHOP_CATALOG[n][0],cat:SHOP_CATALOG[n][1]};
+  for(const k in SHOP_CATALOG){if(n.includes(k))return{emoji:SHOP_CATALOG[k][0],cat:SHOP_CATALOG[k][1]};}
+  return{emoji:'🛒',cat:'sonst'};
+}
+function shopBaseName(text){return (text||'').toLowerCase().replace(/\(.*?\)/g,'').trim();}
+
+function renderShoppingView(container){
+  const items=state.tasks.shopping;
+  const open=items.filter(t=>!t.done), cart=items.filter(t=>t.done);
+  let html='';
+  // Empfehlungen: Verlauf + Essensplan-Zutaten, die nicht auf der Liste stehen
+  const listNames=new Set(items.map(t=>shopBaseName(t.text)));
+  const hist=Object.entries(state.shopHistory||{}).sort((a,b)=>b[1].n-a[1].n).map(e=>e[0]);
+  const planIng=mealPlanIngredients().map(shopBaseName);
+  const recos=[];const seen=new Set();
+  for(const src of [...planIng,...hist]){
+    if(recos.length>=8)break;
+    if(!src||listNames.has(src)||seen.has(src))continue;
+    seen.add(src);recos.push(src);
+  }
+  if(recos.length){
+    html+='<div class="shop-cat-label" style="margin-top:4px">💡 Empfehlungen</div><div class="shop-reco-row">'+
+      recos.map(r=>'<button class="shop-reco" onclick="addShoppingQuick(\''+esc(r).replace(/'/g,"\\'")+'\')">'+esc(shopInfo(r).emoji+' '+r)+'</button>').join('')+'</div>';
+  }
+  // Offene Artikel nach Kategorie
+  const byCat={};open.forEach(t=>{const c=shopInfo(t.text).cat;(byCat[c]=byCat[c]||[]).push(t);});
+  SHOP_CATS.forEach(cat=>{
+    const arr=byCat[cat.id];if(!arr||!arr.length)return;
+    html+='<div class="shop-cat-label">'+cat.emoji+' '+cat.name+'</div><div class="shop-grid">'+
+      arr.map(t=>shopTileHtml(t,false)).join('')+'</div>';
+  });
+  if(!open.length&&!cart.length){
+    html+='<div style="margin:16px;padding:24px 16px;text-align:center;color:var(--label2);background:var(--surface);border-radius:var(--radius)">Liste ist leer – füg unten was hinzu oder tipp auf eine Empfehlung.</div>';
+  }
+  // Korb
+  if(cart.length){
+    html+='<div class="shop-cat-label">✅ Im Korb ('+cart.length+')</div><div class="shop-grid">'+
+      cart.map(t=>shopTileHtml(t,true)).join('')+'</div>'+
+      '<button class="shop-done-btn" onclick="finishShopping()">Einkauf abschließen ('+cart.length+')</button>';
+  }
+  container.innerHTML=html;
+  // Handlers
+  container.querySelectorAll('.shop-tile').forEach(el=>{
+    el.onclick=()=>toggleTask('shopping',el.dataset.id);
+    attachLongPress(el,()=>{const t=items.find(x=>x.id===el.dataset.id);if(t&&confirm('"'+t.text+'" löschen?')){state.tasks.shopping=items.filter(x=>x.id!==t.id);save();renderTasks();showToast('Gelöscht');}});
+  });
+}
+function shopTileHtml(t,inCart){
+  const inf=shopInfo(t.text);
+  return '<div class="shop-tile'+(inCart?' in-cart':'')+'" data-id="'+t.id+'"><div class="st-emoji">'+inf.emoji+'</div><div class="st-name">'+esc(t.text)+'</div></div>';
+}
+function addShoppingQuick(name){addTaskTo('shopping',name.charAt(0).toUpperCase()+name.slice(1),'shopping');renderTasks();showToast('➕ '+name);}
+function finishShopping(){
+  const cart=state.tasks.shopping.filter(t=>t.done);
+  if(!cart.length)return;
+  state.shopHistory=state.shopHistory||{};
+  cart.forEach(t=>{const n=shopBaseName(t.text);if(!n)return;const h=state.shopHistory[n]||{n:0};h.n++;h.ts=Date.now();state.shopHistory[n]=h;});
+  state.tasks.shopping=state.tasks.shopping.filter(t=>!t.done);
+  save();renderTasks();showToast('🛒 Einkauf abgeschlossen – '+cart.length+' Artikel gemerkt');
+}
 
 // ════════════════════════════════════════════════════
 //  ENERGY
@@ -973,6 +1127,179 @@ async function generatePlan(){
     showToast('Konnte Plan nicht erstellen');
   }
   btn.disabled=false;btn.textContent='✨ Meinen Tag planen';
+}
+
+// ════════════════════════════════════════════════════
+//  ESSENSPLANER (KI-Ernährungscoach)
+// ════════════════════════════════════════════════════
+function switchPlannerMode(mode){
+  document.getElementById('seg-day').classList.toggle('on',mode==='day');
+  document.getElementById('seg-food').classList.toggle('on',mode==='food');
+  document.getElementById('planner-day').style.display=mode==='day'?'':'none';
+  document.getElementById('planner-food').style.display=mode==='food'?'':'none';
+  state.plannerMode=mode;save();
+  if(mode==='food')renderFood();
+}
+
+const FOOD_Q=[
+  {k:'diet',q:'Wie ernährst du dich?',chips:['Alles','Vegetarisch','Vegan','Pescetarisch','Flexitarisch']},
+  {k:'allergies',q:'Unverträglichkeiten oder Allergien?',chips:['Keine','Laktose','Gluten','Nüsse'],free:true},
+  {k:'dislikes',q:'Zutaten, die gar nicht gehen?',chips:['Nichts Bestimmtes'],free:true},
+  {k:'cuisines',q:'Welche Küche liebst du am meisten?',chips:['Italienisch','Asiatisch','Deutsch','Mexikanisch','Orientalisch','Gemischt'],free:true},
+  {k:'people',q:'Für wie viele Personen kochst du meistens?',chips:['1','2','3','4+']},
+  {k:'time',q:'Wie viel Zeit hast du werktags zum Kochen?',chips:['~15 Min','~30 Min','45+ Min']},
+  {k:'breakfast',q:'Wie frühstückst du am liebsten?',chips:['Schnell & einfach','Ausgiebig','Abwechslungsreich','Meist gleich']},
+  {k:'prep',q:'Meal-Prep – vorkochen für mehrere Tage?',chips:['Ja, gerne','Manchmal','Nein']},
+  {k:'extra',q:'Noch etwas, das dein Ernährungscoach wissen sollte?',chips:['Nein, passt so'],free:true}
+];
+let foodQIdx=0,foodAnswers={};
+
+function renderFood(){
+  const root=document.getElementById('food-root');
+  if(!state.foodProfile){renderFoodInterview(root);return;}
+  let html='<div style="margin:0 16px 12px;display:flex;gap:8px">'+
+    '<button class="ios-btn" style="flex:1;margin:0" id="meal-gen-btn" onclick="generateMealPlan()">'+(state.mealPlan?'🎲 Neuen Wochenplan':'✨ Wochenplan erstellen')+'</button>'+
+    '<button class="ios-btn sec" style="width:auto;margin:0;padding:0 14px" onclick="restartInterview()" title="Profil neu">👤</button></div>';
+  if(!state.mealPlan){
+    html+='<div style="margin:0 16px;padding:20px 16px;text-align:center;color:var(--label2);background:var(--surface);border-radius:var(--radius)">Profil gespeichert ('+esc(state.foodProfile.diet||'')+'). Erstell jetzt deinen ersten Wochenplan!</div>';
+  }else{
+    html+='<button class="shop-done-btn" style="margin:0 16px 14px;background:var(--blue)" onclick="mealPlanToShopping()">🛒 Alle Zutaten auf die Einkaufsliste</button>';
+    const ICONS={f:'🌅',m:'🌞',a:'🌙'};
+    state.mealPlan.days.forEach((d,di)=>{
+      html+='<div class="meal-day"><div class="meal-day-head">'+esc(d.tag)+(di===getTodayIdx()?' · heute':'')+'</div>';
+      [['f','fruehstueck','Frühstück'],['m','mittag','Mittag'],['a','abend','Abend']].forEach(([ic,key,label])=>{
+        const m=d[key];if(!m)return;
+        html+='<div class="meal-row" onclick="openMealSheet('+di+',\''+key+'\')"><div class="m-ic">'+ICONS[ic]+'</div><div class="m-body"><div class="m-name">'+esc(m.name||'')+'</div><div class="m-sub">'+esc(label+(m.zutaten&&m.zutaten.length?' · '+m.zutaten.slice(0,3).join(', ')+(m.zutaten.length>3?' …':''):''))+'</div></div><span class="chevron">›</span></div>';
+      });
+      html+='</div>';
+    });
+    if(state.mealPlan.createdAt){const d=new Date(state.mealPlan.createdAt);html+='<p style="font-size:12px;color:var(--label3);text-align:center;margin:4px 24px">Erstellt am '+d.getDate()+'.'+(d.getMonth()+1)+'. – Gericht antippen zum Anpassen</p>';}
+  }
+  root.innerHTML=html;
+}
+
+function renderFoodInterview(root){
+  const q=FOOD_Q[foodQIdx];
+  let html='<div class="food-q"><div class="food-progress">Frage '+(foodQIdx+1)+' von '+FOOD_Q.length+'</div><h3>'+esc(q.q)+'</h3><div class="chip-row">'+
+    q.chips.map(c=>'<button class="chip" onclick="answerFood(\''+esc(c).replace(/'/g,"\\'")+'\')">'+esc(c)+'</button>').join('')+'</div>';
+  if(q.free)html+='<div style="display:flex;gap:8px;margin-top:4px"><input type="text" id="food-free" class="sheet-input" style="margin:0;flex:1" placeholder="…oder selbst tippen"><button class="ios-btn" style="width:auto;margin:0;padding:0 16px" onclick="answerFoodFree()">→</button></div>';
+  html+='</div>';
+  if(foodQIdx===0)html='<div style="margin:0 16px 12px;padding:14px 16px;background:var(--blue);color:#fff;border-radius:var(--radius);font-size:14px;line-height:1.45">👋 Ich bin dein Ernährungscoach! Ein paar kurze Fragen, dann erstelle ich dir Wochenpläne, die wirklich zu dir passen.</div>'+html;
+  root.innerHTML=html;
+}
+function answerFood(val){foodAnswers[FOOD_Q[foodQIdx].k]=val;nextFoodQ();}
+function answerFoodFree(){const i=document.getElementById('food-free');const v=(i&&i.value.trim())||'';if(!v){showToast('Tipp etwas ein oder wähl einen Chip');return;}foodAnswers[FOOD_Q[foodQIdx].k]=v;nextFoodQ();}
+function nextFoodQ(){
+  foodQIdx++;
+  if(foodQIdx>=FOOD_Q.length){
+    state.foodProfile={...foodAnswers,updatedAt:Date.now()};save();
+    foodQIdx=0;foodAnswers={};
+    showToast('Profil gespeichert 🎉');renderFood();
+  }else{renderFoodInterview(document.getElementById('food-root'));}
+}
+function restartInterview(){if(confirm('Ernährungsprofil neu erstellen? (Wochenplan bleibt erhalten)')){foodQIdx=0;foodAnswers={};state.foodProfile=null;save();renderFood();}}
+
+function foodProfileText(){
+  const p=state.foodProfile||{};
+  return 'Ernährung: '+(p.diet||'alles')+'. Allergien/Unverträglichkeiten: '+(p.allergies||'keine')+'. No-Gos: '+(p.dislikes||'keine')+'. Lieblingsküche: '+(p.cuisines||'gemischt')+'. Personen: '+(p.people||'1')+'. Kochzeit werktags: '+(p.time||'~30 Min')+'. Frühstück: '+(p.breakfast||'einfach')+'. Meal-Prep: '+(p.prep||'nein')+'. Sonstiges: '+(p.extra||'-');
+}
+
+async function generateMealPlan(){
+  if(!groqKey){showToast('Erst KI verbinden (KI-Tab)');switchTab('ai');return;}
+  const btn=document.getElementById('meal-gen-btn');
+  if(btn){btn.disabled=true;btn.textContent='🍳 Erstelle Plan…';}
+  const sys='Du bist ein Ernährungsberater und erstellst einen 7-Tage-Essensplan (Mo–So) mit Frühstück, Mittag und Abendessen. '+
+    'Halte dich STRENG an das Profil (Ernährungsweise, Allergien, No-Gos, Kochzeit!). Frühstück darf sich wiederholen (2-3 Varianten). '+
+    'Nutze saisonale, in Deutschland gängige Zutaten, studentenfreundliches Budget. '+
+    'Antworte NUR mit JSON: {"days":[{"tag":"Mo","fruehstueck":{"name":"...","zutaten":["Zutat1","Zutat2"]},"mittag":{...},"abend":{...}}, ... 7 Tage]}. '+
+    'Zutaten: kurze Einkaufsnamen (z.B. "Haferflocken", "Paprika"), 3-7 pro Gericht, Menge nur wenn wichtig in Klammern.';
+  try{
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+      body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:sys},{role:'user',content:foodProfileText()}],max_tokens:4000,temperature:0.7,response_format:{type:'json_object'}})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error?.message||res.status);
+    const parsed=JSON.parse(data.choices[0].message.content);
+    const days=(parsed.days||[]).slice(0,7).map((d,i)=>({tag:d.tag||['Mo','Di','Mi','Do','Fr','Sa','So'][i],fruehstueck:normMeal(d.fruehstueck),mittag:normMeal(d.mittag),abend:normMeal(d.abend)}));
+    if(!days.length)throw new Error('leer');
+    state.mealPlan={createdAt:Date.now(),days};save();
+    renderFood();showToast('Wochenplan erstellt 🍽');
+  }catch(e){showToast('Konnte Plan nicht erstellen – nochmal versuchen');}
+  if(btn){btn.disabled=false;btn.textContent='🎲 Neuen Wochenplan';}
+}
+function normMeal(m){if(!m)return null;return{name:String(m.name||'Gericht'),zutaten:Array.isArray(m.zutaten)?m.zutaten.map(String).slice(0,10):[]};}
+
+function mealPlanIngredients(){
+  if(!state.mealPlan)return[];
+  const out=[];
+  state.mealPlan.days.forEach(d=>['fruehstueck','mittag','abend'].forEach(k=>{const m=d[k];if(m&&m.zutaten)out.push(...m.zutaten);}));
+  return out;
+}
+function mealPlanToShopping(){
+  const existing=new Set(state.tasks.shopping.map(t=>shopBaseName(t.text)));
+  const added=[];const seen=new Set();
+  for(const ing of mealPlanIngredients()){
+    const base=shopBaseName(ing);
+    if(!base||existing.has(base)||seen.has(base))continue;
+    seen.add(base);
+    state.tasks.shopping.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,5),text:ing,done:false,tag:'shopping'});
+    added.push(ing);
+  }
+  save();renderTasks();
+  showToast(added.length?('🛒 '+added.length+' Zutaten hinzugefügt'):'Alles schon auf der Liste ✓');
+}
+
+// ── Gericht-Sheet: ansehen / neu würfeln / bearbeiten ──
+let editingMeal=null;
+function openMealSheet(dayIdx,slot){
+  const d=state.mealPlan.days[dayIdx];const m=d[slot];if(!m)return;
+  editingMeal={dayIdx,slot};
+  document.getElementById('meal-sheet-title').textContent=d.tag+' · '+({fruehstueck:'Frühstück',mittag:'Mittag',abend:'Abend'}[slot]);
+  document.getElementById('meal-name-inp').value=m.name;
+  document.getElementById('meal-ing-inp').value=(m.zutaten||[]).join(', ');
+  document.getElementById('sheet-overlay').classList.add('show');
+  document.getElementById('meal-sheet').classList.add('show');
+}
+function closeMealSheet(){document.getElementById('meal-sheet').classList.remove('show');document.getElementById('sheet-overlay').classList.remove('show');editingMeal=null;}
+function saveMeal(){
+  if(!editingMeal)return;
+  const m=state.mealPlan.days[editingMeal.dayIdx][editingMeal.slot];
+  m.name=document.getElementById('meal-name-inp').value.trim()||m.name;
+  m.zutaten=document.getElementById('meal-ing-inp').value.split(',').map(s=>s.trim()).filter(Boolean);
+  save();closeMealSheet();renderFood();showToast('Gericht gespeichert');
+}
+function mealToShopping(){
+  if(!editingMeal)return;
+  const m=state.mealPlan.days[editingMeal.dayIdx][editingMeal.slot];
+  const existing=new Set(state.tasks.shopping.map(t=>shopBaseName(t.text)));
+  let n=0;
+  (m.zutaten||[]).forEach(ing=>{const b=shopBaseName(ing);if(b&&!existing.has(b)){existing.add(b);state.tasks.shopping.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,5),text:ing,done:false,tag:'shopping'});n++;}});
+  save();renderTasks();showToast(n?('🛒 '+n+' Zutaten hinzugefügt'):'Schon alles auf der Liste ✓');
+}
+async function rerollMeal(){
+  if(!editingMeal||!groqKey){showToast(groqKey?'':'Erst KI verbinden');return;}
+  const{dayIdx,slot}=editingMeal;
+  const d=state.mealPlan.days[dayIdx];
+  const btn=document.getElementById('meal-reroll-btn');btn.disabled=true;btn.textContent='🎲 Würfle…';
+  const avoid=state.mealPlan.days.flatMap(x=>['fruehstueck','mittag','abend'].map(k=>x[k]&&x[k].name)).filter(Boolean).join(', ');
+  try{
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+      body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[
+        {role:'system',content:'Du bist Ernährungsberater. Schlage GENAU EIN alternatives Gericht vor. Antworte NUR mit JSON: {"name":"...","zutaten":["..."]}. Profil strikt beachten.'},
+        {role:'user',content:foodProfileText()+' Slot: '+slot+' am '+d.tag+'. NICHT diese Gerichte: '+avoid}
+      ],max_tokens:250,temperature:0.9,response_format:{type:'json_object'}})
+    });
+    const data=await res.json();
+    if(!res.ok)throw 0;
+    const nm=normMeal(JSON.parse(data.choices[0].message.content));
+    if(nm&&nm.name){state.mealPlan.days[dayIdx][slot]=nm;save();
+      document.getElementById('meal-name-inp').value=nm.name;
+      document.getElementById('meal-ing-inp').value=nm.zutaten.join(', ');
+      renderFood();showToast('Neues Gericht 🎲');}
+  }catch(e){showToast('Würfeln fehlgeschlagen');}
+  btn.disabled=false;btn.textContent='🎲 Neu würfeln';
 }
 
 // ════════════════════════════════════════════════════
@@ -1071,6 +1398,7 @@ function shareActiveList(){shareList(state.activeList);}
 // ════════════════════════════════════════════════════
 function renderModules(){
   document.getElementById('key-status').textContent=groqKey?groqKey.slice(0,8)+'…':'Nicht gesetzt';
+  const vf=document.getElementById('version-footer');if(vf)vf.textContent='Organizer '+APP_VERSION;
   // Worker UI
   const hasWorker = !!(workerUrl && workerSecret);
   document.getElementById('sync-status-row').style.display = hasWorker ? '' : 'none';
@@ -1081,8 +1409,9 @@ function renderModules(){
     document.getElementById('worker-secret-inp').value = workerSecret;
     const last = state.lastCalendarSync ? new Date(state.lastCalendarSync).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}) : 'noch nie';
     document.getElementById('worker-sync-label').textContent = 'Letzter Sync: ' + last;
-    const calUrl = workerUrl.replace(/\/$/,'') + '/calendar?s=' + encodeURIComponent(workerSecret);
+    const calUrl = workerUrl.replace(/\/$/,'') + '/calendar';
     document.getElementById('worker-cal-url').textContent = calUrl;
+    const sb = document.getElementById('worker-header-secret'); if (sb) sb.textContent = workerSecret;
   } else {
     document.getElementById('worker-cal-url').textContent = '– Worker erst verbinden –';
   }
@@ -1097,6 +1426,17 @@ function clearAll(){if(confirm('Wirklich ALLE Daten löschen? Das kann nicht rü
 let chatHistory=[];
 let pendingAI=null;
 
+function todayMealsText(){
+  if(!state.mealPlan||!state.mealPlan.days)return 'keiner';
+  const d=state.mealPlan.days[getTodayIdx()];
+  if(!d)return 'keiner';
+  const parts=[];
+  if(d.fruehstueck)parts.push('Frühstück: '+d.fruehstueck.name);
+  if(d.mittag)parts.push('Mittag: '+d.mittag.name);
+  if(d.abend)parts.push('Abend: '+d.abend.name);
+  return parts.join(', ')||'keiner';
+}
+
 function buildContext(){
   const open=state.tasks.today.filter(t=>!t.done).map(t=>t.text);
   const shop=state.tasks.shopping.filter(t=>!t.done).map(t=>t.text);
@@ -1110,7 +1450,8 @@ function buildContext(){
 '- Tagesplan: '+(sched||'leer')+'\n'+
 '- Offene Aufgaben heute: '+(open.join(', ')||'keine')+'\n'+
 '- Arbeit/Thesis offen: '+(work.join(', ')||'keine')+'\n'+
-'- Einkaufsliste offen: '+(shop.join(', ')||'leer')+'\n\n'+
+'- Einkaufsliste offen: '+(shop.join(', ')||'leer')+'\n'+
+'- Essensplan heute: '+todayMealsText()+'\n\n'+
 'Du kannst Aktionen ausführen: Aufgaben/Einkäufe/Termine hinzufügen, Aufgaben abhaken, Energie setzen – nutze dafür die bereitgestellten Tools, wenn Steven darum bittet. Frag nicht unnötig nach, handle direkt und bestätige knapp.\n'+
 'Antworte kurz, konkret, persönlich und auf Deutsch. Kein Geschwafel.';
 }

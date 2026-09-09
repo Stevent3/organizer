@@ -1,0 +1,8 @@
+# Lessons – Organizer
+
+1. **Namensräume App vs. Worker:** Hilfsfunktionen heißen unterschiedlich (App: timeToMin, Worker: toMin). Beim Code-Transfer zwischen beiden IMMER Definitionen im Zielkontext grep-prüfen. (Bug: Kalender verschwand komplett wegen ReferenceError toMin)
+2. **Sync ist bidirektional oder kaputt:** Eine syncStateToWorker-Funktion zu HABEN heißt nicht, dass sie aufgerufen wird. Bei jedem Cloud-Feature prüfen: Wer schreibt wann? Wer liest wann? Was passiert bei Konflikt? → updatedAt-Merge-Guard eingeführt.
+3. **Server kennt App-Mutationen nicht:** Push-Logik im Worker rechnete mit Original-Kalender, App-seitige Verschiebungen (calOverrides) fehlten → falsche Push-Zeiten. Regel: Jede Datenebene, die Verhalten steuert, muss überall angewendet werden, wo entschieden wird (applyOverrides im Cron).
+4. **Overrides müssen VOLLSTÄNDIG sein:** time/end gespeichert, text/sub vergessen → Umbenennungen gingen beim Sync verloren. Regel: Override-Struktur = alle editierbaren Felder.
+5. **touch-action:none frisst Scrollen:** Drag-Elemente in Scroll-Containern brauchen das iOS-Muster (Long-Press aktiviert Drag, sofortige Bewegung scrollt) + manuelles Scroll-Passthrough.
+6. **Deploy muss verifizierbar sein:** "Hat sich nichts geändert" war nicht diagnostizierbar, weil die App keine sichtbare Version trägt. Regel: Jede deploybare Oberfläche bekommt einen APP_VERSION-Marker (sichtbar in Settings), und bei JEDER Auslieferung wird die SW-Cache-Version mitgezählt. iOS-PWA: Neustart nur per Force-Quit im App-Umschalter.

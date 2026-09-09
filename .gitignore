@@ -1,0 +1,7 @@
+# Secrets (Repo ist oeffentlich!)
+SECRETS.local.md
+.dev.vars
+
+# Wrangler / Node
+.wrangler/
+node_modules/
