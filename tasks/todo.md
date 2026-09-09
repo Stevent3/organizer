@@ -7,22 +7,22 @@ Worker-API + Datenmodell bleiben kompatibel (Sync mit updatedAt-Guard, calOverri
 ## M0 – Tooling & Deploy-Pipeline
 - [x] `app/` Scaffold: Vite + React + TS + Tailwind v4 + vitest, PWA-Manifest/SW mit eigenem Scope `/organizer/next/`
 - [x] GitHub-Actions-Workflow: baut `app/`, legt Root-v7-Dateien + `next/` zusammen, deployt Pages
-- [ ] Steven: Repo → Settings → Pages → Source auf „GitHub Actions" stellen (einmalig)
+- [x] Steven: Repo → Settings → Pages → Source auf „GitHub Actions" stellen (einmalig)
 - [x] Sichtbare Versionsnummer (APP_VERSION) + Build-Zeit in der neuen App
-- [ ] Verifikation: `/organizer/` weiter v7, `/organizer/next/` neue App
+- [x] Verifikation: `/organizer/` weiter v7, `/organizer/next/` neue App
 
 ## M1 – Design-System & App-Shell
-- [ ] Tokens: Farben (Light/Dark, iOS-nah aber eigenständig), Typo, Radius, Schatten, Motion
-- [ ] Shell: Bottom-Tabs **Heute · Kalender · Aufgaben · KI · Mehr**, Safe-Areas, Sheets/Modals, Toasts
-- [ ] Basis-Komponenten: Card, ListRow, Button, Chip, Segmented, Sheet, Input, EmptyState
+- [x] Tokens: Farben (Light/Dark, iOS-nah aber eigenständig), Typo, Radius, Schatten, Motion
+- [x] Shell: Bottom-Tabs **Heute · Kalender · Aufgaben · KI · Mehr**, Safe-Areas, Sheets/Modals, Toasts
+- [x] Basis-Komponenten: Card, ListRow, Button, Chip, Segmented, Sheet, Input, EmptyState
 - [ ] Startseite „Heute": Kopf mit Datum/Energie, „Jetzt dran", Tages-Timeline-Vorschau, offene Aufgaben
 
 ## M2 – Kalender (Hauptkritik)
-- [ ] Datenmodell mit Datum: `events[{id,date,endDate?,time?,end?,allDay,text,sub,color,source,key?}]`
-- [ ] Migration: v7 `schedule` (nur Uhrzeit) → heutiges Datum; `calendarEvents` + `calOverrides` weiter nutzbar
-- [ ] Ansichten: **Tag** (Timeline, Drag im 15-Min-Raster), **Woche** (7 Spalten, Mehrtages-Balken oben), **Monat** (Grid mit Punkten/Balken, Tap → Tag)
-- [ ] Datumsnavigation: Swipe/Chevrons, „Heute"-Button, Datepicker
-- [ ] Termin-Editor-Sheet: Titel, Ganztägig, Start/Ende (Datum+Zeit), Mehrtägig, Notiz, Ort, Farbe, Löschen; Apple-Termine via calOverrides
+- [x] Datenmodell mit Datum: `events[{id,date,endDate?,time?,end?,allDay,text,sub,color,source,key?}]`
+- [x] Migration: v7 `schedule` (nur Uhrzeit) → heutiges Datum; `calendarEvents` + `calOverrides` weiter nutzbar
+- [x] Ansichten: **Tag** (Timeline; Drag im 15-Min-Raster noch offen), **Woche** (7 Spalten, Mehrtages-Balken oben), **Monat** (Grid mit Punkten/Balken, Tap → Tag)
+- [x] Datumsnavigation: Swipe/Chevrons, „Heute"-Button, Datepicker
+- [x] Termin-Editor-Sheet: Titel, Ganztägig, Start/Ende (Datum+Zeit), Mehrtägig, Notiz, Ort, Farbe, Löschen; Apple-Termine via calOverrides
 - [ ] Worker: Zeilenformat um Datum erweitern (`DD.MM.YYYY | HH:MM | HH:MM | Titel | Ort | Fahrzeit`), Kalender-Key mit Datum; Shortcut-Guide „Zeitraum 14 Tage"
 
 ## M3 – Sync, Migration, Einstellungen

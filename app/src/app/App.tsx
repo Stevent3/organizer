@@ -4,6 +4,7 @@ import { TABS, type TabId } from './tabs'
 import { TodayScreen } from '../screens/TodayScreen'
 import { MoreScreen } from '../screens/MoreScreen'
 import { PlaceholderScreen } from '../screens/PlaceholderScreen'
+import { CalendarScreen } from '../screens/CalendarScreen'
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('today')
@@ -15,7 +16,7 @@ export default function App() {
         style={{ paddingBottom: 'calc(var(--tabbar-h) + var(--safe-bottom) + 16px)' }}
       >
         {tab === 'today' && <TodayScreen />}
-        {tab === 'calendar' && <PlaceholderScreen title="Kalender" hint="Tag, Woche und Monat kommen in Meilenstein 2." />}
+        {tab === 'calendar' && <CalendarScreen />}
         {tab === 'tasks' && <PlaceholderScreen title="Aufgaben" hint="Listen und Bring-Einkaufsliste folgen in Meilenstein 4." />}
         {tab === 'ai' && <PlaceholderScreen title="KI" hint="Chat mit Tool-Calling folgt in Meilenstein 4." />}
         {tab === 'more' && <MoreScreen />}
