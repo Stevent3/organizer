@@ -5,3 +5,9 @@ SECRETS.local.md
 # Wrangler / Node
 .wrangler/
 node_modules/
+
+# Vite-App
+app/dist/
+app/dev-dist/
+app/node_modules/
+.claude/launch.json

@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────
+   Design-Tokens – Light ist Default, Dark per System
+   ─────────────────────────────────────────────── */
+:root {
+  color-scheme: light dark;
+
+  --bg: #f4f5f9;
+  --bg-elev: #ffffff;
+  --bg-sunken: #e9ebf2;
+  --fill: rgba(20, 22, 40, 0.06);
+  --fill-strong: rgba(20, 22, 40, 0.12);
+  --line: rgba(20, 22, 40, 0.09);
+
+  --text: #111321;
+  --text-2: #5b5f73;
+  --text-3: #9297ab;
+
+  --accent: #5b5bd6;
+  --accent-strong: #4646c4;
+  --accent-soft: rgba(91, 91, 214, 0.12);
+  --on-accent: #ffffff;
+
+  --green: #1f9d5a;
+  --orange: #e8842a;
+  --red: #e0433d;
+  --yellow: #d9a400;
+  --teal: #12a3a8;
+  --pink: #d64c8a;
+
+  --shadow-sm: 0 1px 2px rgba(15, 18, 40, 0.06), 0 1px 1px rgba(15, 18, 40, 0.04);
+  --shadow-md: 0 6px 20px rgba(15, 18, 40, 0.08), 0 2px 6px rgba(15, 18, 40, 0.05);
+  --shadow-lg: 0 18px 50px rgba(15, 18, 40, 0.18);
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --tabbar-h: 58px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0b0f;
+    --bg-elev: #17171e;
+    --bg-sunken: #050508;
+    --fill: rgba(235, 238, 255, 0.07);
+    --fill-strong: rgba(235, 238, 255, 0.14);
+    --line: rgba(235, 238, 255, 0.09);
+
+    --text: #f2f3f8;
+    --text-2: #a3a7bd;
+    --text-3: #6b6f85;
+
+    --accent: #7c7cf0;
+    --accent-strong: #9a9af6;
+    --accent-soft: rgba(124, 124, 240, 0.18);
+    --on-accent: #0b0b0f;
+
+    --green: #37c274;
+    --orange: #f59a44;
+    --red: #f0605a;
+    --yellow: #f0c02a;
+    --teal: #2fc4c9;
+    --pink: #ef6aa5;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Tailwind-Theme auf die Tokens mappen → bg-elev, text-2, rounded-md … */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-elev: var(--bg-elev);
+  --color-sunken: var(--bg-sunken);
+  --color-fill: var(--fill);
+  --color-fill-strong: var(--fill-strong);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-green: var(--green);
+  --color-orange: var(--orange);
+  --color-red: var(--red);
+  --color-yellow: var(--yellow);
+  --color-teal: var(--teal);
+  --color-pink: var(--pink);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, system-ui, sans-serif;
+}
+
+@layer base {
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-text-size-adjust: 100%;
+  }
+  input, textarea { -webkit-user-select: text; user-select: text; }
+  button { font: inherit; color: inherit; }
+  #root { min-height: 100%; }
+}
+
+@layer utilities {
+  .pt-safe { padding-top: var(--safe-top); }
+  .pb-safe { padding-bottom: var(--safe-bottom); }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+  .press { transition: transform 160ms var(--ease-out), opacity 160ms var(--ease-out); }
+  .press:active { transform: scale(0.97); opacity: 0.85; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 360ms var(--ease-out) both; }
