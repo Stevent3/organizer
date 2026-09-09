@@ -1,15 +1,18 @@
 # Organizer — Projektübergabe & Arbeitsanweisung
 
-> **SETUP-STATUS (07.09.2026, MacBook Air Intel):** Repo ist geklont. Node v26 + wrangler sind installiert, `wrangler login` ist erledigt (Cloudflare-Zugriff steht).
-> ⚠️ **Mac-Eigenheit:** Auf diesem Mac war Nodes Zertifikatssuche defekt — gelöst via `export SSL_CERT_FILE=/etc/ssl/cert.pem` in `~/.zshrc`. Falls je ein Node/npm-Befehl mit `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` scheitert: diese Variable fehlt in der Shell-Umgebung.
+> **SETUP-STATUS (09.09.2026, Windows 11):** Wrangler-Setup ist ABGESCHLOSSEN — `wrangler.toml` liegt im Repo (KV-Namespace `2f8eb11cc97f48a9a64ef75b35474126`, Cron, Vars). Der Worker wurde per `wrangler deploy` ausgeliefert (Version `fd3ea3a9`) und verifiziert: `/ping`, `/calendar`, `/state`, `/push/status` liefern die bestehenden Live-Daten, CORS und 401 ohne Secret intakt. Secrets SECRET, VAPID_PRIVATE_JWK, GROQ_KEY sind im Worker gesetzt (07.09.2026) und bleiben bei `wrangler deploy` erhalten.
 >
-> **ERSTE AUFGABE für Claude Code:** Wrangler-Setup abschließen —
-> 1. `wrangler kv namespace list` → ID des bestehenden Namespace ermitteln (er enthält Live-Daten: calendar, state, push_sub — NICHT neu anlegen!)
-> 2. `wrangler.toml` erstellen: name "organizer", main worker.js, kv_namespaces binding "KV" mit dieser ID, `[triggers] crons = ["*/15 * * * *"]`, `[vars]` VAPID_PUBLIC + VAPID_SUBJECT (Werte aus SECRETS.local.md)
-> 3. Secrets setzen: `wrangler secret put SECRET | VAPID_PRIVATE_JWK | GROQ_KEY` (Steven tippt die Werte aus SECRETS.local.md ein)
-> 4. `wrangler deploy`, dann verifizieren: `curl -H "X-Secret: <SECRET>" https://organizer.steven-ec0.workers.dev/ping` → `{ok:true}`, und `GET /calendar` muss die bestehenden Termine liefern (beweist: KV-Bindung korrekt übernommen)
-> 5. `.gitignore` prüfen/ergänzen: `SECRETS.local.md`
-> 6. Steven bitten, in der iPhone-App den Push-Test zu drücken (beweist: Cron+Secrets intakt)
+> ⚠️ **Windows-Eigenheiten (dieser Rechner):**
+> - Das Repo liegt unter `C:\Users\steve\Projekte\organizer`. Die Kopie unter `C:\Program Files (x86)\Projekte\organizer` ist für den Benutzer schreibgeschützt (kein Commit möglich) und kann gelöscht werden.
+> - `wrangler login` hat das OAuth-Token nach `%APPDATA%\xdg.config\.wrangler\config\default.toml` geschrieben. Sobald ein Ordner `C:\Users\steve\.wrangler` existiert (Wrangler legt ihn für Logs/Cache selbst an), bevorzugt Wrangler diesen und meldet "not authenticated". Workaround in Git Bash: `USERPROFILE='C:\Users\steve\AppData\Roaming\xdg.config' wrangler …` — dauerhaft: `C:\Users\steve\.wrangler` löschen (enthält nur Logs/Cache) oder `default.toml` nach `C:\Users\steve\.wrangler\config\` kopieren.
+> - `wrangler kv key list/get` liest in Wrangler 4 standardmäßig den LOKALEN Speicher (leer!). Für Live-Daten immer `--remote` anhängen.
+> - Die Meldung `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` am Ende von Wrangler-Befehlen ist kosmetisch (libuv/Windows).
+>
+> **Mac-Eigenheit (MacBook Air Intel, 07.09.2026):** Nodes Zertifikatssuche war defekt — gelöst via `export SSL_CERT_FILE=/etc/ssl/cert.pem` in `~/.zshrc`. Falls je ein Node/npm-Befehl mit `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` scheitert: diese Variable fehlt in der Shell-Umgebung.
+>
+> **Deploy-Workflow ab jetzt:** Frontend = `git push` (GitHub Pages; Repo heißt jetzt `Stevent3/organizer`); Worker = `wrangler deploy`; Secrets = `wrangler secret put NAME`; Rollback = `wrangler rollback`.
+>
+> **Offen:** Steven drückt in der iPhone-App den Push-Test (beweist: Cron + Secrets nach dem Wrangler-Deploy intakt).
 >
 > Danach: Meilenstein-Planung gemäß §13.
 

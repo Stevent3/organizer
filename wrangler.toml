@@ -1,0 +1,17 @@
+# Cloudflare Worker "organizer" – Sync-Backend + Web Push
+# Deploy: wrangler deploy   |   Secrets: wrangler secret put SECRET | VAPID_PRIVATE_JWK | GROQ_KEY
+# (Secrets liegen NICHT hier – siehe SECRETS.local.md, nie committen)
+name = "organizer"
+main = "worker.js"
+compatibility_date = "2026-06-26"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "2f8eb11cc97f48a9a64ef75b35474126"
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[vars]
+VAPID_PUBLIC = "BK9fTYKr7-r5MLZgLG3cbVXDg9QZsaXTUrbfeY2hZsDvSGCDYlI01ij12SDWXGp_U-nzQtuGKpTxpGu-JSusmSI"
+VAPID_SUBJECT = "mailto:steven@tenyenhuis.de"
