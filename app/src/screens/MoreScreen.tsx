@@ -1,4 +1,4 @@
-import { Bell, Check, CloudOff, CloudUpload, Download, RefreshCw, Upload } from 'lucide-react'
+import { Bell, Check, CloudOff, CloudUpload, Copy, Download, Eye, EyeOff, RefreshCw, Upload } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Card, SectionLabel } from '../components/Card'
 import { Toggle } from '../components/Toggle'
@@ -67,7 +67,18 @@ function SyncSection() {
   const [url, setUrl] = useState(cfg.url)
   const [secret, setSecret] = useState(cfg.secret)
   const [editing, setEditing] = useState(!isConfigured(cfg))
+  const [showSecret, setShowSecret] = useState(false)
   const { msg, show } = useToast()
+
+  // Für den Kalender-Kurzbefehl: das Token muss in die Kurzbefehle-App, aus einem Passwortfeld kann iOS nicht kopieren
+  const copySecret = async () => {
+    try {
+      await navigator.clipboard.writeText(cfg.secret)
+      show('Token kopiert, jetzt im Kurzbefehl einfügen')
+    } catch {
+      show('Kopieren nicht erlaubt, Token unter „Verbindung ändern" anzeigen')
+    }
+  }
 
   const save = async () => {
     const api = new WorkerApi(url.trim().replace(/\/$/, ''), secret.trim())
@@ -104,7 +115,12 @@ function SyncSection() {
         {editing ? (
           <div className="space-y-2 border-t border-line px-4 py-3">
             <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://organizer.….workers.dev" inputMode="url" autoCapitalize="none" className={input} />
-            <input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="Secret Token" type="password" autoCapitalize="none" className={input} />
+            <div className="flex items-center gap-2">
+              <input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="Secret Token" type={showSecret ? 'text' : 'password'} autoCapitalize="none" autoCorrect="off" spellCheck={false} className={input + ' font-mono text-[14px]'} />
+              <button type="button" onClick={() => setShowSecret((v) => !v)} aria-label={showSecret ? 'Token verbergen' : 'Token anzeigen'} className="press grid h-10 w-10 shrink-0 place-items-center rounded-md bg-fill text-text-2">
+                {showSecret ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
             <p className="text-[12px] text-text-3">URL und Token werden mit der bisherigen App geteilt. Wenn dort alles läuft, ist hier schon alles eingetragen.</p>
             <div className="flex gap-2">
               <button onClick={save} disabled={!url.trim() || !secret.trim()} className={btn + ' flex-1 bg-accent text-on-accent disabled:opacity-40'}>Testen & speichern</button>
@@ -115,6 +131,10 @@ function SyncSection() {
           <div className="divide-y divide-line border-t border-line">
             <button onClick={() => syncNow()} className="press flex w-full items-center justify-between px-4 py-3 text-[15px]">
               Jetzt synchronisieren <RefreshCw size={16} className={'text-text-3 ' + (sync.status === 'syncing' ? 'animate-spin' : '')} />
+            </button>
+            <button onClick={copySecret} className="press flex w-full items-center justify-between px-4 py-3 text-[15px]">
+              <span>Token kopieren <span className="block text-[12px] text-text-3">Für den Kalender-Kurzbefehl (Header X-Secret oder ?s=)</span></span>
+              <Copy size={16} className="shrink-0 text-text-3" />
             </button>
             <button onClick={() => setEditing(true)} className="press flex w-full items-center justify-between px-4 py-3 text-[15px]">
               Verbindung ändern <span className="max-w-[55%] truncate font-mono text-[12px] text-text-3">{cfg.url.replace(/^https?:\/\//, '')}</span>
