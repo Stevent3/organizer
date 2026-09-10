@@ -104,7 +104,8 @@ export const MEAL_SLOTS: { id: MealSlot; label: string; icon: string }[] = [
 ]
 export const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
-export type Meal = { name: string; zutaten: string[] }
+/** rezept: von der KI erzeugte Kochanleitung (optional, wird gecacht) */
+export type Meal = { name: string; zutaten: string[]; rezept?: string }
 export type MealDay = { tag: string } & Record<MealSlot, Meal | null>
 export type MealPlan = { createdAt: number; days: MealDay[] }
 
@@ -148,6 +149,12 @@ export const MEAL_PLAN_SYSTEM =
   'Nutze saisonale, in Deutschland gängige Zutaten, studentenfreundliches Budget. ' +
   'Antworte NUR mit JSON: {"days":[{"tag":"Mo","fruehstueck":{"name":"...","zutaten":["Zutat1","Zutat2"]},"mittag":{...},"abend":{...}}, ... 7 Tage]}. ' +
   'Zutaten: kurze Einkaufsnamen (z.B. "Haferflocken", "Paprika"), 3-7 pro Gericht, Menge nur wenn wichtig in Klammern.'
+
+export const RECIPE_SYSTEM = 'Du bist ein pragmatischer Koch für Studenten. Schreib ein kurzes, alltagstaugliches Rezept auf Deutsch: Zutaten mit Mengen für die genannte Personenzahl, dann nummerierte Schritte (max. 8), am Ende ein Tipp. Kein Vorgeplänkel, keine Überschrift, Markdown-frei (nur Zeilenumbrüche und „-" bzw. Nummern).'
+
+export function recipeUserPrompt(p: FoodProfile | null, meal: Meal): string {
+  return foodProfileText(p) + ' Gericht: ' + meal.name + (meal.zutaten.length ? '. Geplante Zutaten: ' + meal.zutaten.join(', ') : '') + '.'
+}
 
 export const REROLL_SYSTEM = 'Du bist Ernährungsberater. Schlage GENAU EIN alternatives Gericht vor. Antworte NUR mit JSON: {"name":"...","zutaten":["..."]}. Profil strikt beachten.'
 

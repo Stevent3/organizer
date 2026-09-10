@@ -106,3 +106,21 @@ describe('Erscheinungsbild + Dashboard', () => {
     useDashboard.getState().toggle('weather', true)
   })
 })
+
+describe('Wunsch-Sammler', () => {
+  it('sammelt, hakt ab, löscht und exportiert offene Wünsche', async () => {
+    const { addWish, readWishes, removeWish, toggleWish, wishesToText } = await import('../lib/wishes')
+    let l = addWish([], '  Abend-Review um 21 Uhr ', 1_000_000)
+    l = addWish(l, 'Wetter im Briefing', 2_000_000)
+    l = addWish(l, '   ', 3)
+    expect(l.map((w) => w.text)).toEqual(['Wetter im Briefing', 'Abend-Review um 21 Uhr'])
+    l = toggleWish(l, l[0].id)
+    expect(wishesToText(l)).toMatch(/^Wünsche aus der Organizer-App:\n- Abend-Review um 21 Uhr \(/)
+    l = removeWish(l, l[1].id)
+    expect(l).toHaveLength(1)
+    expect(wishesToText(l)).toBe('')
+    useStore.getState().setExtra({ wishes: l })
+    expect(readWishes(useStore.getState().extra)).toEqual(l)
+    expect(readWishes({ wishes: 'kaputt' })).toEqual([])
+  })
+})

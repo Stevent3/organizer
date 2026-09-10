@@ -1,14 +1,14 @@
-import { CalendarPlus, Check, Dices, RefreshCw, ShoppingCart, Sparkles, UserRound } from 'lucide-react'
+import { BookOpen, CalendarPlus, Check, Dices, RefreshCw, ShoppingCart, Sparkles, UserRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Card, SectionLabel } from '../components/Card'
 import { Screen } from '../components/Screen'
 import { Segmented } from '../components/Segmented'
 import { Sheet } from '../components/Sheet'
-import { describeError, groqJson } from '../lib/ai'
+import { describeError, groqJson, groqText } from '../lib/ai'
 import { colorVar } from '../lib/colors'
 import { useConfig } from '../lib/config'
 import {
-  FOOD_Q, MEAL_PLAN_SYSTEM, MEAL_SLOTS, PLAN_COLOR, PLAN_ICON, REROLL_SYSTEM, dayPlanPrompt, foodProfileText, newIngredients, normMeal,
+  FOOD_Q, MEAL_PLAN_SYSTEM, MEAL_SLOTS, PLAN_COLOR, PLAN_ICON, RECIPE_SYSTEM, REROLL_SYSTEM, dayPlanPrompt, recipeUserPrompt, foodProfileText, newIngredients, normMeal,
   normalizeDayPlan, normalizeMealPlan, parseJsonObject, planToEvents, readDayPlan, readFoodProfile, readMealPlan, rerollUserPrompt, todayMealIndex,
   type FoodKey, type FoodProfile, type MealPlan, type MealSlot,
 } from '../lib/planner'
@@ -344,17 +344,35 @@ function MealSheet({ sel, plan, profile, onClose, onFlash }: { sel: { day: numbe
   const [name, setName] = useState(meal.name)
   const [ings, setIngs] = useState(meal.zutaten.join(', '))
   const [busy, setBusy] = useState(false)
+  const [recipeBusy, setRecipeBusy] = useState(false)
+  const [recipe, setRecipe] = useState<string | null>(meal.rezept ?? null)
   const [error, setError] = useState<string | null>(null)
 
   const slotLabel = MEAL_SLOTS.find((s) => s.id === sel.slot)?.label ?? ''
-  const writeMeal = (m: { name: string; zutaten: string[] }) => {
+  const writeMeal = (m: { name: string; zutaten: string[]; rezept?: string }) => {
     const days = plan.days.map((d, i) => (i === sel.day ? { ...d, [sel.slot]: m } : d))
     setExtra({ mealPlan: { ...plan, days } })
   }
+  const edited = () => ({ name: name.trim() || meal.name, zutaten: ings.split(',').map((s) => s.trim()).filter(Boolean) })
   const save = () => {
-    writeMeal({ name: name.trim() || meal.name, zutaten: ings.split(',').map((s) => s.trim()).filter(Boolean) })
+    // Rezept nur behalten, wenn das Gericht noch dasselbe ist
+    const m = edited()
+    writeMeal({ ...m, ...(recipe && m.name === meal.name ? { rezept: recipe } : {}) })
     onFlash('Gericht gespeichert')
     onClose()
+  }
+  const showRecipe = async () => {
+    setRecipeBusy(true); setError(null)
+    try {
+      const m = edited()
+      const text = (await groqText(RECIPE_SYSTEM, recipeUserPrompt(profile, m), { maxTokens: 700, temperature: 0.5 })).trim()
+      if (!text) throw new Error('Leere Antwort')
+      setRecipe(text)
+      writeMeal({ ...m, rezept: text })
+    } catch (e) {
+      setError(describeError(e))
+    }
+    setRecipeBusy(false)
   }
   const toList = () => {
     const fresh = newIngredients(ings.split(',').map((s) => s.trim()), useStore.getState().tasks.shopping)
@@ -369,7 +387,7 @@ function MealSheet({ sel, plan, profile, onClose, onFlash }: { sel: { day: numbe
       const nm = normMeal(parseJsonObject(text))
       if (!nm?.name) throw new Error('Kein Gericht in der Antwort')
       writeMeal(nm)
-      setName(nm.name); setIngs(nm.zutaten.join(', '))
+      setName(nm.name); setIngs(nm.zutaten.join(', ')); setRecipe(null)
       onFlash('Neues Gericht 🎲')
     } catch (e) {
       setError(describeError(e))
@@ -388,8 +406,17 @@ function MealSheet({ sel, plan, profile, onClose, onFlash }: { sel: { day: numbe
           {ings.split(',').map((s) => s.trim()).filter(Boolean).map((z, i) => <span key={i} className="rounded-full bg-fill px-2.5 py-1 text-[12px] font-medium">{shopInfo(z).emoji} {z}</span>)}
         </div>
       )}
+      {recipe && (
+        <div className="mt-3 rounded-md bg-fill px-3 py-2.5">
+          <p className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wider text-text-3"><BookOpen size={13} /> Rezept</p>
+          <p className="whitespace-pre-wrap text-[14px] leading-relaxed">{recipe}</p>
+        </div>
+      )}
       <Flash msg={error} tone="error" />
       <div className="mt-4 grid gap-2">
+        {!recipe && (
+          <button onClick={showRecipe} disabled={recipeBusy || !hasKey} className={btnSoft}>{recipeBusy ? <RefreshCw size={18} className="animate-spin" /> : <BookOpen size={18} />} {recipeBusy ? 'Schreibe Rezept …' : 'Rezept anzeigen'}</button>
+        )}
         <button onClick={reroll} disabled={busy || !hasKey} className={btnPrimary}>{busy ? <RefreshCw size={18} className="animate-spin" /> : <Dices size={18} />} {busy ? 'Würfle …' : 'Neu würfeln'}</button>
         <button onClick={toList} className={btnSoft}><ShoppingCart size={18} /> Zutaten auf die Liste</button>
         <div className="flex gap-2">

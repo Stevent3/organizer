@@ -1,4 +1,4 @@
-import { Check, Copy, LocateFixed, MapPin } from 'lucide-react'
+import { Check, Copy, Lightbulb, LocateFixed, MapPin, Share2, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Card, SectionLabel } from '../components/Card'
 import { Segmented } from '../components/Segmented'
@@ -7,6 +7,8 @@ import { APP_URL, SHORTCUT_EXAMPLES } from '../lib/actions'
 import { DASH_SECTIONS, useDashboard } from '../lib/dashboard'
 import { ACCENTS, THEME_MODES, useTheme } from '../lib/theme'
 import { DEFAULT_LOCATION, locateMe, useWeather } from '../lib/weather'
+import { addWish, readWishes, removeWish, toggleWish, wishesToText, type Wish } from '../lib/wishes'
+import { useStore } from '../store/useStore'
 
 const input = 'w-full rounded-md bg-fill px-3 py-2.5 text-[15px] outline-none placeholder:text-text-3'
 
@@ -135,6 +137,63 @@ export function ShortcutsSection() {
             {copied === s.url ? <Check size={16} className="shrink-0 text-green" /> : <Copy size={16} className="shrink-0 text-text-3" />}
           </button>
         ))}
+      </Card>
+    </>
+  )
+}
+
+/** Mehr → Wünsche & Ideen: Sammler für die nächste Entwicklungs-Sitzung (liegt im State, synchronisiert) */
+export function WishesSection() {
+  const extra = useStore((s) => s.extra)
+  const setExtra = useStore((s) => s.setExtra)
+  const list = readWishes(extra)
+  const [text, setText] = useState('')
+  const [msg, setMsg] = useState<string | null>(null)
+  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 2000) }
+  const save = (l: Wish[]) => setExtra({ wishes: l })
+  const submit = () => { if (!text.trim()) return; save(addWish(list, text)); setText('') }
+  const copy = async () => {
+    const t = wishesToText(list)
+    if (!t) { flash('Keine offenen Wünsche'); return }
+    try {
+      if (navigator.share) { await navigator.share({ text: t }); return }
+      await navigator.clipboard.writeText(t)
+      flash('Kopiert, ab in die nächste Claude-Sitzung')
+    } catch { /* abgebrochen */ }
+  }
+  const open = list.filter((w) => !w.done), done = list.filter((w) => w.done)
+  return (
+    <>
+      <SectionLabel>Wünsche & Ideen</SectionLabel>
+      <Card className="p-0">
+        <form onSubmit={(e) => { e.preventDefault(); submit() }} className="flex items-center gap-2 px-3 py-2">
+          <span className="grid h-6 w-6 shrink-0 place-items-center text-accent"><Lightbulb size={17} /></span>
+          <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Was soll die App noch können?" enterKeyHint="done" className="flex-1 bg-transparent py-1 text-[15px] outline-none placeholder:text-text-3" />
+        </form>
+        {open.length === 0 && done.length === 0 && <p className="border-t border-line px-4 py-3 text-[12px] text-text-3">Fällt dir im Alltag etwas auf, schreib es hier rein. Beim nächsten Entwickeln wird die Liste der Einstieg.</p>}
+        {open.map((w) => (
+          <div key={w.id} className="flex items-center gap-3 border-t border-line px-4 py-2.5">
+            <button onClick={() => save(toggleWish(list, w.id))} aria-label="Erledigt" className="grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 border-fill-strong" />
+            <span className="flex-1 text-[15px]">{w.text}</span>
+            <button onClick={() => save(removeWish(list, w.id))} aria-label="Löschen" className="text-text-3"><Trash2 size={15} /></button>
+          </div>
+        ))}
+        {done.length > 0 && (
+          <details className="border-t border-line">
+            <summary className="cursor-pointer list-none px-4 py-2 text-[12px] font-semibold text-text-3">Umgesetzt · {done.length}</summary>
+            {done.map((w) => (
+              <div key={w.id} className="flex items-center gap-3 px-4 py-2">
+                <button onClick={() => save(toggleWish(list, w.id))} aria-label="Wieder öffnen" className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent text-on-accent"><Check size={14} strokeWidth={3} /></button>
+                <span className="flex-1 text-[14px] text-text-3 line-through">{w.text}</span>
+                <button onClick={() => save(removeWish(list, w.id))} aria-label="Löschen" className="text-text-3"><Trash2 size={15} /></button>
+              </div>
+            ))}
+          </details>
+        )}
+        {list.length > 0 && (
+          <button onClick={copy} className="press flex w-full items-center justify-center gap-1.5 border-t border-line py-2.5 text-[13px] font-semibold text-accent"><Share2 size={14} /> Offene Wünsche teilen / kopieren</button>
+        )}
+        {msg && <p className="mx-3 mb-3 rounded-md bg-accent-soft px-3 py-2 text-[13px] font-medium text-accent">{msg}</p>}
       </Card>
     </>
   )

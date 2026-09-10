@@ -249,8 +249,13 @@ export function describeError(e: unknown): string {
  * Nimmt den Schlüssel aus der Konfiguration; ohne Schlüssel wird eine GroqError(0) geworfen.
  */
 export async function groqJson(system: string, user: string, opts: Omit<GroqOptions, 'json' | 'tools'> = {}): Promise<string> {
+  return groqText(system, user, { ...opts, json: true })
+}
+
+/** Freitext-Antwort (z. B. Rezept). Nimmt den Schlüssel aus der Konfiguration; ohne Schlüssel GroqError(0). */
+export async function groqText(system: string, user: string, opts: Omit<GroqOptions, 'tools'> = {}): Promise<string> {
   const key = useConfig.getState().groqKey
   if (!key) throw new GroqError(0, 'Kein Groq-Key hinterlegt. Unter „Mehr" eintragen.')
-  const data = await groqCall(key, [{ role: 'system', content: system }, { role: 'user', content: user }], { ...opts, json: true })
+  const data = await groqCall(key, [{ role: 'system', content: system }, { role: 'user', content: user }], opts)
   return data.choices[0]?.message.content ?? ''
 }

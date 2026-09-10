@@ -1,4 +1,4 @@
-import { Check, Minus, Plus, ShoppingBasket, Trash2 } from 'lucide-react'
+import { Check, Share2, Minus, Plus, ShoppingBasket, Trash2 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Card } from '../Card'
 import { Sheet } from '../Sheet'
@@ -43,6 +43,15 @@ export function ShoppingView() {
     const n = completeShopping()
     if (n) flash('Einkauf abgeschlossen, ' + n + ' Artikel gemerkt')
   }
+  /** Offene Artikel als Text teilen (iOS-Share-Sheet, sonst Zwischenablage) */
+  const share = async () => {
+    const text = 'Einkaufsliste:\n' + open.map((t) => '- ' + t.text + (t.qty ? ' (' + t.qty + ')' : '')).join('\n')
+    try {
+      if (navigator.share) { await navigator.share({ text }); return }
+      await navigator.clipboard.writeText(text)
+      flash('Liste in die Zwischenablage kopiert')
+    } catch { /* abgebrochen */ }
+  }
 
   const Label = ({ children }: { children: React.ReactNode }) => <h2 className="mb-2 mt-5 px-1 text-[13px] font-semibold uppercase tracking-wider text-text-3">{children}</h2>
 
@@ -62,6 +71,11 @@ export function ShoppingView() {
         )}
       </Card>
       {toast && <p className="mt-2 rounded-md bg-accent-soft px-3 py-2 text-center text-[13px] font-medium text-accent">{toast}</p>}
+      {open.length > 0 && (
+        <button onClick={share} className="press mt-2 flex w-full items-center justify-center gap-1.5 py-1 text-[12px] font-semibold text-text-3">
+          <Share2 size={13} /> Liste teilen · {open.length} Artikel
+        </button>
+      )}
 
       {open.length === 0 && cart.length === 0 && (
         <Card className="mt-4 text-center">

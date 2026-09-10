@@ -2,7 +2,7 @@ import { Bell, Check, CloudOff, CloudUpload, Download, RefreshCw, Upload } from 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Card, SectionLabel } from '../components/Card'
 import { Toggle } from '../components/Toggle'
-import { AppearanceSection, DashboardSection, ShortcutsSection, WeatherSection } from './MoreExtras'
+import { AppearanceSection, DashboardSection, ShortcutsSection, WeatherSection, WishesSection } from './MoreExtras'
 import { Screen } from '../components/Screen'
 import { buildInfo } from '../lib/buildInfo'
 import { isConfigured, useConfig } from '../lib/config'
@@ -23,6 +23,7 @@ export function MoreScreen() {
       <PushSection />
       <WeatherSection />
       <ShortcutsSection />
+      <WishesSection />
       <DataSection />
       <SectionLabel>App</SectionLabel>
       <Card className="divide-y divide-line p-0">

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { dayPlanPrompt, foodProfileText, newIngredients, normalizeDayPlan, normalizeMealPlan, parseJsonObject, planToEvents, readDayPlan, readMealPlan, rerollUserPrompt, todayMealIndex, type DayPlan } from '../lib/planner'
+import { dayPlanPrompt, foodProfileText, recipeUserPrompt, newIngredients, normalizeDayPlan, normalizeMealPlan, parseJsonObject, planToEvents, readDayPlan, readMealPlan, rerollUserPrompt, todayMealIndex, type DayPlan } from '../lib/planner'
 import { EMPTY_STATE, type EventItem } from '../lib/model'
 import { toWireState, mergeRemoteState } from '../lib/sync'
 import { todayKey } from '../lib/time'
@@ -96,6 +96,11 @@ describe('Essensplan', () => {
     const u = rerollUserPrompt({ diet: 'Vegan', updatedAt: 1 }, plan, 'abend', 'Mo')
     expect(u).toContain('Ernährung: Vegan.')
     expect(u).toContain('Slot: abend am Mo. NICHT diese Gerichte: Müsli, Pasta')
+  })
+
+  it('baut den Rezept-Prompt aus Profil und Gericht', () => {
+    expect(recipeUserPrompt({ people: '2', updatedAt: 1 }, { name: 'Shakshuka', zutaten: ['Eier', 'Tomaten'] })).toBe(foodProfileText({ people: '2', updatedAt: 1 }) + ' Gericht: Shakshuka. Geplante Zutaten: Eier, Tomaten.')
+    expect(recipeUserPrompt(null, { name: 'Brot', zutaten: [] })).toMatch(/Gericht: Brot\.$/)
   })
 
   it('dedupliziert Zutaten gegen Liste inkl. Korb und in sich', () => {
