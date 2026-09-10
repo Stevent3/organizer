@@ -167,11 +167,14 @@ export class GroqError extends Error {
 
 type GroqResponse = { choices: { message: { content: string | null; tool_calls?: ToolCall[] } }[] }
 
-async function groqCall(key: string, messages: ChatMessage[], useTools: boolean): Promise<GroqResponse> {
+type GroqOptions = { tools?: boolean; json?: boolean; maxTokens?: number; temperature?: number }
+
+async function groqCall(key: string, messages: ChatMessage[], opts: GroqOptions = {}): Promise<GroqResponse> {
   let model = currentModel()
   for (let attempt = 0; attempt < GROQ_MODELS.length; attempt++) {
-    const body: Record<string, unknown> = { model, messages, max_tokens: 900, temperature: 0.7 }
-    if (useTools) { body.tools = AI_TOOLS; body.tool_choice = 'auto' }
+    const body: Record<string, unknown> = { model, messages, max_tokens: opts.maxTokens ?? 900, temperature: opts.temperature ?? 0.7 }
+    if (opts.tools) { body.tools = AI_TOOLS; body.tool_choice = 'auto' }
+    if (opts.json) body.response_format = { type: 'json_object' }
     const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify(body) })
     if (res.ok) {
       try { localStorage.setItem(MODEL_KEY, model) } catch { /* egal */ }
@@ -202,7 +205,7 @@ export async function sendChat(text: string): Promise<void> {
   try {
     const sys: ChatMessage = { role: 'system', content: buildContext(useStore.getState().snapshot()) }
     const msgs: ChatMessage[] = [sys, ...useChat.getState().history.slice(-12)]
-    let data = await groqCall(key, msgs, true)
+    let data = await groqCall(key, msgs, { tools: true })
     let msg = data.choices[0].message
     if (msg.tool_calls?.length) {
       const assistant: ChatMessage = { role: 'assistant', content: msg.content ?? '', tool_calls: msg.tool_calls }
@@ -216,22 +219,38 @@ export async function sendChat(text: string): Promise<void> {
         msgs.push(toolMsg)
         useChat.setState((c) => ({ history: [...c.history, toolMsg], lines: [...c.lines, line('tool', result)] }))
       }
-      data = await groqCall(key, msgs, false)
+      data = await groqCall(key, msgs)
       msg = data.choices[0].message
     }
     const reply = msg.content?.trim() || 'Erledigt.'
     useChat.setState((c) => ({ busy: false, history: [...c.history, { role: 'assistant', content: reply }], lines: [...c.lines, line('ai', reply)] }))
   } catch (e) {
-    let txt = 'Verbindung fehlgeschlagen. Versuch es nochmal.'
-    if (e instanceof GroqError) {
-      let detail = e.message
-      try { detail = (JSON.parse(e.message) as { error?: { message?: string } }).error?.message ?? e.message } catch { /* Rohtext */ }
-      txt = e.status === 401 ? 'Groq-Key ungültig. Bitte unter „Mehr" neu eintragen.'
-        : e.status === 429 ? 'Groq ist gerade ausgelastet. Gleich nochmal.'
-        : 'Groq meldet ' + e.status + ': ' + detail.slice(0, 160)
-    } else if (e instanceof Error && e.message) {
-      txt += ' (' + e.message.slice(0, 80) + ')'
-    }
-    useChat.setState((c) => ({ busy: false, lines: [...c.lines, line('error', txt)] }))
+    useChat.setState((c) => ({ busy: false, lines: [...c.lines, line('error', describeError(e))] }))
   }
+}
+
+/** Fehler aus Groq/Netz als verständlicher deutscher Satz */
+export function describeError(e: unknown): string {
+  if (e instanceof GroqError) {
+    let detail = e.message
+    try { detail = (JSON.parse(e.message) as { error?: { message?: string } }).error?.message ?? e.message } catch { /* Rohtext */ }
+    return e.status === 0 ? detail
+      : e.status === 401 ? 'Groq-Key ungültig. Bitte unter „Mehr" neu eintragen.'
+      : e.status === 429 ? 'Groq ist gerade ausgelastet. Gleich nochmal.'
+      : 'Groq meldet ' + e.status + ': ' + detail.slice(0, 160)
+  }
+  let txt = 'Verbindung fehlgeschlagen. Versuch es nochmal.'
+  if (e instanceof Error && e.message) txt += ' (' + e.message.slice(0, 80) + ')'
+  return txt
+}
+
+/**
+ * Strukturierte Antwort (JSON-Objekt) von Groq – für Tagesplan und Essensplan.
+ * Nimmt den Schlüssel aus der Konfiguration; ohne Schlüssel wird eine GroqError(0) geworfen.
+ */
+export async function groqJson(system: string, user: string, opts: Omit<GroqOptions, 'json' | 'tools'> = {}): Promise<string> {
+  const key = useConfig.getState().groqKey
+  if (!key) throw new GroqError(0, 'Kein Groq-Key hinterlegt. Unter „Mehr" eintragen.')
+  const data = await groqCall(key, [{ role: 'system', content: system }, { role: 'user', content: user }], { ...opts, json: true })
+  return data.choices[0]?.message.content ?? ''
 }

@@ -5,6 +5,7 @@ import { TodayScreen } from '../screens/TodayScreen'
 import { MoreScreen } from '../screens/MoreScreen'
 import { CalendarScreen } from '../screens/CalendarScreen'
 import { TasksScreen } from '../screens/TasksScreen'
+import { PlannerScreen } from '../screens/PlannerScreen'
 import { AiBubble } from '../components/ai/AiBubble'
 import { autoImportOnce } from '../lib/importV3'
 import { applySetupFromUrl } from '../lib/setupLink'
@@ -28,6 +29,7 @@ export default function App() {
         {tab === 'today' && <TodayScreen />}
         {tab === 'calendar' && <CalendarScreen />}
         {tab === 'tasks' && <TasksScreen />}
+        {tab === 'planner' && <PlannerScreen />}
         {tab === 'more' && <MoreScreen />}
       </main>
       <AiBubble />

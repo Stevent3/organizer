@@ -20,6 +20,8 @@ type Actions = {
   clearDone: (list: ListId) => void
   /** Korb abschließen: erledigte Einkäufe in den Verlauf, von der Liste nehmen. Liefert Anzahl. */
   completeShopping: () => number
+  /** Durchgereichte v7-Felder (dayPlan, mealPlan, foodProfile, …) setzen – null löscht den Schlüssel */
+  setExtra: (patch: Record<string, unknown>) => void
   /** Kompletten Stand setzen (Sync/Import) – ohne updatedAt zu verändern */
   replaceState: (s: AppState) => void
   /** Reiner Datenstand ohne Aktionen */
@@ -106,6 +108,15 @@ export const useStore = create<Store>()(
         set({ tasks: { ...s.tasks, shopping: s.tasks.shopping.filter((t) => !t.done) }, shopHistory: history, ...touch(s) })
         return cart.length
       },
+      setExtra: (patch) =>
+        set((s) => {
+          const extra = { ...s.extra }
+          for (const [k, v] of Object.entries(patch)) {
+            if (v === null || v === undefined) delete extra[k]
+            else extra[k] = v
+          }
+          return { extra, ...touch(s) }
+        }),
       replaceState: (n) => set({ ...pickData(n), tasks: { ...EMPTY_STATE.tasks, ...n.tasks }, shopHistory: n.shopHistory ?? {}, extra: n.extra ?? {} }),
       snapshot: () => pickData(get()),
     }),
