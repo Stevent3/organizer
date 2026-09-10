@@ -132,3 +132,19 @@ describe('describeIntent', () => {
     expect(describeIntent({ kind: 'task', list: 'work', text: 'x' })).toBe('To-do · Arbeit')
   })
 })
+
+describe('Review-Regressionen', () => {
+  it('Zwei-Wort-Eingaben mit Lebensmittel sind To-dos, echte Artikel bleiben Einkauf', async () => {
+    const { parseQuickAdd } = await import('../lib/quickAdd')
+    expect(parseQuickAdd('Reis kochen')?.kind).toBe('task')
+    expect(parseQuickAdd('Pizza bestellen')?.kind).toBe('task')
+    expect(parseQuickAdd('Passierte Tomaten')?.kind).toBe('shopping')
+    expect(parseQuickAdd('2 kg Kartoffeln')?.kind).toBe('shopping')
+  })
+  it('Kaufverb-Präfix braucht eine Wortgrenze', async () => {
+    const { parseQuickAdd } = await import('../lib/quickAdd')
+    expect(parseQuickAdd('Kaufentscheidung treffen')).toEqual({ kind: 'task', list: 'today', text: 'Kaufentscheidung treffen' })
+    expect(parseQuickAdd('kaufen: Klopapier')).toEqual({ kind: 'shopping', items: ['Klopapier'] })
+    expect(parseQuickAdd('kaufen Klopapier')).toEqual({ kind: 'shopping', items: ['Klopapier'] })
+  })
+})

@@ -19,6 +19,9 @@ export const ACCENTS: { id: AccentId; label: string; swatch: string }[] = [
   { id: 'rose', label: 'Rosé', swatch: '#c9407a' },
 ]
 
+/** Hintergrundfarben für die Statusleiste (theme-color), identisch mit --bg in index.css */
+export const THEME_BG = { light: '#f4f5f9', dark: '#0b0b0f' } as const
+
 const KEY_MODE = 'organizer_v8_theme'
 const KEY_ACCENT = 'organizer_v8_accent'
 
@@ -41,10 +44,12 @@ export function applyTheme(mode: ThemeMode, accent: AccentId, doc: Document = do
   else root.setAttribute('data-theme', mode)
   if (accent === 'indigo') root.removeAttribute('data-accent')
   else root.setAttribute('data-accent', accent)
-  try {
-    const bg = getComputedStyle(root).getPropertyValue('--bg').trim()
-    if (bg) for (const m of doc.querySelectorAll('meta[name="theme-color"]')) m.setAttribute('content', bg)
-  } catch { /* jsdom o. ä. */ }
+  // light-dark() in einer Custom Property wird von getComputedStyle nicht aufgelöst → feste Werte (wie --bg in index.css)
+  for (const m of doc.querySelectorAll('meta[name="theme-color"]')) {
+    const media = m.getAttribute('media') ?? ''
+    const fallback = media.includes('dark') ? THEME_BG.dark : THEME_BG.light
+    m.setAttribute('content', mode === 'system' ? fallback : THEME_BG[mode])
+  }
 }
 
 type ThemeStore = { mode: ThemeMode; accent: AccentId; set: (patch: Partial<{ mode: ThemeMode; accent: AccentId }>) => void }

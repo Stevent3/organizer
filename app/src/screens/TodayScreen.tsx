@@ -89,7 +89,9 @@ export function TodayScreen() {
 
   const open = tasks.filter((t) => !t.done)
   const done = tasks.filter((t) => t.done)
-  const eventsLeft = todays.filter((e) => { const r = timedRange(e); return !r || r.end > nowMin }).length
+  // Kennzahl Termine: nur Termine mit Uhrzeit (ganztägige haben kein Ende, das man abhaken könnte)
+  const timedToday = todays.filter((e) => timedRange(e))
+  const eventsLeft = timedToday.filter((e) => timedRange(e)!.end > nowMin).length
 
   const submitTask = () => {
     const t = newTask.trim()
@@ -178,7 +180,7 @@ export function TodayScreen() {
       {show.progress && (
         <div className="mt-3 grid grid-cols-3 gap-2">
           <Stat label="To-dos" value={done.length + '/' + tasks.length} pct={tasks.length ? done.length / tasks.length : 0} onClick={() => go('tasks')} />
-          <Stat label="Termine" value={eventsLeft ? eventsLeft + ' offen' : todays.length ? 'fertig' : 'keine'} pct={todays.length ? (todays.length - eventsLeft) / todays.length : 0} onClick={() => setCalendar({ open: true, day })} />
+          <Stat label="Termine" value={eventsLeft ? eventsLeft + ' offen' : timedToday.length ? 'fertig' : todays.length ? todays.length + ' ganztägig' : 'keine'} pct={timedToday.length ? (timedToday.length - eventsLeft) / timedToday.length : 0} onClick={() => setCalendar({ open: true, day })} />
           <Stat label="Plan" value={plan ? (planNow ? planNow.done + '/' + planNow.total : plan.blocks.length + ' Blöcke') : 'noch keiner'} pct={plan && planNow ? planNow.done / planNow.total : plan ? 1 : 0} onClick={() => go('planner')} />
         </div>
       )}

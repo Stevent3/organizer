@@ -68,13 +68,14 @@ export function schedulePush() {
 }
 
 let started = false
-export function startSyncEngine() {
-  if (started) return
+/** Liefert das Promise des ersten Pulls, damit Aufrufer (Kurzbefehle) auf echte Daten warten können */
+export function startSyncEngine(): Promise<boolean> {
+  if (started) return Promise.resolve(false)
   started = true
   useStore.subscribe((s, prev) => {
     if (s.updatedAt !== prev.updatedAt) schedulePush()
   })
   const onVisible = () => document.visibilityState === 'visible' && syncNow()
   document.addEventListener('visibilitychange', onVisible)
-  syncNow()
+  return syncNow()
 }

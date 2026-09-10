@@ -1,8 +1,9 @@
 import { TABS, type TabId } from '../app/tabs'
 import { ENERGY_LEVELS, type ListId } from './model'
-import { parseQuickAdd, type QuickAddIntent } from './quickAdd'
+import { parseQuickAdd, splitItems, type QuickAddIntent } from './quickAdd'
 import { capitalize, parseQuantity, shopBaseName } from './shopping'
 import { syncNow } from './syncEngine'
+import { timeToMin } from './time'
 import { useUi } from './ui'
 import { useStore } from '../store/useStore'
 
@@ -52,7 +53,7 @@ export function runAction(params: URLSearchParams): string | null {
       return executeIntent({ kind: 'task', list, text })
     }
     case 'add-shopping': {
-      const items = (params.get('items') ?? text).split(/[,;\n]| und /).map((s) => s.trim()).filter(Boolean)
+      const items = splitItems(params.get('items') ?? text)
       return items.length ? executeIntent({ kind: 'shopping', items }) : 'Kurzbefehl ohne Artikel'
     }
     case 'add-event': {
@@ -61,7 +62,7 @@ export function runAction(params: URLSearchParams): string | null {
       const time = params.get('time')
       const end = params.get('end')
       const isDate = (d: string | null): d is string => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d)
-      const isTime = (t: string | null): t is string => !!t && /^\d{1,2}:\d{2}$/.test(t)
+      const isTime = (t: string | null): t is string => timeToMin(t) !== null
       // Ohne Datum/Zeit in der URL darf der Titel selbst Datum/Zeit enthalten („morgen 15 Uhr Zahnarzt")
       if (!isDate(date) && !isTime(time)) {
         const i = parseQuickAdd(text)

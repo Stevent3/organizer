@@ -21,9 +21,10 @@ export default function App() {
   useEffect(() => {
     applySetupFromUrl()
     autoImportOnce()
-    startSyncEngine()
-    // Kurzbefehle (Siri/Shortcuts) erst nach dem Import auswerten, damit sie auf echte Daten treffen
-    applyActionFromUrl()
+    // Kurzbefehle (Siri/Shortcuts) erst nach dem ersten Pull ausführen: sonst würde updatedAt
+    // vor dem Merge hochgezählt und ein neuerer Cloud-Stand verworfen. Nach 8 s geht es trotzdem los.
+    const firstPull = startSyncEngine()
+    void Promise.race([firstPull, new Promise((r) => setTimeout(r, 8000))]).finally(() => applyActionFromUrl())
   }, [])
 
   return (

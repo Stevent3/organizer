@@ -169,7 +169,7 @@ function makeEvent(text: string, now: Date, force: boolean): EventIntent | null 
 }
 
 /** Komma-/„und"-Liste; Kaufverben am Ende jedes Teils fallen weg */
-function splitItems(s: string): string[] {
+export function splitItems(s: string): string[] {
   return s
     .split(/\s*(?:,|;|&|\bund\b)\s*/i)
     .map((p) => p.replace(/\s+(?:holen|kaufen|besorgen|mitbringen)$/i, '').trim())
@@ -184,7 +184,8 @@ function isKnownItem(part: string): boolean {
   if (shopInfo(name).cat === 'sonst') return false
   const words = name.toLowerCase().split(/\s+/)
   if (words.length > 2) return false
-  return words.some((w) => SHOP_KEYS.some((k) => w === k || (k.length >= 4 && (w.startsWith(k) || w.endsWith(k)))))
+  // JEDES Wort muss ein Artikel sein ('Passierte Tomaten' ja, 'Reis kochen' nein)
+  return words.every((w) => SHOP_KEYS.some((k) => w === k || (k.length >= 4 && (w.startsWith(k) || w.endsWith(k)))))
 }
 
 const TAG_RE = /(?:^|\s)#(arbeit|work|gesundheit|health|todo)(?![\wäöü])/i
@@ -203,7 +204,7 @@ export function parseQuickAdd(input: string, now: Date = new Date()): QuickAddIn
   if (!raw) return null
 
   // 1) Explizite Präfixe (höchste Priorität)
-  let m = /^(?:einkauf\s*:|(?:einkaufen|kaufen|besorgen|🛒)\s*:?)\s*/i.exec(raw)
+  let m = /^(?:einkauf\s*:|(?:einkaufen|kaufen|besorgen)(?=\s|:|$)\s*:?|🛒\s*:?)\s*/i.exec(raw)
   if (m) {
     const items = splitItems(raw.slice(m[0].length))
     if (items.length) return { kind: 'shopping', items }

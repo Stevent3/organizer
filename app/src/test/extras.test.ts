@@ -124,3 +124,22 @@ describe('Wunsch-Sammler', () => {
     expect(readWishes({ wishes: 'kaputt' })).toEqual([])
   })
 })
+
+describe('Review-Regressionen', () => {
+  it('Kurzbefehl add-event: Uhrzeit außerhalb des Bereichs wird ganztägig, add-shopping teilt wie der Parser', () => {
+    expect(runAction(new URLSearchParams('action=add-event&title=X&time=25:99'))).toContain('X')
+    expect(useStore.getState().events[0]).toMatchObject({ text: 'X', allDay: true })
+    expect(useStore.getState().events[0].time).toBeUndefined()
+    runAction(new URLSearchParams('action=add-shopping&items=Milch %26 Brot und Butter'))
+    expect(useStore.getState().tasks.shopping.map((t) => t.text)).toEqual(['Milch', 'Brot', 'Butter'])
+  })
+
+  it('theme-color-Meta bekommt echte Hex-Werte, nie light-dark()', () => {
+    document.head.innerHTML = '<meta name="theme-color" content="a" media="(prefers-color-scheme: light)"><meta name="theme-color" content="b" media="(prefers-color-scheme: dark)">'
+    applyTheme('dark', 'indigo')
+    expect([...document.querySelectorAll('meta[name="theme-color"]')].map((m) => m.getAttribute('content'))).toEqual(['#0b0b0f', '#0b0b0f'])
+    applyTheme('system', 'indigo')
+    expect([...document.querySelectorAll('meta[name="theme-color"]')].map((m) => m.getAttribute('content'))).toEqual(['#f4f5f9', '#0b0b0f'])
+    document.head.innerHTML = ''
+  })
+})

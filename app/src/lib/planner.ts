@@ -34,10 +34,28 @@ export function parseJsonObject(text: string): Record<string, unknown> {
   throw new Error('Antwort ist kein JSON-Objekt')
 }
 
+/** Rohe Blöcke (Modell oder KV/v7) absichern: Uhrzeit + Titel Pflicht, Typ mit Fallback, sortiert */
+export function normalizeBlocks(raw: unknown): PlanBlock[] {
+  if (!Array.isArray(raw)) return []
+  return (raw as Record<string, unknown>[])
+    .filter((b) => b && isTime(b.time) && String(b.title ?? '').trim())
+    .map((b) => ({
+      time: padTime(b.time as string),
+      ...(isTime(b.end) ? { end: padTime(b.end) } : {}),
+      title: String(b.title).trim(),
+      type: PLAN_TYPES.includes(b.type as PlanBlockType) ? (b.type as PlanBlockType) : 'task',
+      ...(b.note ? { note: String(b.note).trim() } : {}),
+    }))
+    .sort((a, b) => a.time.localeCompare(b.time))
+}
+
+/** Gespeicherter Plan (auch aus v7/KV, dort nur nach Uhrzeit gefiltert) – validiert, null wenn leer */
 export function readDayPlan(extra: Record<string, unknown>): DayPlan | null {
   const p = extra.dayPlan as Partial<DayPlan> | null | undefined
-  if (!p || !Array.isArray(p.blocks) || !p.blocks.length) return null
-  return { generatedAt: Number(p.generatedAt ?? 0), date: String(p.date ?? ''), summary: String(p.summary ?? ''), blocks: p.blocks, ...(p.appliedAt ? { appliedAt: p.appliedAt } : {}) }
+  if (!p) return null
+  const blocks = normalizeBlocks(p.blocks)
+  if (!blocks.length) return null
+  return { generatedAt: Number(p.generatedAt ?? 0), date: String(p.date ?? ''), summary: String(p.summary ?? ''), blocks, ...(p.appliedAt ? { appliedAt: p.appliedAt } : {}) }
 }
 
 /** Prompt wie v7 (generatePlan): Fixtermine heute, offene Aufgaben aller Listen, Energie, Uhrzeit */
@@ -60,17 +78,7 @@ export function dayPlanPrompt(s: AppState, now = new Date()): { system: string; 
 
 /** Modellantwort zu einem DayPlan: nur Blöcke mit Uhrzeit, sortiert, Typen abgesichert */
 export function normalizeDayPlan(parsed: Record<string, unknown>, date = todayKey(), generatedAt = Date.now()): DayPlan {
-  const raw = Array.isArray(parsed.blocks) ? (parsed.blocks as Record<string, unknown>[]) : []
-  const blocks: PlanBlock[] = raw
-    .filter((b) => b && isTime(b.time) && String(b.title ?? '').trim())
-    .map((b) => ({
-      time: padTime(b.time as string),
-      ...(isTime(b.end) ? { end: padTime(b.end) } : {}),
-      title: String(b.title).trim(),
-      type: PLAN_TYPES.includes(b.type as PlanBlockType) ? (b.type as PlanBlockType) : 'task',
-      ...(b.note ? { note: String(b.note).trim() } : {}),
-    }))
-    .sort((a, b) => a.time.localeCompare(b.time))
+  const blocks = normalizeBlocks(parsed.blocks)
   if (!blocks.length) throw new Error('Der Plan enthält keine Blöcke mit Uhrzeit')
   return { generatedAt, date, summary: String(parsed.summary ?? '').trim(), blocks }
 }

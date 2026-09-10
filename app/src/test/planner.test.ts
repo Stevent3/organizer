@@ -114,6 +114,15 @@ describe('Essensplan', () => {
   })
 })
 
+describe('Gespeicherter Plan aus v7/KV', () => {
+  it('readDayPlan verwirft Blöcke ohne Titel und sichert unbekannte Typen ab', () => {
+    const p = readDayPlan({ dayPlan: { generatedAt: 1, date: '2026-09-10', summary: 's', blocks: [{ time: '10:00', type: 'pause' }, { time: '9:00', title: 'A', type: 'pause' }] } })
+    expect(p?.blocks).toEqual([{ time: '09:00', title: 'A', type: 'task' }])
+    expect(readDayPlan({ dayPlan: { blocks: [{ time: '10:00' }] } })).toBeNull()
+    expect(readDayPlan({ dayPlan: 'kaputt' })).toBeNull()
+  })
+})
+
 describe('Ablage in extra + Sync', () => {
   it('setExtra schreibt und löscht Schlüssel und zählt updatedAt hoch', () => {
     const t0 = useStore.getState().updatedAt

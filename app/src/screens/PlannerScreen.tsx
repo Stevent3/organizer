@@ -368,7 +368,9 @@ function MealSheet({ sel, plan, profile, onClose, onFlash }: { sel: { day: numbe
       const text = (await groqText(RECIPE_SYSTEM, recipeUserPrompt(profile, m), { maxTokens: 700, temperature: 0.5 })).trim()
       if (!text) throw new Error('Leere Antwort')
       setRecipe(text)
-      writeMeal({ ...m, rezept: text })
+      // Nur speichern, wenn das Gericht unverändert ist – ungespeicherte Änderungen bleiben lokal bis Speichern
+      const unchanged = m.name === meal.name && m.zutaten.join('|') === meal.zutaten.join('|')
+      if (unchanged) writeMeal({ ...meal, rezept: text })
     } catch (e) {
       setError(describeError(e))
     }
@@ -384,8 +386,9 @@ function MealSheet({ sel, plan, profile, onClose, onFlash }: { sel: { day: numbe
     setBusy(true); setError(null)
     try {
       const text = await groqJson(REROLL_SYSTEM, rerollUserPrompt(profile, plan, sel.slot, day.tag), { maxTokens: 250, temperature: 0.9 })
-      const nm = normMeal(parseJsonObject(text))
-      if (!nm?.name) throw new Error('Kein Gericht in der Antwort')
+      const parsed = parseJsonObject(text)
+      if (typeof parsed.name !== 'string' || !parsed.name.trim()) throw new Error('Kein Gericht in der Antwort')
+      const nm = normMeal(parsed)!
       writeMeal(nm)
       setName(nm.name); setIngs(nm.zutaten.join(', ')); setRecipe(null)
       onFlash('Neues Gericht 🎲')
