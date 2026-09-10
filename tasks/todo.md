@@ -68,13 +68,13 @@ Datenhaltung: `dayPlan`, `mealPlan`, `foodProfile` bleiben in `state.extra` (v7-
 
 ## M7 – Dashboard v2, Erscheinungsbild, Schnell-Eingabe, Kurzbefehle (10.09.2026, autonome Sitzung)
 Steven: „tob dich aus" – Design-Varianten vorschlagen, richtig praktische Features, schönes und praktisches Dashboard, einfache Nutzbarkeit.
-- [ ] **Erscheinungsbild** (Mehr → Erscheinungsbild): System/Hell/Dunkel + 5 Akzentfarben (Indigo, Ozean, Sonne, Wald, Rosé) als Live-Varianten, `data-theme`/`data-accent` am `<html>`, theme-color-Meta folgt mit
-- [ ] **Schnell-Eingabe** auf dem Dashboard: lokaler NL-Parser (`lib/quickAdd.ts`, Subagent) – „morgen 15 Uhr Zahnarzt" → Termin, „Milch, Brot" → Einkauf, „Thesis Kapitel 3 #arbeit" → To-do; Live-Vorschau vor dem Absenden
-- [ ] **Wetter** (Open-Meteo, gratis, ohne Key): Chip im Dashboard-Kopf, Sheet mit Heute/Morgen, Standort unter Mehr (Standard Hannover, „Standort verwenden")
-- [ ] **Dashboard v2**: Kopf mit Wetter, Schnell-Eingabe, Energie, Fokus-Karte mit „laut Plan"-Zeile, Fortschritts-Streifen (To-dos, Termine, Plan), „Heute essen" aus dem Essensplan, To-dos, Kalender-Widget; Abschnitte unter Mehr → Dashboard ein-/ausblendbar
-- [ ] **Kurzbefehle (URL-Schema)** für Siri/Shortcuts: `?action=quick|add-task|add-shopping|add-event|set-energy|ask` (+ v7-kompatible Parameter), Bestätigungs-Toast, Doku mit kopierbaren URLs unter Mehr
-- [ ] Navigation als Store (`useUi`), damit Dashboard-Karten in Planer/KI springen können
+- [x] **Erscheinungsbild** (Mehr → Erscheinungsbild): System/Hell/Dunkel + 5 Akzentfarben (Indigo, Ozean, Sonne, Wald, Rosé) als Live-Varianten, `data-theme`/`data-accent` am `<html>`, theme-color-Meta folgt mit
+- [x] **Schnell-Eingabe** auf dem Dashboard: lokaler NL-Parser (`lib/quickAdd.ts`, Subagent) – „morgen 15 Uhr Zahnarzt" → Termin, „Milch, Brot" → Einkauf, „Thesis Kapitel 3 #arbeit" → To-do; Live-Vorschau vor dem Absenden
+- [x] **Wetter** (Open-Meteo, gratis, ohne Key): Chip im Dashboard-Kopf, Sheet mit Heute/Morgen, Standort unter Mehr (Standard Hannover, „Standort verwenden")
+- [x] **Dashboard v2**: Kopf mit Wetter, Schnell-Eingabe, Energie, Fokus-Karte mit „laut Plan"-Zeile, Fortschritts-Streifen (To-dos, Termine, Plan), „Heute essen" aus dem Essensplan, To-dos, Kalender-Widget; Abschnitte unter Mehr → Dashboard ein-/ausblendbar
+- [x] **Kurzbefehle (URL-Schema)** für Siri/Shortcuts: `?action=quick|add-task|add-shopping|add-event|set-energy|ask` (+ v7-kompatible Parameter), Bestätigungs-Toast, Doku mit kopierbaren URLs unter Mehr
+- [x] Navigation als Store (`useUi`), damit Dashboard-Karten in Planer/KI springen können
 - [ ] Screenshots (Chromium, iPhone-Format) der Varianten + Design-Vorschlag als Artefakt für Steven
-- [ ] Tests für Parser, Wetter-Mapping, Kurzbefehle, Theme; tsc + Build; APP_VERSION → beta.3; Commit + Push
+- [x] Tests für Parser, Wetter-Mapping, Kurzbefehle, Theme; tsc + Build; APP_VERSION → beta.3; Commit + Push
 
 ## Danach: Backlog aus CLAUDE.md §11 (Abend-Review-Push, Wetter, Inbox, Deep-Links, …)

@@ -72,6 +72,8 @@ export function TodayScreen() {
     if (idx < 0) return null
     return { block: plan.blocks[idx], done: idx, total: plan.blocks.length }
   }, [plan, nowMin])
+  // Nicht denselben Termin zweimal zeigen (Fixtermin steht schon groß in der Karte)
+  const planHint = planNow && !(focus?.kind === 'now' && planNow.block.title.toLowerCase() === focus.ev.text.toLowerCase()) ? planNow : null
 
   const meal = useMemo(() => {
     const mp = readMealPlan(extra)
@@ -160,12 +162,12 @@ export function TodayScreen() {
               <p className="mt-2 text-[14px] opacity-90">{open.length ? open.length + ' offene To-do' + (open.length > 1 ? 's' : '') + ' warten.' : 'Nichts Offenes. Gönn dir was.'}</p>
             </>
           )}
-          {planNow && (
+          {planHint && (
             <button onClick={() => go('planner')} className="mt-3 flex w-full items-center gap-2 rounded-md bg-white/15 px-3 py-2 text-left">
-              <span className="text-[16px]">{PLAN_ICON[planNow.block.type] ?? '•'}</span>
+              <span className="text-[16px]">{PLAN_ICON[planHint.block.type] ?? '•'}</span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-semibold uppercase tracking-wider opacity-80">Laut Plan · {planNow.block.time}{planNow.block.end ? '–' + planNow.block.end : ''}</span>
-                <span className="block truncate text-[14px] font-semibold">{planNow.block.title}</span>
+                <span className="block text-[11px] font-semibold uppercase tracking-wider opacity-80">Laut Plan · {planHint.block.time}{planHint.block.end ? '–' + planHint.block.end : ''}</span>
+                <span className="block truncate text-[14px] font-semibold">{planHint.block.title}</span>
               </span>
               <ChevronRight size={16} className="opacity-70" />
             </button>
