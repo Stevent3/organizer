@@ -1,33 +1,36 @@
 @import "tailwindcss";
 
 /* ───────────────────────────────────────────────
-   Design-Tokens – Light ist Default, Dark per System
+   Design-Tokens – light-dark() folgt dem color-scheme:
+   System (Default), oder fest per <html data-theme="light|dark">.
+   Akzentfarbe per <html data-accent="…"> (siehe lib/theme.ts).
    ─────────────────────────────────────────────── */
 :root {
   color-scheme: light dark;
 
-  --bg: #f4f5f9;
-  --bg-elev: #ffffff;
-  --bg-sunken: #e9ebf2;
-  --fill: rgba(20, 22, 40, 0.06);
-  --fill-strong: rgba(20, 22, 40, 0.12);
-  --line: rgba(20, 22, 40, 0.09);
+  --bg: light-dark(#f4f5f9, #0b0b0f);
+  --bg-elev: light-dark(#ffffff, #17171e);
+  --bg-sunken: light-dark(#e9ebf2, #050508);
+  --fill: light-dark(rgba(20, 22, 40, 0.06), rgba(235, 238, 255, 0.07));
+  --fill-strong: light-dark(rgba(20, 22, 40, 0.12), rgba(235, 238, 255, 0.14));
+  --line: light-dark(rgba(20, 22, 40, 0.09), rgba(235, 238, 255, 0.09));
 
-  --text: #111321;
-  --text-2: #5b5f73;
-  --text-3: #9297ab;
+  --text: light-dark(#111321, #f2f3f8);
+  --text-2: light-dark(#5b5f73, #a3a7bd);
+  --text-3: light-dark(#9297ab, #6b6f85);
 
-  --accent: #5b5bd6;
-  --accent-strong: #4646c4;
-  --accent-soft: rgba(91, 91, 214, 0.12);
-  --on-accent: #ffffff;
+  /* Akzent „Indigo" (Standard) */
+  --accent: light-dark(#5b5bd6, #7c7cf0);
+  --accent-strong: light-dark(#4646c4, #9a9af6);
+  --accent-soft: light-dark(rgba(91, 91, 214, 0.12), rgba(124, 124, 240, 0.18));
+  --on-accent: light-dark(#ffffff, #0b0b0f);
 
-  --green: #1f9d5a;
-  --orange: #e8842a;
-  --red: #e0433d;
-  --yellow: #d9a400;
-  --teal: #12a3a8;
-  --pink: #d64c8a;
+  --green: light-dark(#1f9d5a, #37c274);
+  --orange: light-dark(#e8842a, #f59a44);
+  --red: light-dark(#e0433d, #f0605a);
+  --yellow: light-dark(#d9a400, #f0c02a);
+  --teal: light-dark(#12a3a8, #2fc4c9);
+  --pink: light-dark(#d64c8a, #ef6aa5);
 
   --shadow-sm: 0 1px 2px rgba(15, 18, 40, 0.06), 0 1px 1px rgba(15, 18, 40, 0.04);
   --shadow-md: 0 6px 20px rgba(15, 18, 40, 0.08), 0 2px 6px rgba(15, 18, 40, 0.05);
@@ -46,35 +49,42 @@
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+/* Schatten sind keine Farben (kein light-dark möglich): dunkel = kräftiger */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b0b0f;
-    --bg-elev: #17171e;
-    --bg-sunken: #050508;
-    --fill: rgba(235, 238, 255, 0.07);
-    --fill-strong: rgba(235, 238, 255, 0.14);
-    --line: rgba(235, 238, 255, 0.09);
-
-    --text: #f2f3f8;
-    --text-2: #a3a7bd;
-    --text-3: #6b6f85;
-
-    --accent: #7c7cf0;
-    --accent-strong: #9a9af6;
-    --accent-soft: rgba(124, 124, 240, 0.18);
-    --on-accent: #0b0b0f;
-
-    --green: #37c274;
-    --orange: #f59a44;
-    --red: #f0605a;
-    --yellow: #f0c02a;
-    --teal: #2fc4c9;
-    --pink: #ef6aa5;
-
+  :root:not([data-theme="light"]) {
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.6);
   }
+}
+:root[data-theme="dark"] {
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-accent="ozean"] {
+  --accent: light-dark(#0e7fa8, #3db3dd);
+  --accent-strong: light-dark(#0a6688, #6cc7e8);
+  --accent-soft: light-dark(rgba(14, 127, 168, 0.12), rgba(61, 179, 221, 0.18));
+}
+:root[data-accent="sonne"] {
+  --accent: light-dark(#d9641e, #f5934a);
+  --accent-strong: light-dark(#b85014, #f8ab72);
+  --accent-soft: light-dark(rgba(217, 100, 30, 0.13), rgba(245, 147, 74, 0.18));
+}
+:root[data-accent="wald"] {
+  --accent: light-dark(#1f8a4c, #3fc47a);
+  --accent-strong: light-dark(#176e3c, #6ad597);
+  --accent-soft: light-dark(rgba(31, 138, 76, 0.12), rgba(63, 196, 122, 0.18));
+}
+:root[data-accent="rose"] {
+  --accent: light-dark(#c9407a, #ee6fa6);
+  --accent-strong: light-dark(#a83063, #f28fbb);
+  --accent-soft: light-dark(rgba(201, 64, 122, 0.12), rgba(238, 111, 166, 0.18));
 }
 
 /* Tailwind-Theme auf die Tokens mappen → bg-elev, text-2, rounded-md … */

@@ -1,6 +1,8 @@
 import { Bell, Check, CloudOff, CloudUpload, Download, RefreshCw, Upload } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Card, SectionLabel } from '../components/Card'
+import { Toggle } from '../components/Toggle'
+import { AppearanceSection, DashboardSection, ShortcutsSection, WeatherSection } from './MoreExtras'
 import { Screen } from '../components/Screen'
 import { buildInfo } from '../lib/buildInfo'
 import { isConfigured, useConfig } from '../lib/config'
@@ -14,10 +16,14 @@ import type { AppState } from '../lib/model'
 export function MoreScreen() {
   return (
     <Screen title="Mehr" subtitle="Einstellungen & Module">
+      <AppearanceSection />
+      <DashboardSection />
       <SyncSection />
-      <DataSection />
       <AiSection />
       <PushSection />
+      <WeatherSection />
+      <ShortcutsSection />
+      <DataSection />
       <SectionLabel>App</SectionLabel>
       <Card className="divide-y divide-line p-0">
         <Row k="Version" v={buildInfo.version} />
@@ -266,10 +272,3 @@ function PushSection() {
   )
 }
 
-function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button role="switch" aria-checked={on} onClick={() => onChange(!on)} className={'relative ml-3 h-[30px] w-[50px] shrink-0 rounded-full transition-colors duration-200 ' + (on ? 'bg-green' : 'bg-fill-strong')}>
-      <span className={'absolute top-[3px] h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200 ' + (on ? 'translate-x-[23px]' : 'translate-x-[3px]')} />
-    </button>
-  )
-}

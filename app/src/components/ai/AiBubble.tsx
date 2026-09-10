@@ -2,23 +2,26 @@ import { ArrowUp, ChevronDown, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { currentModel, sendChat, useChat } from '../../lib/ai'
 import { useConfig } from '../../lib/config'
+import { useUi } from '../../lib/ui'
 import { FullSheet } from '../FullSheet'
 
 /** Schwebende Sprechblase unten rechts, öffnet den KI-Chat als Vollbild-Overlay */
 export function AiBubble({ hidden = false }: { hidden?: boolean }) {
-  const [open, setOpen] = useState(false)
+  const open = useUi((u) => u.chatOpen)
+  const openChat = useUi((u) => u.openChat)
+  const closeChat = useUi((u) => u.closeChat)
   if (hidden) return null
   return (
     <>
       <button
         aria-label="KI-Assistent öffnen"
-        onClick={() => setOpen(true)}
+        onClick={() => openChat()}
         className="press fixed right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-accent text-on-accent shadow-lg"
         style={{ bottom: 'calc(var(--tabbar-h) + var(--safe-bottom) + 16px)' }}
       >
         <Sparkles size={24} strokeWidth={2.2} />
       </button>
-      <AiOverlay open={open} onClose={() => setOpen(false)} />
+      <AiOverlay open={open} onClose={closeChat} />
     </>
   )
 }
@@ -30,6 +33,11 @@ export function AiOverlay({ open, onClose }: { open: boolean; onClose: () => voi
   const hasKey = useConfig((c) => !!c.groqKey)
   const [text, setText] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
+  // Vorausgefüllte Frage (Kurzbefehl „ask" oder Dashboard-Karte) beim Öffnen übernehmen
+  const prefill = useUi((u) => u.chatPrefill)
+  useEffect(() => {
+    if (open && prefill) { setText(prefill); useUi.setState({ chatPrefill: null }) }
+  }, [open, prefill])
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
