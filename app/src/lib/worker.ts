@@ -1,6 +1,7 @@
 /** Client für den Cloudflare Worker (API siehe CLAUDE.md §5) */
 
-export type RawCalEvent = { time: string; end?: string; text: string; sub?: string; travel?: number }
+/** Zeile des Kalender-Kurzbefehls; `date` (YYYY-MM-DD) fehlt beim alten Format ohne Datum (= heute) */
+export type RawCalEvent = { date?: string; time: string; end?: string; text: string; sub?: string; travel?: number }
 
 export class WorkerError extends Error {
   status: number

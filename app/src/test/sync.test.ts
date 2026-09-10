@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyCalendar, buildCalendarEvents, extractExtra, mergeRemoteState, toWireState } from '../lib/sync'
+import { applyCalendar, buildCalendarEvents, calKey, extractExtra, keyTime, mergeRemoteState, toWireState } from '../lib/sync'
 import { EMPTY_STATE, type AppState, type EventItem } from '../lib/model'
 
 const DAY = '2026-09-10'
@@ -26,6 +26,43 @@ describe('Kalender aus dem Worker', () => {
     expect(n.events.map((e) => e.text).sort()).toEqual(['gestern', 'manuell', 'neu'])
     expect(n.updatedAt).toBe(5)
     expect(n.lastCalendarSync).toBeGreaterThan(0)
+  })
+
+  it('legt Zeilen mit Datum auf ihren Tag, Key und ID tragen das Datum', () => {
+    const raw = [
+      { date: '2026-09-12', time: '08:00', end: '09:30', text: 'Uni', sub: 'Leuphana' },
+      { date: '2026-09-12', time: '08:00', end: '09:30', text: 'Uni', sub: 'Leuphana' },
+      { date: '2026-09-13', time: '08:00', text: 'Uni' },
+      { time: '12:00', text: 'Mittag' },
+    ]
+    const list = buildCalendarEvents(raw, { '2026-09-13|08:00|uni': { date: '2026-09-14', time: '10:00' } }, DAY)
+    expect(list).toHaveLength(3)
+    expect(list[0]).toMatchObject({ id: 'cal|2026-09-12|2026-09-12|08:00|uni', key: '2026-09-12|08:00|uni', date: '2026-09-12', time: '08:00', end: '09:30' })
+    expect(list[1]).toMatchObject({ key: '2026-09-13|08:00|uni', date: '2026-09-14', time: '10:00' })
+    expect(list[2]).toMatchObject({ id: 'cal|' + DAY + '|12:00|mittag', key: '12:00|mittag', date: DAY })
+    expect(calKey('08:00', 'Uni', '2026-09-12')).toBe('2026-09-12|08:00|uni')
+    expect(keyTime('2026-09-12|08:00|uni')).toBe('08:00')
+    expect(keyTime('08:00|uni')).toBe('08:00')
+  })
+
+  it('Snapshot mit mehreren Tagen ersetzt ab heute, Vergangenheit bleibt als Verlauf', () => {
+    const s = base({
+      events: [
+        ev({ text: 'gestern', source: 'calendar', date: '2026-09-09' }),
+        ev({ text: 'heute-alt', source: 'calendar', date: DAY }),
+        ev({ text: 'übermorgen-alt', source: 'calendar', date: '2026-09-12' }),
+        ev({ text: 'nächste-woche-alt', source: 'calendar', date: '2026-09-20' }),
+        ev({ text: 'manuell-morgen', date: '2026-09-11' }),
+      ],
+    })
+    const n = applyCalendar(s, [{ date: DAY, time: '08:00', text: 'heute-neu' }, { date: '2026-09-11', time: '09:00', text: 'morgen-neu' }], DAY)
+    expect(n.events.map((e) => e.text).sort()).toEqual(['gestern', 'heute-neu', 'manuell-morgen', 'morgen-neu'])
+  })
+
+  it('Snapshot ohne Datum (altes Format) ersetzt heute und alles Spätere aus dem Kalender', () => {
+    const s = base({ events: [ev({ text: 'gestern', source: 'calendar', date: '2026-09-09' }), ev({ text: 'später', source: 'calendar', date: '2026-09-15' })] })
+    const n = applyCalendar(s, [{ time: '08:00', text: 'neu' }], DAY)
+    expect(n.events.map((e) => e.text).sort()).toEqual(['gestern', 'neu'])
   })
 })
 
@@ -72,6 +109,7 @@ describe('Wire-Format für den Worker', () => {
         ev({ text: 'Ganztag', allDay: true }),
         ev({ text: 'Morgen', date: '2026-09-11', time: '09:00' }),
         ev({ text: 'Apple', time: '15:00', source: 'calendar', key: '14:30|apple', travel: 12 }),
+        ev({ text: 'Datiert', time: '16:00', source: 'calendar', key: DAY + '|16:00|datiert' }),
       ],
     })
     const w = toWireState(s, DAY)
@@ -79,7 +117,10 @@ describe('Wire-Format für den Worker', () => {
     expect(w.updatedAt).toBe(9)
     expect(w.dayPlan).toEqual({ blocks: [] })
     expect(w.schedule).toEqual([{ id: 'Manuell', time: '10:00', end: '11:00', text: 'Manuell', sub: 'Büro', color: 'ev-blue', source: 'manual' }])
-    expect(w.calendarEvents).toEqual([{ id: 'cal0', key: '14:30|apple', origTime: '14:30', time: '15:00', end: '', text: 'Apple', sub: '', travel: 12, color: 'ev-cal', source: 'calendar' }])
-    expect((w.events as EventItem[]).length).toBe(4)
+    expect(w.calendarEvents).toEqual([
+      { id: 'cal0', key: '14:30|apple', origTime: '14:30', time: '15:00', end: '', text: 'Apple', sub: '', travel: 12, color: 'ev-cal', source: 'calendar' },
+      { id: 'cal1', key: DAY + '|16:00|datiert', origTime: '16:00', time: '16:00', end: '', text: 'Datiert', sub: '', travel: 0, color: 'ev-cal', source: 'calendar' },
+    ])
+    expect((w.events as EventItem[]).length).toBe(5)
   })
 })

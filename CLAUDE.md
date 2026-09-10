@@ -2,7 +2,7 @@
 
 > **SETUP-STATUS (09.09.2026, Windows 11):** Wrangler-Setup ist ABGESCHLOSSEN — `wrangler.toml` liegt im Repo (KV-Namespace `2f8eb11cc97f48a9a64ef75b35474126`, Cron, Vars). Der Worker wurde per `wrangler deploy` ausgeliefert (Version `fd3ea3a9`) und verifiziert: `/ping`, `/calendar`, `/state`, `/push/status` liefern die bestehenden Live-Daten, CORS und 401 ohne Secret intakt. Secrets SECRET, VAPID_PRIVATE_JWK, GROQ_KEY sind im Worker gesetzt (07.09.2026) und bleiben bei `wrangler deploy` erhalten.
 >
-> **Cloud-Sitzung (10.09.2026, dritter Anlauf): Worker-Deploy aus der Cloud FUNKTIONIERT.** Steven hat die Netzwerk-Policy der Umgebung angepasst; `api.cloudflare.com`, `organizer.steven-ec0.workers.dev`, `api.open-meteo.com` und `api.groq.com` sind erreichbar. Ablauf: `npm install -g wrangler` (4.130), `wrangler whoami` (Token aus `CLOUDFLARE_API_TOKEN`, Account „Steven@tenyenhuis.de's Account“), `node --check worker.js`, `wrangler deploy --dry-run`, `wrangler deploy` im Repo-Root. Deployt am 10.09.2026: **Version `75cb2d12`** (Abend-Review-Push 21:00, Wetter im Morgen-Briefing). Verifiziert: KV-Keys `state`, `calendar`, `push_sub` unverändert vorhanden (`wrangler kv key list --remote --namespace-id=2f8eb11cc97f48a9a64ef75b35474126`), Secrets `SECRET`, `VAPID_PRIVATE_JWK`, `GROQ_KEY` erhalten (`wrangler secret list`), `/ping` ohne Secret = 401. Der Wert von `SECRET` liegt NICHT in der Cloud-Umgebung (Wrangler zeigt nur Namen) – `POST /push/test` also von Steven oder mit `ORGANIZER_SECRET` als Umgebungsvariable ausführen. Vor jedem Cloud-Deploy kurz prüfen: `curl -o /dev/null -w "%{http_code}" https://api.cloudflare.com/` muss 301 liefern (403 = Netzwerk-Policy).
+> **Cloud-Sitzung (10.09.2026, dritter Anlauf): Worker-Deploy aus der Cloud FUNKTIONIERT.** Steven hat die Netzwerk-Policy der Umgebung angepasst; `api.cloudflare.com`, `organizer.steven-ec0.workers.dev`, `api.open-meteo.com` und `api.groq.com` sind erreichbar. Ablauf: `npm install -g wrangler` (4.130), `wrangler whoami` (Token aus `CLOUDFLARE_API_TOKEN`, Account „Steven@tenyenhuis.de's Account“), `node --check worker.js`, `wrangler deploy --dry-run`, `wrangler deploy` im Repo-Root. Deployt am 10.09.2026: Version `75cb2d12` (Abend-Review-Push 21:00, Wetter im Morgen-Briefing), danach **Version `995b1356`** (Zeilenformat mit Datum, Cron nur heute). Verifiziert: KV-Keys `state`, `calendar`, `push_sub` unverändert vorhanden (`wrangler kv key list --remote --namespace-id=2f8eb11cc97f48a9a64ef75b35474126`), Secrets `SECRET`, `VAPID_PRIVATE_JWK`, `GROQ_KEY` erhalten (`wrangler secret list`), `/ping` ohne Secret = 401. Der Wert von `SECRET` liegt NICHT in der Cloud-Umgebung (Wrangler zeigt nur Namen) – `POST /push/test` also von Steven oder mit `ORGANIZER_SECRET` als Umgebungsvariable ausführen. Vor jedem Cloud-Deploy kurz prüfen: `curl -o /dev/null -w "%{http_code}" https://api.cloudflare.com/` muss 301 liefern (403 = Netzwerk-Policy).
 >
 > ⚠️ **Windows-Eigenheiten (dieser Rechner):**
 > - Das Repo liegt unter `C:\Users\steve\Projekte\organizer`. Die Kopie unter `C:\Program Files (x86)\Projekte\organizer` ist für den Benutzer schreibgeschützt (kein Commit möglich) und kann gelöscht werden.
@@ -76,16 +76,16 @@ App-URL-Schema: index.html?action=add-task|add-shopping|import-calendar|ask|add-
 Alle Routen erfordern Secret (Header `X-Secret` oder `?s=`). JSON rein/raus.
 
 - `GET /ping` → `{ok,ts}`
-- `POST /calendar` → Body `{text:"zeilen..."}` ODER `{events:[...]}`; parst Zeilenformat (s.u.), **dedupliziert** (key: `time|end|text`), speichert KV `calendar`. → `{ok,count}`
-- `GET /calendar` → `{events:[{time,end,text,sub,travel}],meta}`
+- `POST /calendar` → Body `{text:"zeilen..."}` ODER `{events:[...]}`; parst Zeilenformat (s.u.), **dedupliziert** (key: `date|time|end|text`), speichert KV `calendar` (mehrere Tage möglich). → `{ok,count}`
+- `GET /calendar` → `{events:[{date?,time,end,text,sub,travel}],meta}` — `date` (YYYY-MM-DD) fehlt bei Zeilen ohne Datum (= heute)
 - `POST /state` → speichert kompletten App-State (ohne groqKey) in KV `state`
 - `GET /state` → `{state,meta}`
 - `POST /push/subscribe` → speichert PushSubscription-JSON in KV `push_sub`
 - `GET /push/status` → `{subscribed}`
 - `POST /push/unsubscribe`, `POST /push/test`
-- **Cron `scheduled()`** → `runChecks()`: (1) Abfahrts-Push (lead = travel+5 min, sonst 30; Fenster ±8/±7 min um departMin; Dedup-Key in KV mit TTL), (2) Morgen-Briefing 06:00–06:25 (optional Groq-formuliert), (3) Smart-Tipps 10:00–10:25 & 14:30–14:55 (Groq entscheidet `{send,title,body}`; auch "kein Tipp" wird als gesendet markiert, max 2/Tag). Vor allen Checks: `applyOverrides(rawCal, state.calOverrides)` — Termin-Verschiebungen/-Löschungen aus der App gelten auch für Push!
+- **Cron `scheduled()`** → `runChecks()`: (1) Abfahrts-Push (lead = travel+5 min, sonst 30; Fenster ±8/±7 min um departMin; Dedup-Key in KV mit TTL), (2) Morgen-Briefing 06:00–06:25 (optional Groq-formuliert), (3) Smart-Tipps 10:00–10:25 & 14:30–14:55 (Groq entscheidet `{send,title,body}`; auch "kein Tipp" wird als gesendet markiert, max 2/Tag). Vor allen Checks: `calendarForDay(applyOverrides(rawCal, state.calOverrides), today)` — Termin-Verschiebungen/-Löschungen aus der App gelten auch für Push, und nur heutige Termine zählen (Zeilen mit anderem Datum werden ignoriert).
 
-**Kalender-Zeilenformat (Shortcut→Worker):** `HH:MM | HH:MM | Titel | Ort | Fahrzeit` — Felder 2 (Ende), 4 (Ort), 5 (Fahrzeit, erste Ganzzahl wird geparst, z.B. "23 Min.") sind optional. Fahrzeit-Feature ist gebaut, aber Stevens Shortcut nutzt aktuell 4 Felder (Apple "Wegzeit"-Aktion warf kCLErrorDomain 8 bei nicht geokodierbaren Orten → Wenn-Block wieder entfernt).
+**Kalender-Zeilenformat (Shortcut→Worker), seit 10.09.2026 mit Datum:** `DD.MM.YYYY | HH:MM | HH:MM | Titel | Ort | Fahrzeit` — Feld 1 (Datum, auch `YYYY-MM-DD`; fehlt es, gilt die Zeile als heute = altes Format), Ende, Ort und Fahrzeit (erste Ganzzahl wird geparst, z.B. "23 Min.") sind optional. Override-Key: `date|time|text` bei Zeilen mit Datum, sonst `time|text` (App `calKey` und Worker `calKey` identisch halten!). Rezept für den 14-Tage-Kurzbefehl steht in der App unter Mehr → Kurzbefehle. Fahrzeit-Feature ist gebaut, aber Stevens Shortcut nutzt aktuell 4 Felder (Apple "Wegzeit"-Aktion warf kCLErrorDomain 8 bei nicht geokodierbaren Orten → Wenn-Block wieder entfernt).
 
 ## 6. App-Datenmodell (localStorage `organizer_v3`, gespiegelt in KV `state`)
 
@@ -130,7 +130,7 @@ Groq-Key + Worker-URL + Worker-Secret liegen separat im localStorage (nicht im s
 
 - Kalender ist **nur heute** — keine Woche/Monat, keine Datumsnavigation, keine Mehrtages-/Serientermine (Hauptkritik!)
 - 1500-Zeilen-Einzeldatei: kein Framework, keine Komponenten, keine echten Tests (nur node --check + ad-hoc-Logiktests in Node)
-- Shortcut liefert nur "heute" (Filter im Shortcut) — Wochenkalender braucht Shortcut-Anpassung (Zeitraum + Datumsfeld im Zeilenformat!)
+- Worker und App verstehen seit 10.09.2026 Zeilen mit Datum (14-Tage-Kurzbefehl, Rezept unter Mehr → Kurzbefehle); Steven muss den Kurzbefehl auf dem iPhone noch umstellen (bis dahin liefert er nur heute, das funktioniert weiter). `legacy/` (v7) zeigt alle Zeilen als heute – bewusst unverändert
 - Fahrzeit-Feature ungenutzt (Apple-Geocoding-Fehler), Konzept siehe §5
 - Kein Rate-Limit am Worker (Secret ist stark, akzeptiert)
 - KV-Daten unverschlüsselt (bewusst akzeptiert)

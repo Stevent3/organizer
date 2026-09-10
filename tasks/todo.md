@@ -23,7 +23,7 @@ Worker-API + Datenmodell bleiben kompatibel (Sync mit updatedAt-Guard, calOverri
 - [x] Ansichten: **Tag** (Timeline; Drag im 15-Min-Raster noch offen), **Woche** (7 Spalten, Mehrtages-Balken oben), **Monat** (Grid mit Punkten/Balken, Tap → Tag)
 - [x] Datumsnavigation: Swipe/Chevrons, „Heute"-Button, Datepicker
 - [x] Termin-Editor-Sheet: Titel, Ganztägig, Start/Ende (Datum+Zeit), Mehrtägig, Notiz, Ort, Farbe, Löschen; Apple-Termine via calOverrides
-- [ ] Worker: Zeilenformat um Datum erweitern (`DD.MM.YYYY | HH:MM | HH:MM | Titel | Ort | Fahrzeit`), Kalender-Key mit Datum; Shortcut-Guide „Zeitraum 14 Tage"
+- [x] Worker: Zeilenformat um Datum erweitern (`DD.MM.YYYY | HH:MM | HH:MM | Titel | Ort | Fahrzeit`), Kalender-Key mit Datum; Shortcut-Guide „Zeitraum 14 Tage" → M10
 
 ## M3 – Sync, Migration, Einstellungen
 Koexistenz-Regel: v8 pusht v8-Felder + v7-kompatible `schedule`/`calendarEvents` (heute) + durchgereichte Extras (dayPlan, mealPlan, …); v7-Stände werden in v8 nur für heute neu aufgebaut, andere Tage bleiben. Schreib-Sync ist per Schalter aus, bis v8 Hauptgerät ist.
@@ -51,7 +51,7 @@ Koexistenz-Regel: v8 pusht v8-Felder + v7-kompatible `schedule`/`calendarEvents`
 - [x] Dashboard: To-dos direkt sichtbar (vor dem Kalender), Kalender-Widget mit Monatsraster + nächsten 7 Tagen
 - [x] Kalender-Overlay schließt animiert nach unten, folgt beim Ziehen dem Finger
 - [x] Planer (KI-Tagesplan „Plan übernehmen", Essensplaner) → M6
-- [ ] Shortcut-URLs, Worker-Kalenderformat mit Datum
+- [x] Shortcut-URLs (M7), Worker-Kalenderformat mit Datum (M10)
 
 ## M6 – Planer-Tab (10.09.2026, Cloud-Sitzung)
 Fünfter Tab **Planer** (Heute · Kalender · To-dos · Planer · Mehr) mit Segment 🗺 Tag | 🍽 Essen, wie v7.
@@ -96,6 +96,16 @@ Auftrag Steven: Cloudflare-Deploy aus der Cloud nachholen (CLOUDFLARE_API_TOKEN 
 - [x] **Abend-Review-Push 21:00–21:25** (`sent:review:<datum>`): liest `state.tasks.today`; offen = nicht erledigt und nicht zurückgestellt (`until` in der Zukunft zählt nicht); „3/5 geschafft – Rest auf morgen?" mit bis zu 3 offenen Titeln, „alles geschafft"-Variante, kein Push ohne To-dos; entfällt, wenn der Tagesabschluss in der App schon gemacht wurde (`state.dayClosed === heute`)
 - [x] **Wetter im Morgen-Briefing** (Open-Meteo, Hannover 52.3759/9.732, ohne Key, 5-s-Timeout, Fehler = ohne Wetter): Zeile „🌦️ Schauer, 12–19 °C, Regen 60 %" in Groq-Prompt und Fallback-Text
 - [x] Reine Logik als benannte Exporte (`openTodayTasks`, `buildReviewText`, `weatherLine`, `applyOverrides`, `parseLines`) → vitest `app/src/test/worker.test.ts`; Push-Krypto unangetastet; `node --check worker.js`
-- [ ] Danach: nächster offener Punkt aus M2 (Worker-Zeilenformat mit Datum)
+- [x] Danach: nächster offener Punkt aus M2 (Worker-Zeilenformat mit Datum) → M10
+
+## M10 – Kalender über mehrere Tage: Zeilenformat mit Datum (10.09.2026, Cloud-Sitzung)
+Ziel: Der Kurzbefehl liefert 14 Tage statt nur heute. Altes Format ohne Datum bleibt gültig (= heute).
+- [x] Worker `parseLines`: optionales erstes Feld `DD.MM.YYYY` (auch `YYYY-MM-DD`) → `date` (ISO) am Termin, Dedup-Key mit Datum; ohne Datum unverändert (kein `date`-Feld)
+- [x] Worker Override-Key: mit Datum `date|time|text`, ohne Datum wie bisher `time|text` (bestehende Overrides bleiben gültig); `applyOverrides` wendet auch `date` aus dem Override an; `calendarForDay(cal, today)` filtert für Cron (Abfahrt, Briefing, Tipps) auf heute
+- [x] `worker.d.ts` + `worker.test.ts`: Parser mit Datum, Key/Override mit Datum, Cron pusht nur heutige Termine
+- [x] App `lib/worker.ts`: `RawCalEvent.date?`; `lib/sync.ts`: `calKey(time, text, date?)`, `buildCalendarEvents` nimmt pro Termin `e.date ?? day`, `applyCalendar` ersetzt Kalender-Termine ab heute und alle Tage des Snapshots (Vergangenheit bleibt als Verlauf); `toWireState` liest origTime aus dem Key mit Datum
+- [x] Mehr → Kurzbefehle: Karte „Kalender-Kurzbefehl (14 Tage)" mit Rezept (Filter „in den nächsten 14 Tagen", Zeilenformat mit Datum, POST an `<Worker>/calendar` mit X-Secret)
+- [x] Doku: CLAUDE.md §5 Zeilenformat; APP_VERSION → beta.5; 120 Tests grün (8 neu), tsc + Build sauber; Commit + Push; Worker deployt
+- [ ] Steven: Kurzbefehl auf dem iPhone umstellen (Rezept unter Mehr → Kurzbefehle), dann Kalender-Tab prüfen (Woche/Monat mit Apple-Terminen)
 
 ## Danach: Backlog aus CLAUDE.md §11 (Inbox, Deep-Links, …)

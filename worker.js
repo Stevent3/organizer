@@ -11,6 +11,7 @@
 //    GROQ_KEY            – optional, für KI-formulierte Hinweise
 //
 //  Cron Trigger:  */15 * * * *   (alle 15 Minuten)
+//  Kalender:      KV "calendar" = Zeilen des Kurzbefehls, optional mit Datum (mehrere Tage); Cron nutzt nur heute
 //  Push-Slots:    Abfahrt (vor Terminen), Briefing 06:00 (mit Wetter via Open-Meteo, ohne Key),
 //                 Tipps 10:00 + 14:30 (Groq), Abend-Review 21:00 (Bilanz der To-dos)
 // ═══════════════════════════════════════════════════════════
@@ -106,9 +107,10 @@ async function runChecks(env) {
 
   const rawCal = (await env.KV.get('calendar', 'json')) || [];
   const state = (await env.KV.get('state', 'json')) || {};
-  const cal = applyOverrides(rawCal, state.calOverrides || {});
   const now = berlinNow();
   const today = now.date;
+  // Kalender kann mehrere Tage enthalten (Zeilen mit Datum) – für Push zählt nur heute
+  const cal = calendarForDay(applyOverrides(rawCal, state.calOverrides || {}), today);
 
   // 1) Abfahrts-Erinnerung: nutzt echte Fahrzeit, sonst 30 Min Standard
   for (const ev of cal) {
@@ -221,23 +223,34 @@ function describeWeather(code) {
   return { emoji: '🌡️', text: 'Wetter' };
 }
 
-// Overrides aus der App (verschobene/gelöschte/umbenannte Termine) anwenden
+// Override-Schlüssel wie in der App (app/src/lib/sync.ts calKey): mit Datum `date|time|text`, ohne Datum `time|text`
+function calKey(e) {
+  return (e.date ? e.date + '|' : '') + e.time + '|' + (e.text || '').toLowerCase();
+}
+
+// Overrides aus der App (verschobene/gelöschte/umbenannte Termine) anwenden – auch das Datum (Lesson #3/#4)
 function applyOverrides(rawCal, overrides) {
   const out = [];
   for (const e of rawCal) {
     if (!e || !e.time) continue;
-    const key = e.time + '|' + (e.text || '').toLowerCase();
-    const o = overrides[key];
+    const o = overrides[calKey(e)];
     if (o && o.deleted) continue;
-    out.push({
+    const ev = {
       ...e,
       time: (o && o.time) || e.time,
       end: (o && o.end !== undefined) ? o.end : (e.end || ''),
       text: (o && o.text) || e.text,
       sub: (o && o.sub !== undefined) ? o.sub : (e.sub || '')
-    });
+    };
+    if (o && o.date) ev.date = o.date;
+    out.push(ev);
   }
   return out;
+}
+
+// Termine eines Tages; Zeilen ohne Datum (altes Kurzbefehl-Format) gelten als heute
+function calendarForDay(cal, day) {
+  return cal.filter(e => (e.date || day) === day);
 }
 
 // KI entscheidet selbst, OB ein Tipp sinnvoll ist – und pusht nur dann
@@ -391,16 +404,26 @@ function berlinNow() {
   const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p => [p.type, p.value]));
   return { min: (+parts.hour)*60 + (+parts.minute), date: `${parts.year}-${parts.month}-${parts.day}` };
 }
+// „10.09.2026" oder „2026-09-10" → „2026-09-10", sonst ''
+function parseDate(s) {
+  let m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(s || '');
+  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  m = /^(\d{4}-\d{2}-\d{2})$/.exec(s || '');
+  return m ? m[1] : '';
+}
+// Zeilenformat des Kurzbefehls: [DD.MM.YYYY |] HH:MM [| HH:MM] | Titel [| Ort [| Fahrzeit]]
+// Ohne Datum (altes Format) fehlt das Feld `date` → gilt als heute.
 function parseLines(text) {
   const seen = new Set(); const out = [];
   for (let line of (text || '').split(/\r?\n+/)) {
     line = line.trim(); if (!line) continue;
-    let time = '', end = '', t = 'Termin', sub = '', travel = 0;
+    let date = '', time = '', end = '', t = 'Termin', sub = '', travel = 0;
     if (line.includes('|')) {
       const p = line.split('|').map(s => s.trim());
-      time = (p[0] || '').slice(0, 5);
-      let idx = 1;
-      if (/^\d{1,2}:\d{2}/.test(p[1] || '')) { end = p[1].slice(0, 5); idx = 2; }
+      let idx = 0;
+      date = parseDate(p[0]); if (date) idx = 1;
+      time = (p[idx] || '').slice(0, 5); idx++;
+      if (/^\d{1,2}:\d{2}/.test(p[idx] || '')) { end = p[idx].slice(0, 5); idx++; }
       t = p[idx] || 'Termin'; sub = p[idx + 1] || '';
       const tm = (p[idx + 2] || '').match(/\d+/);
       travel = tm ? parseInt(tm[0], 10) : 0;
@@ -408,13 +431,13 @@ function parseLines(text) {
       const m = line.match(/^(\d{1,2}:\d{2})\s+(.+)$/); if (!m) continue;
       time = m[1]; t = m[2];
     }
-    if (!time) continue;
-    const key = time + '|' + end + '|' + t.toLowerCase();
+    if (!/^\d{1,2}:\d{2}$/.test(time)) continue;
+    const key = date + '|' + time + '|' + end + '|' + t.toLowerCase();
     if (seen.has(key)) continue; seen.add(key);
-    out.push({ time, end, text: t, sub, travel });
+    out.push(date ? { date, time, end, text: t, sub, travel } : { time, end, text: t, sub, travel });
   }
   return out;
 }
 
 // Nur für Tests (app/src/test/worker.test.ts) – der Worker selbst nutzt export default
-export { runChecks, applyOverrides, parseLines, openTodayTasks, buildReviewText, weatherLine, toMin };
+export { runChecks, applyOverrides, calendarForDay, calKey, parseLines, openTodayTasks, buildReviewText, weatherLine, toMin };

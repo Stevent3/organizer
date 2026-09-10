@@ -5,7 +5,7 @@
  * Die Push-Krypto (encryptPayload, vapidJwt, sendPush) wird dabei unverändert mit durchlaufen.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { applyOverrides, buildReviewText, openTodayTasks, parseLines, runChecks, weatherLine, type KvLike, type WorkerEnv } from '../../../worker.js'
+import { applyOverrides, buildReviewText, calKey, calendarForDay, openTodayTasks, parseLines, runChecks, weatherLine, type KvLike, type WorkerEnv } from '../../../worker.js'
 
 const DAY = '2026-09-10'
 
@@ -98,6 +98,41 @@ describe('parseLines + applyOverrides (Bestand)', () => {
     const cal = [{ time: '08:00', text: 'Uni' }, { time: '10:00', text: 'Weg' }]
     const out = applyOverrides(cal, { '08:00|uni': { time: '09:00', text: 'Uni (verschoben)' }, '10:00|weg': { deleted: true } })
     expect(out).toEqual([{ time: '09:00', end: '', text: 'Uni (verschoben)', sub: '' }])
+  })
+})
+
+describe('Zeilenformat mit Datum (mehrere Tage)', () => {
+  it('parst das Datum vorne (deutsch oder ISO) und lässt es bei alten Zeilen weg', () => {
+    const evs = parseLines('12.09.2026 | 08:00 | 09:30 | Uni | Leuphana\n2026-09-13 | 18:00 | Schicht\n1.9.2026 | 07:15 | Früh\n12:00 | Mittag')
+    expect(evs).toEqual([
+      { date: '2026-09-12', time: '08:00', end: '09:30', text: 'Uni', sub: 'Leuphana', travel: 0 },
+      { date: '2026-09-13', time: '18:00', end: '', text: 'Schicht', sub: '', travel: 0 },
+      { date: '2026-09-01', time: '07:15', end: '', text: 'Früh', sub: '', travel: 0 },
+      { time: '12:00', end: '', text: 'Mittag', sub: '', travel: 0 },
+    ])
+  })
+  it('dedupliziert nur innerhalb eines Tages und verwirft Zeilen ohne Uhrzeit', () => {
+    const evs = parseLines('12.09.2026 | 08:00 | Uni\n13.09.2026 | 08:00 | Uni\n12.09.2026 | 08:00 | uni\n12.09.2026 | Ganztags')
+    expect(evs.map((e) => e.date)).toEqual(['2026-09-12', '2026-09-13'])
+  })
+  it('bildet den Override-Schlüssel mit Datum, ohne Datum wie bisher', () => {
+    expect(calKey({ date: '2026-09-12', time: '08:00', text: 'Uni' })).toBe('2026-09-12|08:00|uni')
+    expect(calKey({ time: '08:00', text: 'Uni' })).toBe('08:00|uni')
+  })
+  it('wendet Overrides mit Datum an, auch Verschiebung auf einen anderen Tag', () => {
+    const cal = [{ date: '2026-09-12', time: '08:00', text: 'Uni' }, { date: '2026-09-13', time: '18:00', text: 'Schicht' }, { time: '12:00', text: 'Mittag' }]
+    const out = applyOverrides(cal, {
+      '2026-09-12|08:00|uni': { date: '2026-09-10', time: '09:00' },
+      '2026-09-13|18:00|schicht': { deleted: true },
+      '12:00|mittag': { text: 'Mittag (Kantine)' },
+    })
+    expect(out).toEqual([
+      { date: '2026-09-10', time: '09:00', end: '', text: 'Uni', sub: '' },
+      { time: '12:00', end: '', text: 'Mittag (Kantine)', sub: '' },
+    ])
+    expect(calendarForDay(out, '2026-09-10').map((e) => e.text)).toEqual(['Uni', 'Mittag (Kantine)'])
+    // Zeilen ohne Datum gelten für jeden abgefragten Tag als „heute" (altes Kurzbefehl-Format)
+    expect(calendarForDay(out, '2026-09-12').map((e) => e.text)).toEqual(['Mittag (Kantine)'])
   })
 })
 
@@ -225,6 +260,19 @@ describe('runChecks (Cron)', () => {
     const { env } = await makeEnv({ tasks: { today: [] } })
     await runChecks(env)
     expect(pushCalls()).toHaveLength(1)
+  })
+
+  it('erinnert an die Abfahrt nur für heutige Termine', async () => {
+    atBerlin('08:00')
+    const calendar = [
+      { date: DAY, time: '08:30', text: 'Heute' },
+      { date: '2026-09-11', time: '08:30', text: 'Morgen' },
+      { time: '08:30', text: 'Ohne Datum' },
+    ]
+    const { env, kv } = await makeEnv({ tasks: { today: [] } }, { calendar })
+    await runChecks(env)
+    expect(pushCalls()).toHaveLength(2)
+    expect([...kv.store.keys()].filter((k) => k.startsWith('sent:dep:')).sort()).toEqual([`sent:dep:${DAY}:08:30:Heute`, `sent:dep:${DAY}:08:30:Ohne Datum`])
   })
 
   it('tut ohne Push-Abo gar nichts', async () => {

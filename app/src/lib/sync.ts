@@ -3,13 +3,25 @@ import { migrateV3, type V3State } from './migrate'
 import type { AppState, CalOverride, EventItem } from './model'
 import type { RawCalEvent } from './worker'
 
-/** Override-Schlüssel wie in v7 und im Worker: origTime|text (klein) */
-export const calKey = (time: string, text: string) => time + '|' + (text || '').toLowerCase()
+/**
+ * Override-Schlüssel wie im Worker (calKey): `origTime|text` (klein) für Zeilen ohne Datum (v7-Format),
+ * `date|origTime|text` für Zeilen mit Datum – so bleiben bestehende Overrides gültig.
+ */
+export const calKey = (time: string, text: string, date?: string) => (date ? date + '|' : '') + time + '|' + (text || '').toLowerCase()
+
+/** Ursprüngliche Uhrzeit aus einem Override-Schlüssel (mit oder ohne Datum) */
+export function keyTime(key: string): string {
+  const parts = key.split('|')
+  return parts.length >= 3 ? parts[1] : parts[0]
+}
 
 const isTime = (t?: string) => !!t && /^\d{1,2}:\d{2}$/.test(t)
 
+const isDate = (d?: string) => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d)
+
 /**
- * Apple-Termine (heute) aus dem Worker: deduplizieren, Overrides anwenden, als EventItems für `day`.
+ * Apple-Termine aus dem Worker: deduplizieren, Overrides anwenden, als EventItems.
+ * Zeilen mit Datum liegen auf ihrem Tag, Zeilen ohne Datum (altes Kurzbefehl-Format) auf `day` (heute).
  * IDs sind stabil (Tag + Key), damit React nicht flackert und Overrides greifen.
  */
 export function buildCalendarEvents(raw: RawCalEvent[], overrides: Record<string, CalOverride>, day: string): EventItem[] {
@@ -17,17 +29,18 @@ export function buildCalendarEvents(raw: RawCalEvent[], overrides: Record<string
   const out: EventItem[] = []
   for (const e of raw) {
     if (!e || !e.text) continue
-    const dedupe = (e.time || '') + '|' + (e.end || '') + '|' + e.text
+    const origDate = isDate(e.date) ? e.date! : day
+    const dedupe = origDate + '|' + (e.time || '') + '|' + (e.end || '') + '|' + e.text
     if (seen.has(dedupe)) continue
     seen.add(dedupe)
-    const key = calKey(e.time || '', e.text)
+    const key = calKey(e.time || '', e.text, isDate(e.date) ? e.date : undefined)
     const o = overrides[key]
     if (o?.deleted) continue
     const time = o?.time || (isTime(e.time) ? e.time : undefined)
     const endRaw = o?.end !== undefined ? o.end : e.end
     out.push({
-      id: 'cal|' + day + '|' + key,
-      date: o?.date || day,
+      id: 'cal|' + origDate + '|' + key,
+      date: o?.date || origDate,
       allDay: !time,
       time,
       end: isTime(endRaw) ? endRaw : undefined,
@@ -42,10 +55,16 @@ export function buildCalendarEvents(raw: RawCalEvent[], overrides: Record<string
   return out
 }
 
-/** Kalender-Termine des Tages ersetzen, andere Tage unangetastet lassen. updatedAt bleibt (kein Push nötig). */
+/**
+ * Kalender-Snapshot des Workers übernehmen. Er ist die Wahrheit ab heute (Kurzbefehl liefert heute + X Tage):
+ * Kalender-Termine ab `day` und aller Tage im Snapshot werden ersetzt, ältere Tage bleiben als Verlauf.
+ * updatedAt bleibt (kein Push nötig).
+ */
 export function applyCalendar(state: AppState, raw: RawCalEvent[], day: string): AppState {
   const fresh = buildCalendarEvents(raw, state.calOverrides, day)
-  const keep = state.events.filter((e) => !(e.source === 'calendar' && e.date === day))
+  const freshIds = new Set(fresh.map((e) => e.id))
+  const snapshotDays = new Set(raw.map((e) => (isDate(e?.date) ? e.date! : day)))
+  const keep = state.events.filter((e) => e.source !== 'calendar' || (e.date < day && !snapshotDays.has(e.date) && !freshIds.has(e.id)))
   return { ...state, events: [...keep, ...fresh], lastCalendarSync: Date.now() }
 }
 
@@ -114,7 +133,7 @@ export function toWireState(state: AppState, day: string): Record<string, unknow
   const calendarEvents = today
     .filter((e) => e.source === 'calendar' && e.time)
     .map((e, i) => ({
-      id: 'cal' + i, key: e.key, origTime: (e.key ?? '').split('|')[0], time: e.time, end: e.end ?? '',
+      id: 'cal' + i, key: e.key, origTime: keyTime(e.key ?? ''), time: e.time, end: e.end ?? '',
       text: e.text, sub: e.sub ?? '', travel: e.travel ?? 0, color: 'ev-cal', source: 'calendar',
     }))
   return {

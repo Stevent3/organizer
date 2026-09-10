@@ -4,6 +4,7 @@ import { Card, SectionLabel } from '../components/Card'
 import { Segmented } from '../components/Segmented'
 import { Toggle } from '../components/Toggle'
 import { APP_URL, SHORTCUT_EXAMPLES } from '../lib/actions'
+import { useConfig } from '../lib/config'
 import { DASH_SECTIONS, useDashboard } from '../lib/dashboard'
 import { ACCENTS, THEME_MODES, useTheme } from '../lib/theme'
 import { DEFAULT_LOCATION, locateMe, useWeather } from '../lib/weather'
@@ -137,6 +138,64 @@ export function ShortcutsSection() {
             {copied === s.url ? <Check size={16} className="shrink-0 text-green" /> : <Copy size={16} className="shrink-0 text-text-3" />}
           </button>
         ))}
+      </Card>
+      <CalendarShortcutCard />
+    </>
+  )
+}
+
+/** Schritte für den Kalender-Kurzbefehl (Apple Kalender → Worker), 14 Tage im Voraus */
+const CALENDAR_STEPS: { title: string; detail?: string }[] = [
+  { title: 'Kalenderereignisse suchen', detail: 'Filter: Startdatum „ist in den nächsten" 14 Tagen. Optional: „Ist ganztägig" ist nein.' },
+  { title: 'Wiederhole mit jedem → Text', detail: 'Startdatum als dd.MM.yyyy, Start und Ende als HH:mm (Aktion „Datum formatieren", eigenes Format).' },
+  { title: 'Text kombinieren', detail: 'Nach der Schleife, Trenner: Zeilenumbruch.' },
+  { title: 'Inhalte abrufen (POST)', detail: 'Header X-Secret = dein Token, Haupttext JSON: text = kombinierter Text.' },
+  { title: 'Als Automation täglich morgens', detail: 'Läuft stumm; die App holt den Kalender bei jedem Öffnen.' },
+]
+
+/** Mehr → Kurzbefehle: Rezept für den Kalender-Kurzbefehl mit Datum (Zeitraum 14 Tage) */
+export function CalendarShortcutCard() {
+  const url = useConfig((c) => c.url)
+  const [copied, setCopied] = useState<string | null>(null)
+  const copy = async (what: string, text: string) => {
+    try { await navigator.clipboard.writeText(text) } catch { /* Safari ohne Berechtigung */ }
+    setCopied(what)
+    setTimeout(() => setCopied(null), 1500)
+  }
+  const line = '[Startdatum] | [Start] | [Ende] | [Titel] | [Ort]'
+  const calUrl = url ? url + '/calendar' : ''
+  return (
+    <>
+      <SectionLabel>Kalender-Kurzbefehl (14 Tage)</SectionLabel>
+      <Card className="p-0">
+        <p className="px-4 pb-2 pt-3 text-[12px] text-text-3">
+          Liefert die Apple-Termine der nächsten zwei Wochen an den Worker. Jede Zeile trägt vorne das Datum; Zeilen ohne Datum gelten weiter als heute.
+        </p>
+        <ol className="space-y-2 px-4 pb-3">
+          {CALENDAR_STEPS.map((st, i) => (
+            <li key={st.title} className="flex gap-3">
+              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-bold text-accent">{i + 1}</span>
+              <span className="min-w-0">
+                <span className="block text-[14px] font-medium">{st.title}</span>
+                {st.detail && <span className="block text-[12px] text-text-3">{st.detail}</span>}
+              </span>
+            </li>
+          ))}
+        </ol>
+        <button onClick={() => copy('line', line)} className="press flex w-full items-center justify-between gap-3 border-t border-line px-4 py-3 text-left">
+          <span className="min-w-0">
+            <span className="block text-[12px] text-text-3">Zeile im Kurzbefehl (Beispiel: 12.09.2026 | 08:00 | 09:30 | Uni | Leuphana)</span>
+            <span className="block truncate font-mono text-[12px]">{line}</span>
+          </span>
+          {copied === 'line' ? <Check size={16} className="shrink-0 text-green" /> : <Copy size={16} className="shrink-0 text-text-3" />}
+        </button>
+        <button onClick={() => calUrl && copy('url', calUrl)} className="press flex w-full items-center justify-between gap-3 border-t border-line px-4 py-3 text-left">
+          <span className="min-w-0">
+            <span className="block text-[12px] text-text-3">Adresse für „Inhalte abrufen"</span>
+            <span className="block truncate font-mono text-[12px]">{calUrl || 'Worker-URL unter Cloud-Sync eintragen'}</span>
+          </span>
+          {copied === 'url' ? <Check size={16} className="shrink-0 text-green" /> : <Copy size={16} className="shrink-0 text-text-3" />}
+        </button>
       </Card>
     </>
   )
