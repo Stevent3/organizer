@@ -140,6 +140,22 @@ describe('Zeilenformat mit Datum (mehrere Tage)', () => {
       { time: '12:00', end: '', text: 'Mittag um 13:00', sub: 'Kantine', travel: 0 },
     ])
   })
+  it('hängt mehrzeilige Adressen an den Termin davor und erkennt ganztägig und mehrtägig', () => {
+    const raw = [
+      '10.09.2026, 00:00|10.09.2026, 23:59|Viktoria (24. Geburtstag)||',
+      '10.09.2026, 11:00|10.09.2026, 18:30|Samowar Tea and Records|Am Sande 33',
+      '21335 Lüneburg',
+      'Deutschland|',
+      '12.09.2026, 00:00|14.09.2026, 00:00|Urlaub||',
+      '12.09.2026, 22:00|13.09.2026, 02:00|Party|Club|',
+    ].join('\n')
+    expect(parseLines(raw)).toEqual([
+      { date: '2026-09-10', time: '', end: '', text: 'Viktoria (24. Geburtstag)', sub: '', travel: 0 },
+      { date: '2026-09-10', time: '11:00', end: '18:30', text: 'Samowar Tea and Records', sub: 'Am Sande 33, 21335 Lüneburg, Deutschland', travel: 0 },
+      { date: '2026-09-12', time: '', end: '', text: 'Urlaub', sub: '', travel: 0, endDate: '2026-09-14' },
+      { date: '2026-09-12', time: '22:00', end: '02:00', text: 'Party', sub: 'Club', travel: 0, endDate: '2026-09-13' },
+    ])
+  })
   it('dedupliziert nur innerhalb eines Tages und verwirft Zeilen ohne Uhrzeit', () => {
     const evs = parseLines('12.09.2026 | 08:00 | Uni\n13.09.2026 | 08:00 | Uni\n12.09.2026 | 08:00 | uni\n12.09.2026 | Ganztags\nkein Termin')
     expect(evs.map((e) => e.date + ' ' + e.time)).toEqual(['2026-09-12 08:00', '2026-09-13 08:00', '2026-09-12 '])

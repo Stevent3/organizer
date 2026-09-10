@@ -1,7 +1,7 @@
 // Typen für die Test-Exporte von worker.js (app/src/test/worker.test.ts). Der Worker selbst ist reines JS.
 export type WorkerTask = { id?: string; text: string; done?: boolean; until?: string }
 export type WorkerState = { tasks?: { today?: WorkerTask[] }; dayClosed?: string; calOverrides?: Record<string, unknown> }
-export type CalEvent = { date?: string; time: string; end?: string; text: string; sub?: string; travel?: number }
+export type CalEvent = { date?: string; endDate?: string; time: string; end?: string; text: string; sub?: string; travel?: number }
 export type KvLike = {
   get(key: string, type?: 'json' | 'text'): Promise<unknown>
   put(key: string, value: string, opts?: { expirationTtl?: number }): Promise<void>

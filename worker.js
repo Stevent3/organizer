@@ -428,25 +428,33 @@ function parseStamp(s) {
 }
 // Zeilenformat des Kurzbefehls: [Datum |] Start [| Ende] | Titel [| Ort [| Fahrzeit]]
 // Datum und Start dürfen in einem Feld stehen. Ohne Datum (altes Format) fehlt `date` → heute.
-// Nur Datum, keine Uhrzeit = ganztägig (time '').
+// Nur Datum ohne Uhrzeit oder 00:00–23:59 = ganztägig (time ''). Endet der Termin an einem späteren Tag → endDate.
+// Zeilen, die nicht mit Datum/Uhrzeit beginnen (mehrzeilige Adressen aus Apple Kalender), gehören zum Termin davor.
 function parseLines(text) {
+  const merged = [];
+  for (const raw of (text || '').split(/\r?\n/)) {
+    const line = raw.trim(); if (!line) continue;
+    const first = line.includes('|') ? line.split('|')[0] : (line.match(/^(\d{1,2}:\d{2})\s+/) || [])[1];
+    if (!parseStamp(first) && merged.length) merged[merged.length - 1] += ', ' + line.replace(/\|\s*$/, '');
+    else merged.push(line);
+  }
   const seen = new Set(); const out = [];
-  for (let line of (text || '').split(/\r?\n+/)) {
-    line = line.trim(); if (!line) continue;
-    let date = '', time = '', end = '', t = 'Termin', sub = '', travel = 0;
+  for (const line of merged) {
+    let date = '', endDate = '', time = '', end = '', t = 'Termin', sub = '', travel = 0;
     if (line.includes('|')) {
       const p = line.split('|').map(s => s.trim());
-      let idx = 0; const times = [];
+      let idx = 0; const times = []; let last = null;
       // Führende Zeitstempel-Felder einsammeln (Datum, Start, Ende), höchstens drei
       while (idx < 3 && idx < p.length && times.length < 2) {
         const st = parseStamp(p[idx]);
         if (!st) break;
         if (st.date && !date) date = st.date;
         if (st.time) times.push(st.time);
-        idx++;
+        last = st; idx++;
       }
       if (!date && !times.length) continue;
       time = times[0] || ''; end = times[1] || '';
+      if (last && last.date && date && last.date > date) endDate = last.date;
       t = p[idx] || 'Termin'; sub = p[idx + 1] || '';
       const tm = (p[idx + 2] || '').match(/\d+/);
       travel = tm ? parseInt(tm[0], 10) : 0;
@@ -454,10 +462,13 @@ function parseLines(text) {
       const m = line.match(/^(\d{1,2}:\d{2})\s+(.+)$/); if (!m) continue;
       time = m[1].padStart(5, '0'); t = m[2];
     }
+    if (time === '00:00' && (end === '23:59' || (endDate && end === '00:00'))) { time = ''; end = ''; }
     if (!time && !date) continue;
     const key = date + '|' + time + '|' + end + '|' + t.toLowerCase();
     if (seen.has(key)) continue; seen.add(key);
-    out.push(date ? { date, time, end, text: t, sub, travel } : { time, end, text: t, sub, travel });
+    const ev = date ? { date, time, end, text: t, sub, travel } : { time, end, text: t, sub, travel };
+    if (endDate) ev.endDate = endDate;
+    out.push(ev);
   }
   return out;
 }

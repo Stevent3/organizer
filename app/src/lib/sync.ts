@@ -41,6 +41,7 @@ export function buildCalendarEvents(raw: RawCalEvent[], overrides: Record<string
     out.push({
       id: 'cal|' + origDate + '|' + key,
       date: o?.date || origDate,
+      endDate: !o?.date && isDate(e.endDate) && e.endDate! > origDate ? e.endDate : undefined,
       allDay: !time,
       time,
       end: isTime(endRaw) ? endRaw : undefined,

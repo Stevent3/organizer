@@ -45,6 +45,12 @@ describe('Kalender aus dem Worker', () => {
     expect(keyTime('08:00|uni')).toBe('08:00')
   })
 
+  it('übernimmt ganztägige und mehrtägige Termine aus dem Worker', () => {
+    const list = buildCalendarEvents([{ date: '2026-09-12', endDate: '2026-09-14', time: '', text: 'Urlaub' }, { date: '2026-09-12', endDate: '2026-09-11', time: '09:00', text: 'Falsch' }], {}, DAY)
+    expect(list[0]).toMatchObject({ allDay: true, date: '2026-09-12', endDate: '2026-09-14', text: 'Urlaub' })
+    expect(list[1].endDate).toBeUndefined()
+  })
+
   it('Snapshot mit mehreren Tagen ersetzt ab heute, Vergangenheit bleibt als Verlauf', () => {
     const s = base({
       events: [
