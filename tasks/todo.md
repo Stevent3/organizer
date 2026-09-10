@@ -52,4 +52,15 @@ Koexistenz-Regel: v8 pusht v8-Felder + v7-kompatible `schedule`/`calendarEvents`
 - [x] Kalender-Overlay schließt animiert nach unten, folgt beim Ziehen dem Finger
 - [ ] Planer (KI-Tagesplan „Plan übernehmen", Essensplaner), Shortcut-URLs, Worker-Kalenderformat mit Datum
 
+## M6 – Planer-Tab (10.09.2026, Cloud-Sitzung)
+Fünfter Tab **Planer** (Heute · Kalender · To-dos · Planer · Mehr) mit Segment 🗺 Tag | 🍽 Essen, wie v7.
+Datenhaltung: `dayPlan`, `mealPlan`, `foodProfile` bleiben in `state.extra` (v7-kompatibel: liegen top-level im KV-State, Cron/Legacy lesen sie weiter); typisierte Zugriffe + Validierung in `lib/planner.ts`, Schreiben über neue Store-Aktion `setExtra` (zählt updatedAt hoch → Sync).
+- [ ] `lib/ai.ts`: Groq-Aufruf um JSON-Modus (`response_format`) + Fehlertext-Helfer erweitern, gemeinsam für Chat, Tagesplan, Essensplan
+- [ ] `lib/planner.ts`: Typen (DayPlan, MealPlan, FoodProfile), Prompts aus v7 1:1, JSON-Parser (robust gegen Text drumherum), `planToEvents()` (Plan → Termine, feste Termine überspringen, idempotent), Zutaten-Dedup für die Einkaufsliste
+- [ ] Store: `setExtra(patch)`
+- [ ] `screens/PlannerScreen.tsx`: Tagesplan (Timeline-Blöcke nach Typ gefärbt, „Plan erstellen"/„Neu planen", **„Plan übernehmen"** → echte Termine mit Bestätigung, „Übernommen"-Zustand)
+- [ ] Essensplaner: 9-Fragen-Interview mit Chips → foodProfile, Profil-Karte (bearbeiten), 7-Tage-Plan F/M/A per Groq-JSON, pro Gericht: neu würfeln / bearbeiten / Zutaten → Liste (dedupliziert), „Ganze Woche → Liste"
+- [ ] Tests (vitest): JSON-Parser, planToEvents (Dedup, feste Termine, Datum), Zutaten-Dedup, Profil-Zusammenfassung, Store setExtra + Sync-Durchreichung
+- [ ] tsc + Tests grün, APP_VERSION → v8.0.0-beta.2, Commit + Push
+
 ## Danach: Backlog aus CLAUDE.md §11 (Abend-Review-Push, Wetter, Inbox, Deep-Links, …)
