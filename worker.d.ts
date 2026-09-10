@@ -14,6 +14,7 @@ export function applyOverrides(rawCal: CalEvent[], overrides: Record<string, Par
 export function calendarForDay(cal: CalEvent[], day: string): CalEvent[]
 export function calKey(e: Pick<CalEvent, 'date' | 'time' | 'text'>): string
 export function parseLines(text: string): CalEvent[]
+export function parseStamp(s: string): { date: string; time: string } | null
 export function openTodayTasks(state: WorkerState, today: string): WorkerTask[]
 export function buildReviewText(state: WorkerState, today: string): { title: string; body: string } | null
 export function weatherLine(data: unknown): string

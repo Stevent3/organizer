@@ -44,6 +44,8 @@ export default {
                    : Array.isArray(body) ? body
                    : Array.isArray(body.events) ? body.events : [];
       await env.KV.put('calendar', JSON.stringify(events), { metadata: { updated: Date.now() } });
+      // Rohtext des Kurzbefehls zum Nachsehen (wrangler kv key get calendar_raw --remote), 7 Tage
+      if (lines) await env.KV.put('calendar_raw', String(lines).slice(0, 20000), { expirationTtl: 7 * 24 * 3600, metadata: { count: events.length } });
       return res({ ok: true, count: events.length });
     }
     if (path === '/calendar' && request.method === 'GET') {
@@ -404,30 +406,28 @@ function berlinNow() {
   const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p => [p.type, p.value]));
   return { min: (+parts.hour)*60 + (+parts.minute), date: `${parts.year}-${parts.month}-${parts.day}` };
 }
-// Datumsfeld des Kurzbefehls: „10.09.2026", „10.9.26", „2026-09-10" – optional mit Uhrzeit dahinter,
-// so wie Kurzbefehle eine Datumsvariable unformatiert einsetzen („10.09.2026, 08:00"). null = kein Datum.
-function parseDateField(s) {
+// Datum/Uhrzeit-Feld des Kurzbefehls. Kurzbefehle setzen Datumsvariablen je nach Einstellung verschieden ein:
+// „10.09.2026, 08:00", „10.09.26 um 8:00", „Do., 10.09.2026 08:00", „2026-09-10 08:00", nur „10.09.2026" (ganztägig).
+// Ein Feld gilt als Zeitstempel, wenn nach Entfernen von Datum, Uhrzeit und Füllwörtern nichts übrig bleibt.
+const DATE_DE = /(\d{1,2})\.(\d{1,2})\.(\d{4}|\d{2})(?!\d)/, DATE_ISO = /(\d{4})-(\d{2})-(\d{2})(?!\d)/, TIME = /(?<![\d:])(\d{1,2}):(\d{2})(?::\d{2})?\b/;
+function parseStamp(s) {
   s = (s || '').trim();
-  let m = /^(\d{1,2})\.(\d{1,2})\.(\d{4}|\d{2})(?:,?\s+(\d{1,2}:\d{2}))?/.exec(s);
-  if (m) {
-    const y = m[3].length === 2 ? '20' + m[3] : m[3];
-    return { date: `${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`, time: padTime(m[4]) };
-  }
-  m = /^(\d{4}-\d{2}-\d{2})(?:[T, ]\s*(\d{1,2}:\d{2}))?/.exec(s);
-  return m ? { date: m[1], time: padTime(m[2]) } : null;
-}
-// Uhrzeit aus einem Feld („08:00", „8:00", „08:00:00", auch mit Datum davor: „10.09.2026, 09:30") → „HH:MM" oder ''
-function parseTimeField(s) {
-  const m = /^(?:(?:\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}-\d{2}-\d{2}),?\s*)?(\d{1,2}):(\d{2})/.exec((s || '').trim());
-  return m && +m[1] < 24 && +m[2] < 60 ? padTime(m[1] + ':' + m[2]) : '';
-}
-function padTime(t) {
-  if (!t) return '';
-  const [h, m] = t.split(':');
-  return h.padStart(2, '0') + ':' + m;
+  if (!s) return null;
+  let date = '', time = '';
+  let m = DATE_DE.exec(s);
+  if (m) date = `${m[3].length === 2 ? '20' + m[3] : m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  else if ((m = DATE_ISO.exec(s))) date = m[0];
+  const t = TIME.exec(s);
+  if (t && +t[1] < 24 && +t[2] < 60) time = t[1].padStart(2, '0') + ':' + t[2];
+  if (!date && !time) return null;
+  const rest = s.replace(DATE_DE, '').replace(DATE_ISO, '').replace(TIME, '')
+    .replace(/\b(um|uhr|am|at|t)\b/gi, '').replace(/\b(mo|di|mi|do|fr|sa|so|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b\.?/gi, '')
+    .replace(/[,.\s]/g, '');
+  return rest ? null : { date, time };
 }
 // Zeilenformat des Kurzbefehls: [Datum |] Start [| Ende] | Titel [| Ort [| Fahrzeit]]
-// Datum und Start dürfen in einem Feld stehen („10.09.2026, 08:00"). Ohne Datum (altes Format) fehlt `date` → heute.
+// Datum und Start dürfen in einem Feld stehen. Ohne Datum (altes Format) fehlt `date` → heute.
+// Nur Datum, keine Uhrzeit = ganztägig (time '').
 function parseLines(text) {
   const seen = new Set(); const out = [];
   for (let line of (text || '').split(/\r?\n+/)) {
@@ -435,20 +435,25 @@ function parseLines(text) {
     let date = '', time = '', end = '', t = 'Termin', sub = '', travel = 0;
     if (line.includes('|')) {
       const p = line.split('|').map(s => s.trim());
-      let idx = 0;
-      const d = parseDateField(p[0]);
-      if (d) { date = d.date; time = d.time; idx = 1; }
-      if (!time) { time = parseTimeField(p[idx]); idx++; }
-      const endT = parseTimeField(p[idx]);
-      if (endT) { end = endT; idx++; }
+      let idx = 0; const times = [];
+      // Führende Zeitstempel-Felder einsammeln (Datum, Start, Ende), höchstens drei
+      while (idx < 3 && idx < p.length && times.length < 2) {
+        const st = parseStamp(p[idx]);
+        if (!st) break;
+        if (st.date && !date) date = st.date;
+        if (st.time) times.push(st.time);
+        idx++;
+      }
+      if (!date && !times.length) continue;
+      time = times[0] || ''; end = times[1] || '';
       t = p[idx] || 'Termin'; sub = p[idx + 1] || '';
       const tm = (p[idx + 2] || '').match(/\d+/);
       travel = tm ? parseInt(tm[0], 10) : 0;
     } else {
       const m = line.match(/^(\d{1,2}:\d{2})\s+(.+)$/); if (!m) continue;
-      time = padTime(m[1]); t = m[2];
+      time = m[1].padStart(5, '0'); t = m[2];
     }
-    if (!time) continue;
+    if (!time && !date) continue;
     const key = date + '|' + time + '|' + end + '|' + t.toLowerCase();
     if (seen.has(key)) continue; seen.add(key);
     out.push(date ? { date, time, end, text: t, sub, travel } : { time, end, text: t, sub, travel });
@@ -457,4 +462,4 @@ function parseLines(text) {
 }
 
 // Nur für Tests (app/src/test/worker.test.ts) – der Worker selbst nutzt export default
-export { runChecks, applyOverrides, calendarForDay, calKey, parseLines, openTodayTasks, buildReviewText, weatherLine, toMin };
+export { runChecks, applyOverrides, calendarForDay, calKey, parseLines, parseStamp, openTodayTasks, buildReviewText, weatherLine, toMin };

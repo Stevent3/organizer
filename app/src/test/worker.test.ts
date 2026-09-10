@@ -5,7 +5,7 @@
  * Die Push-Krypto (encryptPayload, vapidJwt, sendPush) wird dabei unverändert mit durchlaufen.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { applyOverrides, buildReviewText, calKey, calendarForDay, openTodayTasks, parseLines, runChecks, weatherLine, type KvLike, type WorkerEnv } from '../../../worker.js'
+import { applyOverrides, buildReviewText, calKey, calendarForDay, openTodayTasks, parseLines, parseStamp, runChecks, weatherLine, type KvLike, type WorkerEnv } from '../../../worker.js'
 
 const DAY = '2026-09-10'
 
@@ -121,9 +121,28 @@ describe('Zeilenformat mit Datum (mehrere Tage)', () => {
     ])
   })
 
+  it('erkennt Zeitstempel in allen Schreibweisen der Kurzbefehle-App', () => {
+    expect(parseStamp('10.09.2026, 08:00')).toEqual({ date: '2026-09-10', time: '08:00' })
+    expect(parseStamp('10.09.26 um 8:00')).toEqual({ date: '2026-09-10', time: '08:00' })
+    expect(parseStamp('Do., 10.09.2026 08:00 Uhr')).toEqual({ date: '2026-09-10', time: '08:00' })
+    expect(parseStamp('2026-09-10T08:00')).toEqual({ date: '2026-09-10', time: '08:00' })
+    expect(parseStamp('08:00:00')).toEqual({ date: '', time: '08:00' })
+    expect(parseStamp('10.09.2026')).toEqual({ date: '2026-09-10', time: '' })
+    expect(parseStamp('Uni')).toBeNull()
+    expect(parseStamp('Meeting um 10:30')).toBeNull()
+    expect(parseStamp('')).toBeNull()
+  })
+  it('parst Zeilen mit „um" und Wochentag, nur Datum wird ganztägig', () => {
+    const evs = parseLines('10.09.2026 um 08:00 | 10.09.2026 um 09:30 | Uni | Leuphana\nDo., 11.09.2026 | Urlaub\n12:00 | Mittag um 13:00 | Kantine')
+    expect(evs).toEqual([
+      { date: '2026-09-10', time: '08:00', end: '09:30', text: 'Uni', sub: 'Leuphana', travel: 0 },
+      { date: '2026-09-11', time: '', end: '', text: 'Urlaub', sub: '', travel: 0 },
+      { time: '12:00', end: '', text: 'Mittag um 13:00', sub: 'Kantine', travel: 0 },
+    ])
+  })
   it('dedupliziert nur innerhalb eines Tages und verwirft Zeilen ohne Uhrzeit', () => {
-    const evs = parseLines('12.09.2026 | 08:00 | Uni\n13.09.2026 | 08:00 | Uni\n12.09.2026 | 08:00 | uni\n12.09.2026 | Ganztags')
-    expect(evs.map((e) => e.date)).toEqual(['2026-09-12', '2026-09-13'])
+    const evs = parseLines('12.09.2026 | 08:00 | Uni\n13.09.2026 | 08:00 | Uni\n12.09.2026 | 08:00 | uni\n12.09.2026 | Ganztags\nkein Termin')
+    expect(evs.map((e) => e.date + ' ' + e.time)).toEqual(['2026-09-12 08:00', '2026-09-13 08:00', '2026-09-12 '])
   })
   it('bildet den Override-Schlüssel mit Datum, ohne Datum wie bisher', () => {
     expect(calKey({ date: '2026-09-12', time: '08:00', text: 'Uni' })).toBe('2026-09-12|08:00|uni')
