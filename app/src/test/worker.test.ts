@@ -5,7 +5,7 @@
  * Die Push-Krypto (encryptPayload, vapidJwt, sendPush) wird dabei unverändert mit durchlaufen.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { applyOverrides, buildReviewText, calKey, calendarForDay, openTodayTasks, parseLines, parseStamp, runChecks, weatherLine, type KvLike, type WorkerEnv } from '../../../worker.js'
+import { applyOverrides, birthdayNames, buildReviewText, buildWeekPreview, calKey, calendarForDay, openTodayTasks, parseLines, parseStamp, runChecks, weatherLine, type KvLike, type WorkerEnv } from '../../../worker.js'
 
 const DAY = '2026-09-10'
 
@@ -186,6 +186,36 @@ describe('Zeilenformat mit Datum (mehrere Tage)', () => {
   })
 })
 
+describe('Geburtstage + Wochen-Vorschau', () => {
+  const cal = [
+    { date: '2026-09-14', time: '10:00', end: '14:00', text: 'Samowar Tea and Records' },
+    { date: '2026-09-16', time: '', end: '', text: 'Tristan Eberhardt (28. Geburtstag)' },
+    { date: '2026-09-16', time: '18:00', end: '22:30', text: 'Samowar' },
+    { date: '2026-09-16', time: '11:00', end: '12:00', text: 'Jour Fixe' },
+    { date: '2026-09-18', time: '', end: '', text: 'Herni gebby' },
+    { date: '2026-09-19', time: '22:00', end: '02:00', text: 'Samowar Nachtschicht' },
+    { date: '2026-09-11', time: '14:00', end: '18:30', text: 'Samowar' }, // diese Woche, zählt nicht
+  ]
+  it('extrahiert Namen wie die App', () => {
+    expect(birthdayNames(cal)).toEqual(['Tristan Eberhardt', 'Herni'])
+    expect(birthdayNames([{ text: 'Weltkindertag' }, { text: '30. Hochzeitstag' }])).toEqual([])
+  })
+  it('fasst die nächste Woche zusammen: Schichten mit Verdienst, Geburtstage, freie Abende, vollster Tag', () => {
+    const p = buildWeekPreview(cal, { work: { keyword: 'Samowar', rate: 14.9 } }, '2026-09-14')
+    expect(p?.title).toBe('📅 Nächste Woche')
+    expect(p?.body).toBe('3 Schichten (12.5 h ≈ 186 €) · Geburtstag: Tristan Eberhardt (Mi), Herni (Fr) · freie Abende: Mo, Di, Do, Fr, So · vollster Tag Mi mit 3 Terminen.')
+    expect(buildWeekPreview(cal, {}, '2026-10-05')).toBeNull()
+  })
+  it('hängt morgige Geburtstage an den Abend-Review, auch ohne To-dos', () => {
+    expect(buildReviewText({ tasks: { today: [{ text: 'A', done: true }] } }, DAY, ['Nele'])?.body).toBe('Dein To-do ist erledigt – schöner Feierabend! 🎁 Morgen hat Nele Geburtstag – Geschenk, Karte, Nachricht?')
+    expect(buildReviewText({}, DAY, ['Nele'])).toEqual({ title: '🎁 Morgen', body: '🎁 Morgen hat Nele Geburtstag – Geschenk, Karte, Nachricht?' })
+    expect(buildReviewText({ tasks: { today: [{ text: 'Offen' }] }, dayClosed: DAY }, DAY, ['Nele'])?.title).toBe('🎁 Morgen')
+  })
+  it('behält ganztägige Zeilen mit Datum in applyOverrides', () => {
+    expect(applyOverrides([{ date: '2026-09-16', time: '', text: 'Tristan (Geburtstag)' }, { time: '', text: 'kaputt' }], {})).toEqual([{ date: '2026-09-16', time: '', end: '', text: 'Tristan (Geburtstag)', sub: '' }])
+  })
+})
+
 // ── Cron-Durchlauf ────────────────────────────────────────────────────────────
 function fakeKv(initial: Record<string, unknown>): KvLike & { store: Map<string, string> } {
   const store = new Map<string, string>(Object.entries(initial).map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v)]))
@@ -224,10 +254,10 @@ async function makeEnv(state: unknown, kvExtra: Record<string, unknown> = {}) {
   return { env, sub, kv: env.KV as ReturnType<typeof fakeKv> }
 }
 
-/** Berlin-Zeit (CEST, UTC+2 im September) → Systemzeit setzen */
-function atBerlin(hhmm: string) {
+/** Berlin-Zeit (CEST, UTC+2 im September) → Systemzeit setzen; Standardtag 10.09.2026 (Do) */
+function atBerlin(hhmm: string, day = 10) {
   const [h, m] = hhmm.split(':').map(Number)
-  vi.setSystemTime(new Date(Date.UTC(2026, 8, 10, h - 2, m)))
+  vi.setSystemTime(new Date(Date.UTC(2026, 8, day, h - 2, m)))
 }
 
 describe('runChecks (Cron)', () => {
@@ -323,6 +353,32 @@ describe('runChecks (Cron)', () => {
     await runChecks(env)
     expect(pushCalls()).toHaveLength(2)
     expect([...kv.store.keys()].filter((k) => k.startsWith('sent:dep:')).sort()).toEqual([`sent:dep:${DAY}:08:30:Heute`, `sent:dep:${DAY}:08:30:Ohne Datum`])
+  })
+
+  it('schickt am Sonntag um 19:05 genau eine Wochen-Vorschau', async () => {
+    atBerlin('19:05', 13) // 13.09.2026 = Sonntag
+    const calendar = [{ date: '2026-09-14', time: '10:00', end: '14:00', text: 'Samowar' }, { date: '2026-09-16', time: '', text: 'Nora (Geburtstag)' }]
+    const { env, kv } = await makeEnv({ tasks: { today: [] } }, { calendar })
+    await runChecks(env)
+    expect(pushCalls()).toHaveLength(1)
+    expect(kv.store.get('sent:week:2026-09-14')).toBe('1')
+    await runChecks(env)
+    expect(pushCalls()).toHaveLength(1)
+    // Am Donnerstag zur selben Zeit: nichts
+    calls.length = 0
+    atBerlin('19:05', 10)
+    await runChecks(env)
+    expect(pushCalls()).toHaveLength(0)
+  })
+
+  it('nennt im Briefing-Fallback den Geburtstag von heute', async () => {
+    atBerlin('06:10')
+    const calendar = [{ date: DAY, time: '', text: 'Lülle gebby' }, { date: DAY, time: '09:00', end: '10:00', text: 'Uni' }]
+    const { env } = await makeEnv({ tasks: { today: [] } }, { calendar })
+    await runChecks(env)
+    expect(pushCalls()).toHaveLength(1)
+    // Der verschlüsselte Body ist nicht lesbar – aber der Aufruf ging ohne Groq raus (kein GROQ_KEY), also mit Fallback-Text
+    expect(calls.some((c) => c.url.includes('groq.com'))).toBe(false)
   })
 
   it('tut ohne Push-Abo gar nichts', async () => {

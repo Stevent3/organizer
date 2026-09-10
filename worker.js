@@ -13,7 +13,8 @@
 //  Cron Trigger:  */15 * * * *   (alle 15 Minuten)
 //  Kalender:      KV "calendar" = Zeilen des Kurzbefehls, optional mit Datum (mehrere Tage); Cron nutzt nur heute
 //  Push-Slots:    Abfahrt (vor Terminen), Briefing 06:00 (mit Wetter via Open-Meteo, ohne Key),
-//                 Tipps 10:00 + 14:30 (Groq), Abend-Review 21:00 (Bilanz der To-dos)
+//                 Tipps 10:00 + 14:30 (Groq), Abend-Review 21:00 (Bilanz der To-dos, Geburtstage morgen),
+//                 Wochen-Vorschau So 19:00 (Schichten, Geburtstage, freie Abende)
 // ═══════════════════════════════════════════════════════════
 
 // Nur die eigene App-Domain darf per Browser zugreifen (Shortcuts sind davon unberührt)
@@ -113,7 +114,8 @@ async function runChecks(env) {
   const now = berlinNow();
   const today = now.date;
   // Kalender kann mehrere Tage enthalten (Zeilen mit Datum) – für Push zählt nur heute
-  const cal = calendarForDay(applyOverrides(rawCal, state.calOverrides || {}), today);
+  const allCal = applyOverrides(rawCal, state.calOverrides || {});
+  const cal = calendarForDay(allCal, today);
 
   // 1) Abfahrts-Erinnerung: nutzt echte Fahrzeit, sonst 30 Min Standard
   for (const ev of cal) {
@@ -140,7 +142,7 @@ async function runChecks(env) {
       const todays = cal.filter(e => e.time).sort((a, b) => a.time.localeCompare(b.time));
       const openTasks = openTodayTasks(state, today);
       const weather = await fetchWeatherLine();
-      const body = await buildBriefing(todays, openTasks, weather, env);
+      const body = await buildBriefing(todays, openTasks, weather, env, birthdayNames(cal));
       await sendPush(sub, { title: '☀️ Dein Tag', body, tag: 'briefing' }, env);
       await env.KV.put(key, '1', { expirationTtl: 22 * 3600 });
     }
@@ -165,10 +167,87 @@ async function runChecks(env) {
     if (!(await env.KV.get(key))) {
       // Auch ohne Push markieren (keine To-dos / Tag in der App schon abgeschlossen)
       await env.KV.put(key, '1', { expirationTtl: 20 * 3600 });
-      const review = buildReviewText(state, today);
+      const review = buildReviewText(state, today, birthdayNames(datedCalendarForDay(allCal, addDays(today, 1))));
       if (review) await sendPush(sub, { title: review.title, body: review.body, tag: 'review' }, env);
     }
   }
+
+  // 5) Wochen-Vorschau: Sonntag 19:00–19:25 – Schichten, Geburtstage, freie Abende der nächsten Woche
+  if (now.weekday === 0 && now.min >= 1140 && now.min <= 1165) {
+    const monday = addDays(today, 1);
+    const key = `sent:week:${monday}`;
+    if (!(await env.KV.get(key))) {
+      await env.KV.put(key, '1', { expirationTtl: 48 * 3600 });
+      const preview = buildWeekPreview(allCal, state, monday);
+      if (preview) await sendPush(sub, { title: preview.title, body: preview.body, tag: 'week' }, env);
+    }
+  }
+}
+
+// ── Geburtstage (gleiche Erkennung wie app/src/lib/birthdays.ts) ─────────────
+const BDAY_RE = /\b(geburtstag|gebby|geb\.?tag|bday|b-day|birthday)\b/i;
+function birthdayNames(cal) {
+  const out = [];
+  for (const e of cal) {
+    if (!BDAY_RE.test(e.text || '')) continue;
+    const name = String(e.text).replace(/\([^)]*\)/g, ' ').replace(/\b(hat|has)\b/gi, ' ').replace(/\d{1,3}\s*\./g, ' ')
+      .replace(BDAY_RE, ' ').replace(/[🎂🎉🎈🥳]/gu, ' ').replace(/[:\-–·,]+\s*$/g, ' ').replace(/\s+/g, ' ').trim() || 'Jemand';
+    if (!out.includes(name)) out.push(name);
+  }
+  return out;
+}
+
+// Nur Termine MIT diesem Datum (Zeilen ohne Datum gelten nur für heute, nicht für Vorschauen)
+function datedCalendarForDay(cal, day) {
+  return cal.filter(e => e.date === day);
+}
+function addDays(iso, n) {
+  const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const weekdayOf = iso => WD[new Date(iso + 'T12:00:00Z').getUTCDay()];
+function hoursOf(e) {
+  if (!e.time) return 0;
+  const s = toMin(e.time);
+  let en = e.end ? toMin(e.end) : s + 60;
+  if (e.endDate && e.endDate > e.date) en += Math.round((new Date(e.endDate + 'T12:00:00Z') - new Date(e.date + 'T12:00:00Z')) / 86400000) * 1440;
+  else if (en <= s) en += 1440;
+  return (en - s) / 60;
+}
+const euro = n => Math.round(n).toLocaleString('de-DE') + ' €';
+
+/**
+ * Wochen-Vorschau (M13 C) für Mo–So ab `monday`: Schichten (Stichwort/Stundenlohn aus state.work),
+ * Geburtstage, freie Abende (nichts nach 17 Uhr), vollster Tag. null = Woche komplett leer.
+ */
+function buildWeekPreview(cal, state, monday) {
+  const work = { keyword: (state.work && state.work.keyword) || 'Samowar', rate: (state.work && typeof state.work.rate === 'number') ? state.work.rate : 14.9 };
+  const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+  let total = 0, shifts = 0, hours = 0, busiest = null;
+  const birthdays = [], freeEvenings = [];
+  for (const d of days) {
+    const evs = datedCalendarForDay(cal, d);
+    total += evs.length;
+    for (const e of evs) {
+      if (e.time && (e.text || '').toLowerCase().includes(work.keyword.toLowerCase())) { shifts++; hours += hoursOf(e); }
+    }
+    for (const n of birthdayNames(evs)) birthdays.push(n + ' (' + weekdayOf(d) + ')');
+    const eveningBusy = evs.some(e => {
+      if (!e.time) return false;
+      const st = toMin(e.time); let en = e.end ? toMin(e.end) : st + 60; if (en <= st) en += 1440;
+      return en > 17 * 60 && st < 23 * 60;
+    });
+    if (!eveningBusy) freeEvenings.push(weekdayOf(d));
+    if (!busiest || evs.length > busiest.n) busiest = { d, n: evs.length };
+  }
+  if (!total) return null;
+  const parts = [];
+  parts.push(shifts ? `${shifts} ${shifts === 1 ? 'Schicht' : 'Schichten'} (${Math.round(hours * 10) / 10} h ≈ ${euro(hours * work.rate)})` : 'keine Schicht');
+  if (birthdays.length) parts.push('Geburtstag: ' + birthdays.join(', '));
+  parts.push(freeEvenings.length === 7 ? 'alle Abende frei' : freeEvenings.length ? 'freie Abende: ' + freeEvenings.join(', ') : 'kein Abend frei');
+  if (busiest && busiest.n >= 2) parts.push(`vollster Tag ${weekdayOf(busiest.d)} mit ${busiest.n} Terminen`);
+  return { title: '📅 Nächste Woche', body: parts.join(' · ') + '.' };
 }
 
 // Offene To-dos von heute: nicht erledigt und nicht zurückgestellt (v8: `until` in der Zukunft = später)
@@ -178,19 +257,20 @@ function openTodayTasks(state, today) {
 }
 
 // Abend-Review: null = kein Push (keine To-dos oder Tagesabschluss in der App schon gemacht)
-function buildReviewText(state, today) {
-  if (state && state.dayClosed === today) return null;
+function buildReviewText(state, today, tomorrowBirthdays = []) {
+  const bday = tomorrowBirthdays.length ? ` 🎁 Morgen hat ${tomorrowBirthdays.join(' und ')} Geburtstag – Geschenk, Karte, Nachricht?` : '';
+  const closed = !!state && state.dayClosed === today;
   const all = ((state && state.tasks && state.tasks.today) || []).filter(Boolean);
   const open = openTodayTasks(state, today);
   const done = all.filter(t => t.done).length;
   const total = open.length + done;
-  if (!total) return null;
+  if (closed || !total) return bday ? { title: '🎁 Morgen', body: bday.trim() } : null;
   const title = '🌙 Tagesabschluss';
   if (!open.length) {
-    return { title, body: total === 1 ? 'Dein To-do ist erledigt – schöner Feierabend!' : `Alle ${total} To-dos geschafft – starker Tag! Schöner Feierabend.` };
+    return { title, body: (total === 1 ? 'Dein To-do ist erledigt – schöner Feierabend!' : `Alle ${total} To-dos geschafft – starker Tag! Schöner Feierabend.`) + bday };
   }
   const names = open.slice(0, 3).map(t => t.text).join(', ') + (open.length > 3 ? ', …' : '');
-  return { title, body: `${done}/${total} geschafft. Offen: ${names}. Rest auf morgen?` };
+  return { title, body: `${done}/${total} geschafft. Offen: ${names}. Rest auf morgen?` + bday };
 }
 
 // Wetter fürs Briefing (Open-Meteo, gratis, ohne Key). Standort = Hannover; der App-Standort ist Gerätesache und nicht im Sync-State.
@@ -235,7 +315,7 @@ function calKey(e) {
 function applyOverrides(rawCal, overrides) {
   const out = [];
   for (const e of rawCal) {
-    if (!e || !e.time) continue;
+    if (!e || (!e.time && !e.date)) continue; // ganztägige Zeilen (ohne Uhrzeit) gibt es nur mit Datum
     const o = overrides[calKey(e)];
     if (o && o.deleted) continue;
     const ev = {
@@ -295,7 +375,7 @@ async function buildSmartTip(cal, state, now, slot, env) {
   return null;
 }
 
-async function buildBriefing(events, openTasks, weather, env) {
+async function buildBriefing(events, openTasks, weather, env, birthdays = []) {
   const evText = events.length
     ? events.map(e => `${e.time} ${e.text}`).join(', ')
     : 'keine Termine';
@@ -303,6 +383,7 @@ async function buildBriefing(events, openTasks, weather, env) {
     ? openTasks.map(t => t.text).join(', ')
     : 'keine offenen Aufgaben';
   const weatherText = weather ? ` Wetter: ${weather}.` : '';
+  const bdayText = birthdays.length ? ` Geburtstag heute: ${birthdays.join(', ')} (unbedingt erwähnen, Erinnerung zu gratulieren).` : '';
 
   // Optional: KI-formulierte, wärmere Variante
   if (env.GROQ_KEY) {
@@ -314,7 +395,7 @@ async function buildBriefing(events, openTasks, weather, env) {
           model: 'openai/gpt-oss-120b',
           messages: [{
             role: 'user',
-            content: `Formuliere ein kurzes, freundliches Morgen-Briefing (max 2 Sätze, Deutsch) für Steven. Termine: ${evText}. Offene Aufgaben: ${taskText}.${weatherText} Kein Gruß-Overkill, konkret und motivierend; das Wetter nur kurz erwähnen, wenn es für den Tag relevant ist (Regen, Kälte, Hitze).`
+            content: `Formuliere ein kurzes, freundliches Morgen-Briefing (max 2 Sätze, Deutsch) für Steven. Termine: ${evText}. Offene Aufgaben: ${taskText}.${weatherText}${bdayText} Kein Gruß-Overkill, konkret und motivierend; das Wetter nur kurz erwähnen, wenn es für den Tag relevant ist (Regen, Kälte, Hitze).`
           }],
           max_tokens: 120, temperature: 0.7
         })
@@ -326,7 +407,7 @@ async function buildBriefing(events, openTasks, weather, env) {
       }
     } catch (_) {}
   }
-  return `${weather ? weather + '. ' : ''}Heute: ${evText}. Offen: ${taskText}.`;
+  return `${weather ? weather + '. ' : ''}${birthdays.length ? '🎂 ' + birthdays.join(', ') + ' hat heute Geburtstag. ' : ''}Heute: ${evText}. Offen: ${taskText}.`;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -405,7 +486,8 @@ function toMin(t) { const [h, m] = t.split(':').map(Number); return h * 60 + (m 
 function berlinNow() {
   const fmt = new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', year:'numeric', month:'2-digit', day:'2-digit', hour12:false });
   const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p => [p.type, p.value]));
-  return { min: (+parts.hour)*60 + (+parts.minute), date: `${parts.year}-${parts.month}-${parts.day}` };
+  const date = `${parts.year}-${parts.month}-${parts.day}`;
+  return { min: (+parts.hour)*60 + (+parts.minute), date, weekday: new Date(date + 'T12:00:00Z').getUTCDay() };
 }
 // Datum/Uhrzeit-Feld des Kurzbefehls. Kurzbefehle setzen Datumsvariablen je nach Einstellung verschieden ein:
 // „10.09.2026, 08:00", „10.09.26 um 8:00", „Do., 10.09.2026 08:00", „2026-09-10 08:00", nur „10.09.2026" (ganztägig).
@@ -480,4 +562,4 @@ function parseLines(text) {
 }
 
 // Nur für Tests (app/src/test/worker.test.ts) – der Worker selbst nutzt export default
-export { runChecks, applyOverrides, calendarForDay, calKey, parseLines, parseStamp, openTodayTasks, buildReviewText, weatherLine, toMin };
+export { runChecks, applyOverrides, calendarForDay, calKey, parseLines, parseStamp, openTodayTasks, buildReviewText, buildWeekPreview, birthdayNames, weatherLine, toMin };

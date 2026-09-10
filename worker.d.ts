@@ -1,6 +1,6 @@
 // Typen für die Test-Exporte von worker.js (app/src/test/worker.test.ts). Der Worker selbst ist reines JS.
 export type WorkerTask = { id?: string; text: string; done?: boolean; until?: string }
-export type WorkerState = { tasks?: { today?: WorkerTask[] }; dayClosed?: string; calOverrides?: Record<string, unknown> }
+export type WorkerState = { tasks?: { today?: WorkerTask[] }; dayClosed?: string; calOverrides?: Record<string, unknown>; work?: { keyword?: string; rate?: number } }
 export type CalEvent = { date?: string; endDate?: string; time: string; end?: string; text: string; sub?: string; travel?: number }
 export type KvLike = {
   get(key: string, type?: 'json' | 'text'): Promise<unknown>
@@ -16,7 +16,9 @@ export function calKey(e: Pick<CalEvent, 'date' | 'time' | 'text'>): string
 export function parseLines(text: string): CalEvent[]
 export function parseStamp(s: string): { date: string; time: string } | null
 export function openTodayTasks(state: WorkerState, today: string): WorkerTask[]
-export function buildReviewText(state: WorkerState, today: string): { title: string; body: string } | null
+export function buildReviewText(state: WorkerState, today: string, tomorrowBirthdays?: string[]): { title: string; body: string } | null
+export function buildWeekPreview(cal: CalEvent[], state: WorkerState, monday: string): { title: string; body: string } | null
+export function birthdayNames(cal: Pick<CalEvent, 'text'>[]): string[]
 export function weatherLine(data: unknown): string
 export function toMin(t: string): number
 

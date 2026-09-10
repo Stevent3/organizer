@@ -2,7 +2,7 @@ import { Bell, Check, CloudOff, CloudUpload, Copy, Download, Eye, EyeOff, Refres
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Card, SectionLabel } from '../components/Card'
 import { Toggle } from '../components/Toggle'
-import { AppearanceSection, DashboardSection, ShortcutsSection, WeatherSection, WishesSection } from './MoreExtras'
+import { AppearanceSection, DashboardSection, GreetingSection, ShortcutsSection, WeatherSection, WishesSection } from './MoreExtras'
 import { Screen } from '../components/Screen'
 import { buildInfo } from '../lib/buildInfo'
 import { isConfigured, useConfig } from '../lib/config'
@@ -22,6 +22,7 @@ export function MoreScreen() {
       <AiSection />
       <PushSection />
       <WeatherSection />
+      <GreetingSection />
       <ShortcutsSection />
       <WishesSection />
       <DataSection />

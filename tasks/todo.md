@@ -124,7 +124,7 @@ Ziel: Der Kurzbefehl liefert 14 Tage statt nur heute. Altes Format ohne Datum bl
 ## Vorschläge für echten Mehrwert (10.09.2026, Steven: „bisher eine Spielerei", Auswahl offen)
 Leitgedanke: Die App kennt Stevens echtes Leben schon (Apple-Kalender mit Schichten, Uni, Geburtstagen; Einkauf; To-dos). Mehrwert entsteht, wenn sie daraus Arbeit abnimmt – erinnern, zusammenfassen, entscheiden – statt neue Eingaben zu verlangen.
 - [x] A **Schichten & Verdienst:** Kalender-Termine mit „Samowar" (konfigurierbares Stichwort) → Stunden diese Woche/Monat, Verdienst-Schätzung mit Stundenlohn, Karte im Dashboard + Zeile im Morgen-Briefing (klein)
-- [ ] B **Geburtstags-Assistent:** Morgen-Push nennt Geburtstage des Tages; in der App „Glückwunsch schreiben" → KI-Text im Share-Sheet / WhatsApp-Link; 1-Tages-Vorwarnung für Geschenk (klein)
+- [x] B **Geburtstags-Assistent:** Morgen-Push nennt Geburtstage des Tages; in der App „Glückwunsch schreiben" → KI-Text im Share-Sheet / WhatsApp-Link; 1-Tages-Vorwarnung für Geschenk (klein)
 - [ ] C **Wochen-Vorschau Sonntag 19:00 (Push):** Schichten, Uni, Geburtstage, freie Abende der nächsten Woche; Vorschlag für 2–3 Thesis-Blöcke, „übernehmen" legt Termine an (mittel)
 - [ ] D **Thesis/Deadline-Tracker:** Projekt mit Abgabedatum, Countdown, Tagesziel aus Restumfang; Fokus-Timer auf der Fokus-Karte; Fortschritt im Abend-Review (mittel)
 - [ ] E **Route öffnen:** Termin mit Ort → Apple Karten/Google Maps per Deep-Link, Abfahrts-Push mit echter Fahrzeit über OSRM (gratis) statt Apple-Wegzeit (klein/mittel)
@@ -140,8 +140,8 @@ Leitgedanke: Die App kennt Stevens echtes Leben schon (Apple-Kalender mit Schich
 Stevens Antworten: A–C, E „alle cool"; D entfällt (Thesis fertig); F: will echte Bank-Anbindung wie Finanzguru, kein manuelles Logbuch → recherchieren, nicht bauen; Geburtstage mit einstellbarem Ton („so wie ich es formulieren würde"); Samowar = Mindestlohn + 1 € (2026: 13,90 + 1 = 14,90 €/h); neuer Job ab 15.09. (Schnittstellen später).
 Reihenfolge nach Nutzen ÷ Aufwand, nach jedem Punkt Tests + Commit + Push auf main, Worker-Deploy bei Worker-Änderungen:
 - [x] A **Schichten & Verdienst:** `extra.work` = { keyword, rate } (synchronisiert, Standard „Samowar" / 14,90); `lib/work.ts` zählt Kalender-Termine mit Stichwort → Stunden Woche/Monat/nächste Woche, Verdienst; Karte unter „Mehr" auf der Heute-Seite mit Einstellungs-Sheet; Worker nutzt es in der Wochen-Vorschau
-- [ ] B **Geburtstags-Assistent:** ganztägige Termine mit „Geburtstag" (auch „gebby", „bday") → Karte auf der Heute-Seite (heute + morgen als Vorwarnung), „Glückwunsch schreiben" per Groq mit Ton-Profil (`extra.greetingStyle`: Freitext + Beispiel unter Mehr → Geburtstage), Ergebnis bearbeiten → Teilen/WhatsApp; Worker: Morgen-Briefing nennt Geburtstage, Abend-Review nennt morgige
-- [ ] C **Wochen-Vorschau Sonntag 19:00 (Worker-Push):** Schichten mit Stunden/Verdienst, Termine je Tag, Geburtstage, freie Abende der nächsten Woche
+- [x] B **Geburtstags-Assistent:** ganztägige Termine mit „Geburtstag" (auch „gebby", „bday") → Karte auf der Heute-Seite (heute + morgen als Vorwarnung), „Glückwunsch schreiben" per Groq mit Ton-Profil (`extra.greetingStyle`: Freitext + Beispiel unter Mehr → Geburtstage), Ergebnis bearbeiten → Teilen/WhatsApp; Worker: Morgen-Briefing nennt Geburtstage, Abend-Review nennt morgige
+- [x] C **Wochen-Vorschau Sonntag 19:00 (Worker-Push):** Schichten mit Stunden/Verdienst, Termine je Tag, Geburtstage, freie Abende der nächsten Woche
 - [ ] E1 **Route öffnen:** Termin mit Ort → Apple Karten (`maps://`) im Termin-Sheet und in den Heute-Kacheln
 - [ ] E2 **Echte Fahrzeit im Abfahrts-Push:** Worker geocodiert Ort (Nominatim) + Route ab Zuhause (OSRM, gratis), Cache je Adresse in KV, Zuhause aus `extra.home` (App: Standort unter Mehr); Fallback bleibt 30 Min
 - [ ] Offline-Fall (M3): Fehlerzustand freundlich, Retry beim Sichtbarwerden

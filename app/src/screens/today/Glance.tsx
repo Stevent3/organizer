@@ -15,6 +15,7 @@ import { PLAN_ICON, type DayPlan, type Meal, type MealSlot, type PlanBlock } fro
 import { useStore } from '../../store/useStore'
 import { Stat, TaskLine, fmtMin } from './bits'
 import { WorkCard } from './WorkCard'
+import { BirthdayCard } from './BirthdayCard'
 
 /** Alles, was die Heute-Seite berechnet – beide Layouts (Glance, Klassisch) bekommen dieselben Daten */
 export type TodayData = {
@@ -103,6 +104,8 @@ export function Glance(d: TodayData) {
           )}
         </Card>
       )}
+
+      {d.show.birthdays && <BirthdayCard events={d.events} day={d.day} />}
 
       {d.show.progress && (
         <div className="mt-2 grid grid-cols-3 gap-2">

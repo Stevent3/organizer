@@ -22,6 +22,7 @@ import { CalendarOverlay } from './CalendarScreen'
 import { Glance, type TodayData } from './today/Glance'
 import { EnergyPill, Stat, TaskLine, fmtMin } from './today/bits'
 import { WorkCard } from './today/WorkCard'
+import { BirthdayCard } from './today/BirthdayCard'
 
 function greeting(h: number) {
   if (h < 5) return 'Gute Nacht'
@@ -196,6 +197,8 @@ export function TodayScreen() {
           )}
         </Card>
       )}
+
+      {layout === 'classic' && show.birthdays && <BirthdayCard events={events} day={day} />}
 
       {layout === 'classic' && show.progress && (
         <div className="mt-3 grid grid-cols-3 gap-2">

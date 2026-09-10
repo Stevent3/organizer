@@ -9,6 +9,7 @@ import { DASH_LAYOUTS, DASH_SECTIONS, useDashboard } from '../lib/dashboard'
 import { ACCENTS, THEME_MODES, useTheme } from '../lib/theme'
 import { DEFAULT_LOCATION, locateMe, useWeather } from '../lib/weather'
 import { addWish, readWishes, removeWish, toggleWish, wishesToText, type Wish } from '../lib/wishes'
+import { DEFAULT_STYLE, readGreetingStyle } from '../lib/birthdays'
 import { useStore } from '../store/useStore'
 
 const input = 'w-full rounded-md bg-fill px-3 py-2.5 text-[15px] outline-none placeholder:text-text-3'
@@ -200,6 +201,35 @@ export function CalendarShortcutCard() {
           </span>
           {copied === 'url' ? <Check size={16} className="shrink-0 text-green" /> : <Copy size={16} className="shrink-0 text-text-3" />}
         </button>
+      </Card>
+    </>
+  )
+}
+
+/** Mehr → Geburtstage: Ton und Beispiel für KI-Glückwünsche (extra.greetingStyle, synchronisiert) */
+export function GreetingSection() {
+  const extra = useStore((s) => s.extra)
+  const setExtra = useStore((s) => s.setExtra)
+  const saved = readGreetingStyle(extra)
+  const [tone, setTone] = useState(saved.tone)
+  const [example, setExample] = useState(saved.example)
+  const [msg, setMsg] = useState<string | null>(null)
+  const dirty = tone.trim() !== saved.tone || example.trim() !== saved.example
+  const save = () => {
+    setExtra({ greetingStyle: { tone: tone.trim() || DEFAULT_STYLE.tone, example: example.trim() } })
+    setMsg('Gespeichert, die KI schreibt ab jetzt so'); setTimeout(() => setMsg(null), 2000)
+  }
+  return (
+    <>
+      <SectionLabel>Geburtstage</SectionLabel>
+      <Card>
+        <p className="text-[12px] text-text-3">Geburtstage kommen aus dem Apple-Kalender (Titel mit „Geburtstag" oder „gebby"). Auf der Heute-Seite erscheint dann „Glückwunsch schreiben". Damit die KI klingt wie du:</p>
+        <label className="mb-1 mt-3 block text-[12px] font-semibold uppercase tracking-wider text-text-3">Dein Ton</label>
+        <input value={tone} onChange={(e) => setTone(e.target.value)} placeholder={DEFAULT_STYLE.tone} className={input} />
+        <label className="mb-1 mt-3 block text-[12px] font-semibold uppercase tracking-wider text-text-3">Ein echter Glückwunsch von dir (Vorlage für Stil und Länge)</label>
+        <textarea value={example} onChange={(e) => setExample(e.target.value)} rows={3} placeholder={'z. B. „Ey happy birthday!! Feier schön heute und wir holen das Bier nächste Woche nach 🍻"'} className={input + ' resize-none'} />
+        <button onClick={save} disabled={!dirty} className="press mt-3 w-full rounded-md bg-accent py-2.5 text-[14px] font-semibold text-on-accent disabled:opacity-40">Speichern</button>
+        {msg && <p className="mt-2 rounded-md bg-accent-soft px-3 py-2 text-[13px] font-medium text-accent">{msg}</p>}
       </Card>
     </>
   )
