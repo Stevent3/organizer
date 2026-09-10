@@ -21,6 +21,7 @@ import { useStore } from '../store/useStore'
 import { CalendarOverlay } from './CalendarScreen'
 import { Glance, type TodayData } from './today/Glance'
 import { EnergyPill, Stat, TaskLine, fmtMin } from './today/bits'
+import { WorkCard } from './today/WorkCard'
 
 function greeting(h: number) {
   if (h < 5) return 'Gute Nacht'
@@ -247,6 +248,8 @@ export function TodayScreen() {
           <CalendarWidget events={events} nowMin={nowMin} onOpen={(d) => setCalendar({ open: true, day: d ?? day })} onTapEvent={(e) => setDraft({ ...e })} onAdd={newEventToday} />
         </>
       )}
+
+      {layout === 'classic' && show.work && <WorkCard events={events} day={day} nowMin={nowMin} />}
 
       {layout === 'classic' && show.dayClose && <DayCloseCard hour={Math.floor(nowMin / 60)} eventsTotal={timedToday.length} eventsLeft={eventsLeft} />}
 

@@ -14,6 +14,7 @@ import type { EventItem, Task } from '../../lib/model'
 import { PLAN_ICON, type DayPlan, type Meal, type MealSlot, type PlanBlock } from '../../lib/planner'
 import { useStore } from '../../store/useStore'
 import { Stat, TaskLine, fmtMin } from './bits'
+import { WorkCard } from './WorkCard'
 
 /** Alles, was die Heute-Seite berechnet – beide Layouts (Glance, Klassisch) bekommen dieselben Daten */
 export type TodayData = {
@@ -190,6 +191,8 @@ export function Glance(d: TodayData) {
       {d.show.calendar && (
         <CalendarWidget events={d.events} nowMin={d.nowMin} onOpen={d.openCalendar} onTapEvent={d.openEvent} onAdd={d.newEvent} />
       )}
+
+      {d.show.work && <WorkCard events={d.events} day={d.day} nowMin={d.nowMin} />}
 
       {d.show.todos && (
         <>

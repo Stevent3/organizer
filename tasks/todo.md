@@ -123,7 +123,7 @@ Ziel: Der Kurzbefehl liefert 14 Tage statt nur heute. Altes Format ohne Datum bl
 
 ## Vorschläge für echten Mehrwert (10.09.2026, Steven: „bisher eine Spielerei", Auswahl offen)
 Leitgedanke: Die App kennt Stevens echtes Leben schon (Apple-Kalender mit Schichten, Uni, Geburtstagen; Einkauf; To-dos). Mehrwert entsteht, wenn sie daraus Arbeit abnimmt – erinnern, zusammenfassen, entscheiden – statt neue Eingaben zu verlangen.
-- [ ] A **Schichten & Verdienst:** Kalender-Termine mit „Samowar" (konfigurierbares Stichwort) → Stunden diese Woche/Monat, Verdienst-Schätzung mit Stundenlohn, Karte im Dashboard + Zeile im Morgen-Briefing (klein)
+- [x] A **Schichten & Verdienst:** Kalender-Termine mit „Samowar" (konfigurierbares Stichwort) → Stunden diese Woche/Monat, Verdienst-Schätzung mit Stundenlohn, Karte im Dashboard + Zeile im Morgen-Briefing (klein)
 - [ ] B **Geburtstags-Assistent:** Morgen-Push nennt Geburtstage des Tages; in der App „Glückwunsch schreiben" → KI-Text im Share-Sheet / WhatsApp-Link; 1-Tages-Vorwarnung für Geschenk (klein)
 - [ ] C **Wochen-Vorschau Sonntag 19:00 (Push):** Schichten, Uni, Geburtstage, freie Abende der nächsten Woche; Vorschlag für 2–3 Thesis-Blöcke, „übernehmen" legt Termine an (mittel)
 - [ ] D **Thesis/Deadline-Tracker:** Projekt mit Abgabedatum, Countdown, Tagesziel aus Restumfang; Fokus-Timer auf der Fokus-Karte; Fortschritt im Abend-Review (mittel)
@@ -135,3 +135,15 @@ Leitgedanke: Die App kennt Stevens echtes Leben schon (Apple-Kalender mit Schich
 - [x] Neues Layout `glance` (Standard) neben `classic`, umschaltbar unter Mehr → Dashboard: Kopf mit Energie-Pille (tippen schaltet Wenig→Gut→Top→aus) + Wetter, Schnell-Eingabe (Funken-Knopf öffnet den KI-Chat, die schwebende Blase ist auf dieser Seite aus), kompakte „Jetzt dran"-Karte mit Countdown + Plan-Zeile, Kennzahlen, 2×2-Kacheln Heute | To-dos, Routinen | Essen; darunter „Mehr": Monatskalender + 7 Tage, volle To-do-Liste mit Eingabe und Erledigtem, Tagesabschluss
 - [x] Erste Seite endet bei 690 px (iPhone 393×852, Tab-Leiste ab ~760) – per Playwright mit Beispieldaten gemessen, Screenshots hell/dunkel an Steven; `Stat`/`TaskLine`/`fmtMin` nach `screens/today/bits.tsx`, Daten als `TodayData` für beide Layouts; beta.14
 - [ ] Steven-Feedback zum Glance-Layout einarbeiten
+
+## M13 – Autonome Sitzung (10./11.09.2026, Steven ~7 h weg: „so viele coole Sachen wie möglich, Fokus Qualität")
+Stevens Antworten: A–C, E „alle cool"; D entfällt (Thesis fertig); F: will echte Bank-Anbindung wie Finanzguru, kein manuelles Logbuch → recherchieren, nicht bauen; Geburtstage mit einstellbarem Ton („so wie ich es formulieren würde"); Samowar = Mindestlohn + 1 € (2026: 13,90 + 1 = 14,90 €/h); neuer Job ab 15.09. (Schnittstellen später).
+Reihenfolge nach Nutzen ÷ Aufwand, nach jedem Punkt Tests + Commit + Push auf main, Worker-Deploy bei Worker-Änderungen:
+- [x] A **Schichten & Verdienst:** `extra.work` = { keyword, rate } (synchronisiert, Standard „Samowar" / 14,90); `lib/work.ts` zählt Kalender-Termine mit Stichwort → Stunden Woche/Monat/nächste Woche, Verdienst; Karte unter „Mehr" auf der Heute-Seite mit Einstellungs-Sheet; Worker nutzt es in der Wochen-Vorschau
+- [ ] B **Geburtstags-Assistent:** ganztägige Termine mit „Geburtstag" (auch „gebby", „bday") → Karte auf der Heute-Seite (heute + morgen als Vorwarnung), „Glückwunsch schreiben" per Groq mit Ton-Profil (`extra.greetingStyle`: Freitext + Beispiel unter Mehr → Geburtstage), Ergebnis bearbeiten → Teilen/WhatsApp; Worker: Morgen-Briefing nennt Geburtstage, Abend-Review nennt morgige
+- [ ] C **Wochen-Vorschau Sonntag 19:00 (Worker-Push):** Schichten mit Stunden/Verdienst, Termine je Tag, Geburtstage, freie Abende der nächsten Woche
+- [ ] E1 **Route öffnen:** Termin mit Ort → Apple Karten (`maps://`) im Termin-Sheet und in den Heute-Kacheln
+- [ ] E2 **Echte Fahrzeit im Abfahrts-Push:** Worker geocodiert Ort (Nominatim) + Route ab Zuhause (OSRM, gratis), Cache je Adresse in KV, Zuhause aus `extra.home` (App: Standort unter Mehr); Fallback bleibt 30 Min
+- [ ] Offline-Fall (M3): Fehlerzustand freundlich, Retry beim Sichtbarwerden
+- [ ] Kleinigkeiten mit Mehrwert: mehrtägiger Termin am Folgetag „bis HH:MM" statt Startzeit; Rezept-Import per Link (ideen #7); saisonale Empfehlungen (ideen #8)
+- [ ] F **Finanzen:** Recherche zu kostenloser, legaler Bank-Anbindung für Privatpersonen (GoCardless Bank Account Data, finAPI, FinTS/HBCI) → Ergebnis in ideen.md, Entscheidung mit Steven
