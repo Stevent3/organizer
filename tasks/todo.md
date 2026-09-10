@@ -145,5 +145,5 @@ Reihenfolge nach Nutzen ÷ Aufwand, nach jedem Punkt Tests + Commit + Push auf m
 - [x] E1 **Route öffnen:** Termin mit Ort → Apple Karten (`maps://`) im Termin-Sheet und in den Heute-Kacheln
 - [x] E2 **Echte Fahrzeit im Abfahrts-Push:** Worker geocodiert Ort (Nominatim) + Route ab Zuhause (OSRM, gratis), Cache je Adresse in KV, Zuhause aus `extra.home` (App: Standort unter Mehr); Fallback bleibt 30 Min
 - [x] Offline-Fall (M3): Fehlerzustand freundlich, Retry beim Sichtbarwerden
-- [ ] Kleinigkeiten mit Mehrwert: mehrtägiger Termin am Folgetag „bis HH:MM" statt Startzeit; Rezept-Import per Link (ideen #7); saisonale Empfehlungen (ideen #8)
+- [x] Kleinigkeiten mit Mehrwert: mehrtägiger Termin „16:00 →" / „bis 01:30" / „ganztägig" je Tag (Widget, Woche, Monat); Rezept-Import per Link (Worker `GET /fetch` liest schema.org/Recipe, sonst Groq aus dem Seitentext; Sheet mit Checkliste und Mengen); „Saison im Monat"-Kacheln in der Einkaufsliste
 - [ ] F **Finanzen:** Recherche zu kostenloser, legaler Bank-Anbindung für Privatpersonen (GoCardless Bank Account Data, finAPI, FinTS/HBCI) → Ergebnis in ideen.md, Entscheidung mit Steven

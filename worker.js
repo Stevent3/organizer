@@ -93,6 +93,20 @@ export default {
       return res({ ok: r.ok, status: r.status });
     }
 
+    // ── Rezept-Seite laden (Browser darf fremde Seiten nicht lesen – CORS) ──
+    if (path === '/fetch' && request.method === 'GET') {
+      const target = url.searchParams.get('url') || '';
+      if (!/^https?:\/\/[^\s]+$/i.test(target)) return res({ error: 'bad url' }, 400);
+      try {
+        const r = await fetch(target, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; organizer-steven/1.0)', 'Accept': 'text/html,*/*;q=0.8', 'Accept-Language': 'de' }, redirect: 'follow', signal: AbortSignal.timeout(8000) });
+        const html = (await r.text()).slice(0, 800000);
+        const recipe = recipeFromJsonLd(html);
+        return res({ ok: r.ok, status: r.status, title: (recipe && recipe.title) || htmlTitle(html), ingredients: recipe ? recipe.ingredients : undefined, text: htmlToText(html).slice(0, 12000) });
+      } catch (e) {
+        return res({ error: 'fetch failed: ' + String(e) }, 502);
+      }
+    }
+
     return res({ error: 'not found', path }, 404);
   },
 
@@ -515,6 +529,44 @@ async function vapidJwt(audience, subject, jwkPrivate) {
 }
 
 // ═══════════════════════════════════════════════════════════
+//  Rezept-Import (M13): schema.org/Recipe aus JSON-LD, sonst Seitentext für Groq
+// ═══════════════════════════════════════════════════════════
+function decodeEntities(s) {
+  return s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)));
+}
+function htmlTitle(html) {
+  const m = /<title[^>]*>([^<]*)<\/title>/i.exec(html);
+  return m ? decodeEntities(m[1]).trim().slice(0, 120) : '';
+}
+function htmlToText(html) {
+  return decodeEntities(html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<br\s*\/?>|<\/(p|li|div|h\d|tr)>/gi, '\n').replace(/<[^>]+>/g, ' '))
+    .split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n');
+}
+// Findet in allen JSON-LD-Blöcken ein Recipe (auch in @graph oder Arrays) → { title, ingredients }
+function recipeFromJsonLd(html) {
+  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while ((m = re.exec(html))) {
+    let data; try { data = JSON.parse(m[1].trim()); } catch { continue; }
+    const found = findRecipe(data, 0);
+    if (found) return found;
+  }
+  return null;
+}
+function findRecipe(node, depth) {
+  if (!node || typeof node !== 'object' || depth > 4) return null;
+  if (Array.isArray(node)) { for (const n of node) { const f = findRecipe(n, depth + 1); if (f) return f; } return null; }
+  const type = Array.isArray(node['@type']) ? node['@type'] : [node['@type']];
+  if (type.includes('Recipe') && Array.isArray(node.recipeIngredient)) {
+    const ingredients = node.recipeIngredient.map(x => decodeEntities(String(x)).replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 40);
+    if (ingredients.length) return { title: decodeEntities(String(node.name || '')).slice(0, 120), ingredients };
+  }
+  if (node['@graph']) return findRecipe(node['@graph'], depth + 1);
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════
 //  Helpers
 // ═══════════════════════════════════════════════════════════
 function res(data, status = 200) {
@@ -600,4 +652,4 @@ function parseLines(text) {
 }
 
 // Nur für Tests (app/src/test/worker.test.ts) – der Worker selbst nutzt export default
-export { runChecks, applyOverrides, calendarForDay, calKey, parseLines, parseStamp, openTodayTasks, buildReviewText, buildWeekPreview, birthdayNames, travelMinutes, weatherLine, toMin };
+export { runChecks, applyOverrides, calendarForDay, calKey, parseLines, parseStamp, openTodayTasks, buildReviewText, buildWeekPreview, birthdayNames, travelMinutes, recipeFromJsonLd, htmlToText, weatherLine, toMin };

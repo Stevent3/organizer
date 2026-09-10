@@ -2,7 +2,7 @@ import { endOfMonth, endOfWeek, format, startOfMonth, startOfWeek } from 'date-f
 import { de } from 'date-fns/locale'
 import { ChevronRight, Plus } from 'lucide-react'
 import { useMemo } from 'react'
-import { eventsOnDay, timedRange } from '../../lib/calendar'
+import { eventsOnDay, timeLabelOn, timedRange } from '../../lib/calendar'
 import { colorVar } from '../../lib/colors'
 import type { EventItem } from '../../lib/model'
 import { addDaysKey, fromDateKey, toDateKey, todayKey } from '../../lib/time'
@@ -77,7 +77,7 @@ export function CalendarWidget({ events, nowMin, onOpen, onTapEvent, onAdd }: Pr
               </button>
               {g.items.map(({ e, running }) => (
                 <button key={e.id} onClick={() => onTapEvent(e)} className="press flex w-full items-center gap-3 px-4 py-1.5 text-left">
-                  <span className="w-[52px] shrink-0 font-mono text-[12px] text-text-2">{e.allDay ? 'ganzt.' : e.time}</span>
+                  <span className="w-[52px] shrink-0 font-mono text-[12px] text-text-2">{timeLabelOn(e, g.day, true)}</span>
                   <span className="h-5 w-1 shrink-0 rounded-full" style={{ background: colorVar(e.color) }} />
                   <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{e.text}{e.sub ? <span className="text-text-3"> · {e.sub}</span> : null}</span>
                   {running && <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">läuft</span>}

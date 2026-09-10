@@ -19,6 +19,8 @@ export function openTodayTasks(state: WorkerState, today: string): WorkerTask[]
 export function buildReviewText(state: WorkerState, today: string, tomorrowBirthdays?: string[]): { title: string; body: string } | null
 export function buildWeekPreview(cal: CalEvent[], state: WorkerState, monday: string): { title: string; body: string } | null
 export function birthdayNames(cal: Pick<CalEvent, 'text'>[]): string[]
+export function recipeFromJsonLd(html: string): { title: string; ingredients: string[] } | null
+export function htmlToText(html: string): string
 export function travelMinutes(env: WorkerEnv, home: { lat: number; lon: number }, place: string): Promise<number>
 export function weatherLine(data: unknown): string
 export function toMin(t: string): number

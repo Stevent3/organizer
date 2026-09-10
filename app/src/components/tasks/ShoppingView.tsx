@@ -1,9 +1,11 @@
-import { Check, Share2, Minus, Plus, ShoppingBasket, Trash2 } from 'lucide-react'
+import { Check, Link2, Share2, Minus, Plus, ShoppingBasket, Trash2 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Card } from '../Card'
 import { Sheet } from '../Sheet'
 import type { Task } from '../../lib/model'
-import { UNITS, capitalize, defaultUnit, groupByCat, parseQuantity, recentItems, recommendations, shopBaseName, shopInfo, suggest, type Unit } from '../../lib/shopping'
+import { MONTHS, UNITS, capitalize, defaultUnit, groupByCat, parseQuantity, recentItems, recommendations, seasonalItems, shopBaseName, shopInfo, suggest, type Unit } from '../../lib/shopping'
+import { RecipeImportSheet } from './RecipeImport'
+import { useConfig } from '../../lib/config'
 import { useStore } from '../../store/useStore'
 
 /** Einkaufsliste im Bring-Stil: Eingabe mit Vorschlägen, Liste nach Kategorie, Korb, Empfehlungen, zuletzt gekauft, Mengen */
@@ -24,6 +26,10 @@ export function ShoppingView() {
   const tips = useMemo(() => suggest(parseQuantity(text).name, onList, 6), [text, onList])
   const recos = useMemo(() => recommendations(items, history, extra), [items, history, extra])
   const recent = useMemo(() => recentItems(items, history).filter((r) => !recos.includes(r)), [items, history, recos])
+  const month = new Date().getMonth() + 1
+  const seasonal = useMemo(() => seasonalItems(month, items).filter((r) => !recos.includes(shopBaseName(r)) && !recent.includes(shopBaseName(r))), [month, items, recos, recent])
+  const [recipe, setRecipe] = useState(false)
+  const workerReady = useConfig((c) => !!c.url && !!c.secret)
   const groups = useMemo(() => groupByCat(open), [open])
 
   const flash = (m: string) => {
@@ -122,6 +128,20 @@ export function ShoppingView() {
           </div>
         </section>
       )}
+      {seasonal.length > 0 && (
+        <section>
+          <Label>Saison im {MONTHS[month - 1]}</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {seasonal.map((r) => <SuggestTile key={r} name={r} onTap={() => add(r)} />)}
+          </div>
+        </section>
+      )}
+      {workerReady && (
+        <button onClick={() => setRecipe(true)} className="press mt-5 flex w-full items-center justify-center gap-2 rounded-md bg-accent-soft py-2.5 text-[13px] font-semibold text-accent">
+          <Link2 size={15} /> Zutaten aus Rezept-Link holen
+        </button>
+      )}
+      {recipe && <RecipeImportSheet onClose={() => setRecipe(false)} onAdd={(list) => { let n = 0; for (const it of list) { if (onList.has(shopBaseName(it.name))) continue; addTask('shopping', capitalize(it.name), it.qty); n++ } flash(n ? '🛒 ' + n + ' Zutaten hinzugefügt' : 'Alles schon auf der Liste'); setRecipe(false) }} />}
 
       <ItemSheet task={editing} onClose={() => setEditing(null)} />
     </>

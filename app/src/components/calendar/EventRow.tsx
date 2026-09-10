@@ -1,10 +1,10 @@
-import { isMultiDay } from '../../lib/calendar'
+import { isMultiDay, timeLabelOn } from '../../lib/calendar'
 import { colorVar } from '../../lib/colors'
 import type { EventItem } from '../../lib/model'
 
 /** Listenzeile eines Termins (Agenda in Woche/Monat) */
-export function EventRow({ ev, onClick }: { ev: EventItem; onClick: (ev: EventItem) => void }) {
-  const timeLabel = ev.allDay ? 'ganztägig' : ev.time + (ev.end ? ' – ' + ev.end : '')
+export function EventRow({ ev, day, onClick }: { ev: EventItem; day?: string; onClick: (ev: EventItem) => void }) {
+  const timeLabel = timeLabelOn(ev, day ?? ev.date)
   return (
     <button onClick={() => onClick(ev)} className="press flex w-full items-stretch gap-3 px-4 py-2.5 text-left">
       <span className="w-[76px] shrink-0 pt-0.5 font-mono text-[12px] leading-5 text-text-2">{timeLabel}</span>

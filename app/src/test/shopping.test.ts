@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { groupByCat, parseQuantity, recentItems, recommendations, shopBaseName, shopInfo, suggest } from '../lib/shopping'
+import { groupByCat, parseQuantity, recentItems, recommendations, seasonalItems, shopBaseName, shopInfo, suggest } from '../lib/shopping'
 import type { Task } from '../lib/model'
 
 const t = (text: string, done = false): Task => ({ id: text, text, done })
@@ -54,5 +54,12 @@ describe('Einkaufsliste', () => {
     expect(parseQuantity('1,5 l Wasser')).toEqual({ name: 'Wasser', qty: '1,5 L' })
     expect(parseQuantity('Eier')).toEqual({ name: 'Eier' })
     expect(parseQuantity('2 Bund Petersilie')).toEqual({ name: 'Petersilie', qty: '2 Bund' })
+  })
+})
+
+describe('Saison', () => {
+  it('schlägt Saisonware vor, die nicht auf der Liste steht', () => {
+    expect(seasonalItems(9, [{ id: '1', text: 'Apfel', done: false }])).toEqual(['Pflaume', 'Kürbis', 'Trauben', 'Birne', 'Pilze', 'Brokkoli'])
+    expect(seasonalItems(13, [])).toEqual([])
   })
 })

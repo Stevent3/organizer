@@ -41,6 +41,10 @@ export class WorkerApi {
   postState(state: Record<string, unknown>) {
     return this.req<{ ok: boolean }>('/state', { method: 'POST', body: JSON.stringify(state) })
   }
+  /** Rezept-Seite über den Worker laden (Browser-CORS umgehen); Zutaten aus schema.org-Recipe, sonst Text */
+  fetchPage(url: string) {
+    return this.req<{ ok: boolean; status: number; title: string; ingredients?: string[]; text: string }>('/fetch?url=' + encodeURIComponent(url))
+  }
   pushStatus() {
     return this.req<{ subscribed: boolean }>('/push/status')
   }

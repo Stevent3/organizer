@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { coversDay, eventsOnDay, layoutDay, nextFreeSlot, spansInWindow, timedRange } from '../lib/calendar'
+import { coversDay, eventsOnDay, layoutDay, nextFreeSlot, spansInWindow, timeLabelOn, timedRange } from '../lib/calendar'
 import type { EventItem } from '../lib/model'
 import { timeToMin, minToTime, weekStartKey, addDaysKey } from '../lib/time'
 
@@ -68,5 +68,17 @@ describe('Tages-Layout', () => {
     const list = [ev({ text: 'A', time: '09:00', end: '10:00' })]
     expect(nextFreeSlot(list, 8 * 60 + 7)).toBe(8 * 60 + 15)
     expect(nextFreeSlot(list, 9 * 60 + 20)).toBe(10 * 60)
+  })
+})
+
+describe('timeLabelOn (mehrtägig)', () => {
+  const rave = { id: 'r', date: '2026-09-12', endDate: '2026-09-13', allDay: false, time: '16:00', end: '01:30', text: 'Rave', color: 'pink', source: 'manual' } as const
+  it('beschriftet Start-, End- und Zwischentage unterschiedlich', () => {
+    expect(timeLabelOn(rave, '2026-09-12')).toBe('16:00 →')
+    expect(timeLabelOn(rave, '2026-09-13')).toBe('bis 01:30')
+    expect(timeLabelOn({ ...rave, endDate: '2026-09-14' }, '2026-09-13')).toBe('ganztägig')
+    expect(timeLabelOn({ ...rave, endDate: undefined }, '2026-09-12')).toBe('16:00 – 01:30')
+    expect(timeLabelOn({ ...rave, endDate: undefined }, '2026-09-12', true)).toBe('16:00')
+    expect(timeLabelOn({ ...rave, allDay: true, time: undefined }, '2026-09-12', true)).toBe('ganzt.')
   })
 })

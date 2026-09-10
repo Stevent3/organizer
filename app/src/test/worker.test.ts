@@ -5,7 +5,7 @@
  * Die Push-Krypto (encryptPayload, vapidJwt, sendPush) wird dabei unverändert mit durchlaufen.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { applyOverrides, birthdayNames, buildReviewText, buildWeekPreview, calKey, calendarForDay, openTodayTasks, parseLines, parseStamp, runChecks, weatherLine, type KvLike, type WorkerEnv } from '../../../worker.js'
+import { applyOverrides, birthdayNames, buildReviewText, buildWeekPreview, calKey, calendarForDay, htmlToText, openTodayTasks, recipeFromJsonLd, parseLines, parseStamp, runChecks, weatherLine, type KvLike, type WorkerEnv } from '../../../worker.js'
 
 const DAY = '2026-09-10'
 
@@ -422,5 +422,19 @@ describe('runChecks (Cron)', () => {
     const env = { ...(await makeEnv({ tasks: { today: [{ text: 'B' }] } })).env, KV: fakeKv({ state: { tasks: { today: [{ text: 'B' }] } } }) }
     await runChecks(env)
     expect(calls).toHaveLength(0)
+  })
+})
+
+describe('Rezept-Import (Worker)', () => {
+  it('liest schema.org/Recipe aus JSON-LD, auch in @graph', () => {
+    const html = `<html><head><title>Kürbissuppe | Chefkoch</title>
+      <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage"},{"@type":["Recipe"],"name":"Kürbissuppe mit Ingwer","recipeIngredient":["1 kg Hokkaido-Kürbis","2 Zwiebeln","20 g Ingwer","400 ml Kokosmilch","Salz &amp; Pfeffer"]}]}</script>
+      </head><body><p>Text</p></body></html>`
+    expect(recipeFromJsonLd(html)).toEqual({ title: 'Kürbissuppe mit Ingwer', ingredients: ['1 kg Hokkaido-Kürbis', '2 Zwiebeln', '20 g Ingwer', '400 ml Kokosmilch', 'Salz & Pfeffer'] })
+    expect(recipeFromJsonLd('<html><script type="application/ld+json">{"@type":"Article"}</script></html>')).toBeNull()
+    expect(recipeFromJsonLd('<script type="application/ld+json">kaputt{</script>')).toBeNull()
+  })
+  it('macht aus HTML lesbaren Text ohne Skripte', () => {
+    expect(htmlToText('<html><script>x()</script><style>a{}</style><h1>Zutaten</h1><ul><li>2 Eier</li><li>100&nbsp;g Mehl</li></ul></html>')).toBe('Zutaten\n2 Eier\n100 g Mehl')
   })
 })

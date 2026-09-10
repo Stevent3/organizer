@@ -77,7 +77,7 @@ export function MonthView({ day, events, onSelectDay, onAdd, onTapEvent }: Props
         ) : (
           <div className="pb-1">
             {selected.map((ev) => (
-              <EventRow key={ev.id} ev={ev} onClick={onTapEvent} />
+              <EventRow key={ev.id} ev={ev} day={day} onClick={onTapEvent} />
             ))}
           </div>
         )}

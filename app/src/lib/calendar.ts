@@ -11,6 +11,19 @@ export function isMultiDay(ev: EventItem): boolean {
   return eventEndDate(ev) !== ev.date
 }
 
+/**
+ * Zeit-Beschriftung eines Termins für einen bestimmten Tag: am Starttag „16:00 →", am Endtag „bis 01:30",
+ * dazwischen „ganztägig"; eintägige Termine wie gewohnt. short = knappe Form fürs Widget.
+ */
+export function timeLabelOn(ev: EventItem, day: string, short = false): string {
+  const all = short ? 'ganzt.' : 'ganztägig'
+  if (ev.allDay || !ev.time) return all
+  if (!isMultiDay(ev)) return short ? ev.time : ev.time + (ev.end ? ' – ' + ev.end : '')
+  if (day === ev.date) return ev.time + ' →'
+  if (day === eventEndDate(ev)) return ev.end ? 'bis ' + ev.end : all
+  return all
+}
+
 /** Deckt der Termin den Tag ab? (Mehrtages-Termine zählen an jedem Tag) */
 export function coversDay(ev: EventItem, dayKey: string): boolean {
   return ev.date <= dayKey && dayKey <= eventEndDate(ev)

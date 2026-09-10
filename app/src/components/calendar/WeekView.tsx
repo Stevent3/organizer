@@ -66,7 +66,7 @@ export function WeekView({ day, events, onSelectDay, onAdd, onTapEvent }: Props)
               ) : (
                 <div className="pb-1">
                   {list.map((ev) => (
-                    <EventRow key={ev.id} ev={ev} onClick={onTapEvent} />
+                    <EventRow key={ev.id} ev={ev} day={d} onClick={onTapEvent} />
                   ))}
                 </div>
               )}

@@ -153,6 +153,27 @@ export function mergeQty(a?: string, b?: string): string | undefined {
   return a + ' + ' + b
 }
 
+/** Was in Deutschland gerade Saison hat (Freiland/Lager), Monat 1–12 – Bring-Idee #8 */
+const SEASON: Record<number, string[]> = {
+  1: ['Grünkohl', 'Rosenkohl', 'Lauch', 'Feldsalat', 'Rote Bete', 'Pastinake', 'Apfel'],
+  2: ['Grünkohl', 'Rosenkohl', 'Chicorée', 'Feldsalat', 'Steckrübe', 'Lauch', 'Apfel'],
+  3: ['Bärlauch', 'Spinat', 'Lauch', 'Chicorée', 'Rhabarber', 'Radieschen', 'Feldsalat'],
+  4: ['Spargel', 'Rhabarber', 'Bärlauch', 'Spinat', 'Radieschen', 'Rucola', 'Kohlrabi'],
+  5: ['Spargel', 'Erdbeere', 'Rhabarber', 'Kohlrabi', 'Spinat', 'Salat', 'Radieschen'],
+  6: ['Erdbeere', 'Spargel', 'Kirsche', 'Zucchini', 'Gurke', 'Erbse', 'Brokkoli'],
+  7: ['Kirsche', 'Himbeere', 'Blaubeere', 'Zucchini', 'Tomate', 'Gurke', 'Paprika'],
+  8: ['Tomate', 'Paprika', 'Zucchini', 'Mais', 'Pflaume', 'Blaubeere', 'Aubergine'],
+  9: ['Apfel', 'Pflaume', 'Kürbis', 'Trauben', 'Birne', 'Pilze', 'Brokkoli'],
+  10: ['Kürbis', 'Apfel', 'Birne', 'Pilze', 'Rote Bete', 'Grünkohl', 'Trauben'],
+  11: ['Grünkohl', 'Kürbis', 'Rosenkohl', 'Lauch', 'Apfel', 'Pastinake', 'Rote Bete'],
+  12: ['Grünkohl', 'Rosenkohl', 'Feldsalat', 'Lauch', 'Rote Bete', 'Apfel', 'Orange'],
+}
+export function seasonalItems(month: number, items: Task[], limit = 6): string[] {
+  const onList = new Set(items.map((t) => shopBaseName(t.text)))
+  return (SEASON[month] ?? []).filter((n) => !onList.has(shopBaseName(n))).slice(0, limit)
+}
+export const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
+
 /** Zuletzt gekaufte Artikel (neueste zuerst), die nicht auf der Liste stehen */
 export function recentItems(items: Task[], history: Record<string, { n: number; ts: number }>, limit = 8): string[] {
   const onList = new Set(items.map((t) => shopBaseName(t.text)))
