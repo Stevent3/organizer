@@ -109,7 +109,14 @@ Ziel: Der Kurzbefehl liefert 14 Tage statt nur heute. Altes Format ohne Datum bl
 - [x] Parser tolerant für unformatierte Datumsvariablen („10.09.2026, 08:00" in einem Feld, 2-stelliges Jahr, „8:00"), nach Stevens Screenshot (10.09.2026); beta.6
 - [x] Parser nach echtem Kurzbefehl-Output (Screenshots 10.09.): Zeitstempel in jeder Schreibweise (`parseStamp`), mehrzeilige Adressen an den Termin davor, 00:00–23:59 = ganztägig, Enddatum an späterem Tag → `endDate` (App: EventItem.endDate); `calendar_raw` im KV zum Nachsehen; beta.8
 - [x] Steven: Kurzbefehl umgestellt (10.09.2026 abends): Suche vor der Schleife, Filter „Startdatum innerhalb der nächsten 2 Wochen" („Mindestens eine" liefert nichts, Apple-Fehler), Chips aus „Objekt wiederholen" + „Ist ganztägig"; 19 Termine über 12 Tage korrekt im KV (ganztägig, mehrtägig, mehrzeilige Adresse). Automation auf 23:55, weil Apple „nächste 2 Wochen" ab jetzt rechnet (06:00 = ganztägige von heute fehlen). Abgesagte Outlook-Termine („Abgesagt:") werden verworfen; beta.10
-- [ ] Steven: Kalender-Tab prüfen (Woche/Monat mit den Apple-Terminen), Automation auf 23:55 stellen
+- [x] Steven: Kalender-Tab geprüft („App passt"), Automation auf 23:55 gestellt, Schreib-Sync an → Worker hat v8-Stand (37 Termine, 19 aus Apple)
+
+## M11 – Stevens Wünsche aus der App (10.09.2026 abends, `extra.wishes` im KV)
+- [x] **Knöpfe im Menü reparieren:** Schalter-Knopf ohne `left-0` startete mittig und ragte rechts über die Fläche (Toggle + Kopie im Termin-Editor → gemeinsame Komponente); KI-Blase verdeckte die Schalter rechts auf der Mehr-Seite → dort ausgeblendet. Playwright-Screenshot geprüft; beta.11
+- [ ] Smarter Essensplan: kein Essen planen, wenn laut Kalender unterwegs (Kalender in den Essensplan-Prompt, Tage mit Abwesenheit markieren)
+- [ ] Mengen bei automatischer Einkaufsliste (Zutaten aus dem Essensplan mit Menge → `qty`)
+- [ ] Widget auf dem iPhone: als PWA nicht möglich (ideen.md #18); Alternative Lockscreen-Push mit Tagesplan oder Kurzbefehl-Widget, das die App öffnet
+
   - Stevens Kurzbefehl (Screenshot 10.09.): Filter „Startdatum ist heute" entfernen → nur „Startdatum innerhalb der nächsten 14 Tage"; Beschränken 25 → aus/100; Token in `?s=` ist veraltet (401) → aktuelles Token als Header X-Secret
 
 ## Danach: Backlog aus CLAUDE.md §11 (Inbox, Deep-Links, …)

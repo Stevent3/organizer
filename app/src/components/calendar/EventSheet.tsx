@@ -4,6 +4,7 @@ import { colorVar } from '../../lib/colors'
 import { COLORS, type ColorKey, type EventItem } from '../../lib/model'
 import { minToTime, timeToMin } from '../../lib/time'
 import { Sheet } from '../Sheet'
+import { Toggle } from '../Toggle'
 
 export type Draft = Omit<EventItem, 'id'> & { id?: string }
 
@@ -126,18 +127,5 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
       <span className="text-[15px]">{label}</span>
       <span className="flex items-center">{children}</span>
     </div>
-  )
-}
-
-function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={on}
-      onClick={() => onChange(!on)}
-      className={'relative h-[30px] w-[50px] rounded-full transition-colors duration-200 ' + (on ? 'bg-green' : 'bg-fill-strong')}
-    >
-      <span className={'absolute top-[3px] h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200 ' + (on ? 'translate-x-[23px]' : 'translate-x-[3px]')} />
-    </button>
   )
 }

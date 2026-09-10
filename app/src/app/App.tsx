@@ -44,7 +44,8 @@ export default function App() {
           <p className="animate-fade-up max-w-lg rounded-full bg-text px-4 py-2 text-center text-[13px] font-semibold text-bg shadow-lg">{toast}</p>
         </div>
       )}
-      <AiBubble />
+      {/* Auf der Mehr-Seite ausblenden: dort verdeckt die Blase die Schalter rechts (Stevens Wunsch 10.09.) */}
+      <AiBubble hidden={tab === 'more'} />
       <TabBar tabs={TABS} active={tab} onChange={setTab} />
     </div>
   )
