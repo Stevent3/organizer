@@ -44,8 +44,9 @@ export default {
                    : Array.isArray(body) ? body
                    : Array.isArray(body.events) ? body.events : [];
       await env.KV.put('calendar', JSON.stringify(events), { metadata: { updated: Date.now() } });
-      // Rohtext des Kurzbefehls zum Nachsehen (wrangler kv key get calendar_raw --remote), 7 Tage
-      if (lines) await env.KV.put('calendar_raw', String(lines).slice(0, 20000), { expirationTtl: 7 * 24 * 3600, metadata: { count: events.length } });
+      // Rohdaten des Kurzbefehls zum Nachsehen (wrangler kv key get calendar_raw --remote), 7 Tage – auch wenn leer
+      const raw = lines ? String(lines) : 'BODY ' + JSON.stringify(body);
+      await env.KV.put('calendar_raw', raw.slice(0, 20000), { expirationTtl: 7 * 24 * 3600, metadata: { count: events.length, ct: request.headers.get('Content-Type') || '' } });
       return res({ ok: true, count: events.length });
     }
     if (path === '/calendar' && request.method === 'GET') {
