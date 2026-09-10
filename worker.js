@@ -93,6 +93,15 @@ export default {
       return res({ ok: r.ok, status: r.status });
     }
 
+    // ── Fahrzeit ab Zuhause zu einem Ort (für „Losgehen um" in der App), gecacht wie im Cron ──
+    if (path === '/travel' && request.method === 'GET') {
+      const place = (url.searchParams.get('place') || '').trim().slice(0, 200);
+      if (!place) return res({ error: 'place fehlt' }, 400);
+      const state = (await env.KV.get('state', 'json')) || {};
+      if (!state.home) return res({ minutes: 0, reason: 'kein Zuhause gespeichert' });
+      return res({ minutes: await travelMinutes(env, state.home, place) });
+    }
+
     // ── Rezept-Seite laden (Browser darf fremde Seiten nicht lesen – CORS) ──
     if (path === '/fetch' && request.method === 'GET') {
       const target = url.searchParams.get('url') || '';

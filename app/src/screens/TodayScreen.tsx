@@ -23,6 +23,7 @@ import { Glance, type TodayData } from './today/Glance'
 import { EnergyPill, Stat, TaskLine, fmtMin } from './today/bits'
 import { WorkCard } from './today/WorkCard'
 import { BirthdayCard } from './today/BirthdayCard'
+import { departureMin, useTravel } from '../lib/travel'
 
 function greeting(h: number) {
   if (h < 5) return 'Gute Nacht'
@@ -112,6 +113,9 @@ export function TodayScreen() {
     setDraft({ date: day, allDay: false, time: minToTime(min), end: minToTime(Math.min(min + 60, 1439)), text: '', color: 'accent', source: 'manual' })
   }
 
+  const travel = useTravel(focus?.kind === 'next' ? focus.ev.sub : undefined, focus?.ev.source === 'calendar')
+  const depart = focus?.kind === 'next' && travel ? departureMin(timeToMin(focus.ev.time) ?? 0, travel) : null
+
   const data: TodayData = {
     day, nowMin, events, todays, focus, plan, planNow, planHint, meal, open, done, visible, timedToday, eventsLeft, show, go,
     openCalendar: (d) => setCalendar({ open: true, day: d ?? day }),
@@ -177,6 +181,7 @@ export function TodayScreen() {
               <p className="mt-3 inline-block rounded-full bg-white/20 px-2.5 py-1 text-[12px] font-semibold">
                 {focus.kind === 'now' ? 'noch ' + fmtMin(focus.min) : 'in ' + fmtMin(focus.min)}
               </p>
+              {depart != null && <p className="mt-2 text-[13px] font-semibold">🚗 {depart <= nowMin ? 'Jetzt losgehen' : 'Losgehen um ' + minToTime(depart)} <span className="font-normal opacity-80">· {travel} Min Fahrt</span></p>}
             </button>
           ) : (
             <>

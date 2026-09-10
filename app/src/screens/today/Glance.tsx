@@ -13,6 +13,8 @@ import { isDone, isDue, readHabits, toggleHabit } from '../../lib/habits'
 import type { EventItem, Task } from '../../lib/model'
 import { PLAN_ICON, type DayPlan, type Meal, type MealSlot, type PlanBlock } from '../../lib/planner'
 import { useStore } from '../../store/useStore'
+import { departureMin, useTravel } from '../../lib/travel'
+import { timeToMin, minToTime } from '../../lib/time'
 import { Stat, TaskLine, fmtMin } from './bits'
 import { WorkCard } from './WorkCard'
 import { BirthdayCard } from './BirthdayCard'
@@ -74,6 +76,8 @@ export function Glance(d: TodayData) {
   const hiddenTodos = Math.max(0, d.open.length - MAX_TODOS)
 
   const f = d.focus
+  const travel = useTravel(f?.kind === 'next' ? f.ev.sub : undefined, f?.ev.source === 'calendar')
+  const depart = f?.kind === 'next' && travel ? departureMin(timeToMin(f.ev.time) ?? 0, travel) : null
   const heroTitle = f ? f.ev.text : d.todays.length ? 'Keine weiteren Termine' : 'Heute ist frei'
   const heroSub = f
     ? f.ev.time + (f.ev.end ? ' – ' + f.ev.end : '') + (f.ev.sub ? ' · ' + f.ev.sub : '')
@@ -93,6 +97,11 @@ export function Glance(d: TodayData) {
             </span>
             {f && <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-[12px] font-semibold">{f.kind === 'now' ? 'noch ' + fmtMin(f.min) : 'in ' + fmtMin(f.min)}</span>}
           </button>
+          {depart != null && (
+            <p className={'mt-2 flex items-center gap-1.5 text-[12.5px] font-semibold ' + (depart <= d.nowMin ? '' : 'opacity-90')}>
+              🚗 {depart <= d.nowMin ? 'Jetzt losgehen' : 'Losgehen um ' + minToTime(depart)} <span className="font-normal opacity-80">· {travel} Min Fahrt</span>
+            </p>
+          )}
           {d.planHint && (
             <button onClick={() => d.go('planner')} className="mt-2.5 flex w-full items-center gap-2 rounded-md bg-white/15 px-2.5 py-1.5 text-left">
               <span className="text-[15px]">{PLAN_ICON[d.planHint.block.type] ?? '•'}</span>

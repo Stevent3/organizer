@@ -45,6 +45,10 @@ export class WorkerApi {
   fetchPage(url: string) {
     return this.req<{ ok: boolean; status: number; title: string; ingredients?: string[]; text: string }>('/fetch?url=' + encodeURIComponent(url))
   }
+  /** Fahrzeit (Auto, Minuten) von Zuhause zum Ort; 0 = unbekannt oder kein Zuhause gespeichert */
+  travel(place: string) {
+    return this.req<{ minutes: number; reason?: string }>('/travel?place=' + encodeURIComponent(place))
+  }
   pushStatus() {
     return this.req<{ subscribed: boolean }>('/push/status')
   }
