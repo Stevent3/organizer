@@ -74,7 +74,9 @@ Steven: „tob dich aus" – Design-Varianten vorschlagen, richtig praktische Fe
 - [x] **Dashboard v2**: Kopf mit Wetter, Schnell-Eingabe, Energie, Fokus-Karte mit „laut Plan"-Zeile, Fortschritts-Streifen (To-dos, Termine, Plan), „Heute essen" aus dem Essensplan, To-dos, Kalender-Widget; Abschnitte unter Mehr → Dashboard ein-/ausblendbar
 - [x] **Kurzbefehle (URL-Schema)** für Siri/Shortcuts: `?action=quick|add-task|add-shopping|add-event|set-energy|ask` (+ v7-kompatible Parameter), Bestätigungs-Toast, Doku mit kopierbaren URLs unter Mehr
 - [x] Navigation als Store (`useUi`), damit Dashboard-Karten in Planer/KI springen können
-- [ ] Screenshots (Chromium, iPhone-Format) der Varianten + Design-Vorschlag als Artefakt für Steven
+- [x] Screenshots (Chromium, iPhone-Format) der Varianten an Steven geschickt (Skript im Scratchpad, seedet Beispieldaten)
 - [x] Tests für Parser, Wetter-Mapping, Kurzbefehle, Theme; tsc + Build; APP_VERSION → beta.3; Commit + Push
+
+**Review M7 (10.09.2026):** 87 Tests grün (38 neu), tsc/oxlint/Build sauber, Screenshots in Hell/Dunkel × 5 Akzenten geprüft. Entscheidungen: Theme über `light-dark()` + `data-theme`/`data-accent` (kein doppelter Token-Block; braucht iOS ≥ 17.5); Schnell-Eingabe rein lokal (kein Groq-Aufruf, Vorschau vor dem Absenden, „Lieber die KI fragen" als Ausweg); Dashboard-Abschnitte nur lokal gespeichert (Gerätesache, kein Sync); Wetter-Standort lokal, Standard Hannover. Offen: Steven-Test auf dem iPhone (light-dark-Support, Share-Sheet, Kurzbefehl-URL aus der Kurzbefehle-App), echte Groq-Läufe für Rezept/Plan.
 
 ## Danach: Backlog aus CLAUDE.md §11 (Abend-Review-Push, Wetter, Inbox, Deep-Links, …)
