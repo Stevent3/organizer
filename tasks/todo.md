@@ -86,4 +86,15 @@ Steven: „tob dich aus" – Design-Varianten vorschlagen, richtig praktische Fe
 - [x] APP_VERSION → beta.4, 96 Tests grün
 - [ ] Steven: Vorschläge in `tasks/ideen.md` durchgehen und Favoriten markieren
 
-## Danach: Backlog aus CLAUDE.md §11 (Abend-Review-Push, Wetter, Inbox, Deep-Links, …)
+## M9 – Worker: Cloud-Deploy, Abend-Review-Push, Wetter im Briefing (10.09.2026, Cloud-Sitzung)
+Auftrag Steven: Cloudflare-Deploy aus der Cloud nachholen (CLOUDFLARE_API_TOKEN gesetzt), dann die Worker-Features, die daran hingen.
+- [x] `npm install -g wrangler` (4.130), `wrangler deploy --dry-run` sauber (env.KV `2f8eb11cc97f48a9a64ef75b35474126`, VAPID_PUBLIC, VAPID_SUBJECT)
+- [ ] `wrangler whoami` / `wrangler deploy` – **blockiert:** Netzwerk-Policy der Cloud-Umgebung beantwortet CONNECT zu `api.cloudflare.com`, `organizer.steven-ec0.workers.dev`, `api.open-meteo.com` und `api.groq.com` mit 403 (Proxy-Status `connect_rejected`). Token ist gesetzt, hilft aber nicht. → Steven: Umgebung auf claude.ai/code → Netzwerk auf „Voller Zugriff" oder diese Hosts freigeben, sonst `wrangler deploy` auf dem Windows-Rechner.
+- [ ] Nach dem Deploy (Steven oder nächste Sitzung mit Netz): `wrangler kv key list --remote --namespace-id=2f8eb11cc97f48a9a64ef75b35474126` → state, calendar, push_sub vorhanden; `curl …/ping` ohne Secret = 401; `POST /push/test` mit Secret → Push kommt an
+- [x] CLAUDE.md-Absatz „Cloud-Sitzung" aktualisiert (Netzwerk-Policy statt Token als Blocker)
+- [x] **Abend-Review-Push 21:00–21:25** (`sent:review:<datum>`): liest `state.tasks.today`; offen = nicht erledigt und nicht zurückgestellt (`until` in der Zukunft zählt nicht); „3/5 geschafft – Rest auf morgen?" mit bis zu 3 offenen Titeln, „alles geschafft"-Variante, kein Push ohne To-dos; entfällt, wenn der Tagesabschluss in der App schon gemacht wurde (`state.dayClosed === heute`)
+- [x] **Wetter im Morgen-Briefing** (Open-Meteo, Hannover 52.3759/9.732, ohne Key, 5-s-Timeout, Fehler = ohne Wetter): Zeile „🌦️ Schauer, 12–19 °C, Regen 60 %" in Groq-Prompt und Fallback-Text
+- [x] Reine Logik als benannte Exporte (`openTodayTasks`, `buildReviewText`, `weatherLine`, `applyOverrides`, `parseLines`) → vitest `app/src/test/worker.test.ts`; Push-Krypto unangetastet; `node --check worker.js`
+- [ ] Danach: nächster offener Punkt aus M2 (Worker-Zeilenformat mit Datum)
+
+## Danach: Backlog aus CLAUDE.md §11 (Inbox, Deep-Links, …)

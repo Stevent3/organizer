@@ -11,6 +11,8 @@
 //    GROQ_KEY            – optional, für KI-formulierte Hinweise
 //
 //  Cron Trigger:  */15 * * * *   (alle 15 Minuten)
+//  Push-Slots:    Abfahrt (vor Terminen), Briefing 06:00 (mit Wetter via Open-Meteo, ohne Key),
+//                 Tipps 10:00 + 14:30 (Groq), Abend-Review 21:00 (Bilanz der To-dos)
 // ═══════════════════════════════════════════════════════════
 
 // Nur die eigene App-Domain darf per Browser zugreifen (Shortcuts sind davon unberührt)
@@ -131,8 +133,9 @@ async function runChecks(env) {
     const key = `sent:brief:${today}`;
     if (!(await env.KV.get(key))) {
       const todays = cal.filter(e => e.time).sort((a, b) => a.time.localeCompare(b.time));
-      const openTasks = ((state.tasks && state.tasks.today) || []).filter(t => !t.done);
-      const body = await buildBriefing(todays, openTasks, env);
+      const openTasks = openTodayTasks(state, today);
+      const weather = await fetchWeatherLine();
+      const body = await buildBriefing(todays, openTasks, weather, env);
       await sendPush(sub, { title: '☀️ Dein Tag', body, tag: 'briefing' }, env);
       await env.KV.put(key, '1', { expirationTtl: 22 * 3600 });
     }
@@ -150,6 +153,72 @@ async function runChecks(env) {
       if (tip) await sendPush(sub, { title: tip.title || '💡 Tipp', body: tip.body, tag: 'tip' }, env);
     }
   }
+
+  // 4) Abend-Review 21:00–21:25: Bilanz der To-dos, Rest auf morgen?
+  if (now.min >= 1260 && now.min <= 1285) {
+    const key = `sent:review:${today}`;
+    if (!(await env.KV.get(key))) {
+      // Auch ohne Push markieren (keine To-dos / Tag in der App schon abgeschlossen)
+      await env.KV.put(key, '1', { expirationTtl: 20 * 3600 });
+      const review = buildReviewText(state, today);
+      if (review) await sendPush(sub, { title: review.title, body: review.body, tag: 'review' }, env);
+    }
+  }
+}
+
+// Offene To-dos von heute: nicht erledigt und nicht zurückgestellt (v8: `until` in der Zukunft = später)
+function openTodayTasks(state, today) {
+  const all = (state && state.tasks && state.tasks.today) || [];
+  return all.filter(t => t && !t.done && (!t.until || t.until <= today));
+}
+
+// Abend-Review: null = kein Push (keine To-dos oder Tagesabschluss in der App schon gemacht)
+function buildReviewText(state, today) {
+  if (state && state.dayClosed === today) return null;
+  const all = ((state && state.tasks && state.tasks.today) || []).filter(Boolean);
+  const open = openTodayTasks(state, today);
+  const done = all.filter(t => t.done).length;
+  const total = open.length + done;
+  if (!total) return null;
+  const title = '🌙 Tagesabschluss';
+  if (!open.length) {
+    return { title, body: total === 1 ? 'Dein To-do ist erledigt – schöner Feierabend!' : `Alle ${total} To-dos geschafft – starker Tag! Schöner Feierabend.` };
+  }
+  const names = open.slice(0, 3).map(t => t.text).join(', ') + (open.length > 3 ? ', …' : '');
+  return { title, body: `${done}/${total} geschafft. Offen: ${names}. Rest auf morgen?` };
+}
+
+// Wetter fürs Briefing (Open-Meteo, gratis, ohne Key). Standort = Hannover; der App-Standort ist Gerätesache und nicht im Sync-State.
+const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast?latitude=52.3759&longitude=9.732&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FBerlin&forecast_days=1';
+async function fetchWeatherLine() {
+  try {
+    const r = await fetch(WEATHER_URL, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return '';
+    return weatherLine(await r.json());
+  } catch (_) { return ''; }
+}
+// Open-Meteo-Antwort → „🌦️ Schauer, 12–19 °C, Regen 60 %" ('' wenn unbrauchbar)
+function weatherLine(data) {
+  const d = (data && data.daily) || {};
+  const code = d.weather_code?.[0], max = d.temperature_2m_max?.[0], min = d.temperature_2m_min?.[0], rain = d.precipitation_probability_max?.[0];
+  if (typeof code !== 'number' || typeof max !== 'number' || typeof min !== 'number') return '';
+  const w = describeWeather(code);
+  return `${w.emoji} ${w.text}, ${Math.round(min)}–${Math.round(max)} °C` + (typeof rain === 'number' && rain >= 30 ? `, Regen ${Math.round(rain)} %` : '');
+}
+// WMO-Wettercode → Emoji + Text (gleiche Tabelle wie app/src/lib/weather.ts)
+function describeWeather(code) {
+  if (code === 0) return { emoji: '☀️', text: 'Klar' };
+  if (code === 1) return { emoji: '🌤️', text: 'Überwiegend klar' };
+  if (code === 2) return { emoji: '⛅', text: 'Teils bewölkt' };
+  if (code === 3) return { emoji: '☁️', text: 'Bedeckt' };
+  if (code === 45 || code === 48) return { emoji: '🌫️', text: 'Nebel' };
+  if (code >= 51 && code <= 57) return { emoji: '🌦️', text: 'Nieselregen' };
+  if (code >= 61 && code <= 67) return { emoji: '🌧️', text: code >= 65 ? 'Starker Regen' : 'Regen' };
+  if (code >= 71 && code <= 77) return { emoji: '🌨️', text: 'Schnee' };
+  if (code >= 80 && code <= 82) return { emoji: '🌦️', text: 'Schauer' };
+  if (code === 85 || code === 86) return { emoji: '🌨️', text: 'Schneeschauer' };
+  if (code >= 95 && code <= 99) return { emoji: '⛈️', text: 'Gewitter' };
+  return { emoji: '🌡️', text: 'Wetter' };
 }
 
 // Overrides aus der App (verschobene/gelöschte/umbenannte Termine) anwenden
@@ -210,13 +279,14 @@ async function buildSmartTip(cal, state, now, slot, env) {
   return null;
 }
 
-async function buildBriefing(events, openTasks, env) {
+async function buildBriefing(events, openTasks, weather, env) {
   const evText = events.length
     ? events.map(e => `${e.time} ${e.text}`).join(', ')
     : 'keine Termine';
   const taskText = openTasks.length
     ? openTasks.map(t => t.text).join(', ')
     : 'keine offenen Aufgaben';
+  const weatherText = weather ? ` Wetter: ${weather}.` : '';
 
   // Optional: KI-formulierte, wärmere Variante
   if (env.GROQ_KEY) {
@@ -228,7 +298,7 @@ async function buildBriefing(events, openTasks, env) {
           model: 'openai/gpt-oss-120b',
           messages: [{
             role: 'user',
-            content: `Formuliere ein kurzes, freundliches Morgen-Briefing (max 2 Sätze, Deutsch) für Steven. Termine: ${evText}. Offene Aufgaben: ${taskText}. Kein Gruß-Overkill, konkret und motivierend.`
+            content: `Formuliere ein kurzes, freundliches Morgen-Briefing (max 2 Sätze, Deutsch) für Steven. Termine: ${evText}. Offene Aufgaben: ${taskText}.${weatherText} Kein Gruß-Overkill, konkret und motivierend; das Wetter nur kurz erwähnen, wenn es für den Tag relevant ist (Regen, Kälte, Hitze).`
           }],
           max_tokens: 120, temperature: 0.7
         })
@@ -240,7 +310,7 @@ async function buildBriefing(events, openTasks, env) {
       }
     } catch (_) {}
   }
-  return `Heute: ${evText}. Offen: ${taskText}.`;
+  return `${weather ? weather + '. ' : ''}Heute: ${evText}. Offen: ${taskText}.`;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -345,3 +415,6 @@ function parseLines(text) {
   }
   return out;
 }
+
+// Nur für Tests (app/src/test/worker.test.ts) – der Worker selbst nutzt export default
+export { runChecks, applyOverrides, parseLines, openTodayTasks, buildReviewText, weatherLine, toMin };
