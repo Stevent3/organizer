@@ -134,7 +134,7 @@ function SyncSection() {
               Jetzt synchronisieren <RefreshCw size={16} className={'text-text-3 ' + (sync.status === 'syncing' ? 'animate-spin' : '')} />
             </button>
             <button onClick={copySecret} className="press flex w-full items-center justify-between px-4 py-3 text-[15px]">
-              <span>Token kopieren <span className="block text-[12px] text-text-3">Für den Kalender-Kurzbefehl (Header X-Secret oder ?s=)</span></span>
+              <span className="min-w-0">Token kopieren <span className="block truncate text-[12px] text-text-3">Für den Kalender-Kurzbefehl</span></span>
               <Copy size={16} className="shrink-0 text-text-3" />
             </button>
             <button onClick={() => setEditing(true)} className="press flex w-full items-center justify-between px-4 py-3 text-[15px]">
