@@ -8,11 +8,11 @@ import { describeError, groqJson, groqText } from '../lib/ai'
 import { colorVar } from '../lib/colors'
 import { useConfig } from '../lib/config'
 import {
-  FOOD_Q, MEAL_PLAN_SYSTEM, MEAL_SLOTS, PLAN_COLOR, PLAN_ICON, RECIPE_SYSTEM, REROLL_SYSTEM, dayPlanPrompt, recipeUserPrompt, foodProfileText, newIngredients, normMeal,
+  FOOD_Q, MEAL_PLAN_SYSTEM, MEAL_SLOTS, PLAN_COLOR, PLAN_ICON, RECIPE_SYSTEM, REROLL_SYSTEM, dayPlanPrompt, recipeUserPrompt, mealPlanUserPrompt, newIngredients, normMeal,
   normalizeDayPlan, normalizeMealPlan, parseJsonObject, planToEvents, readDayPlan, readFoodProfile, readMealPlan, rerollUserPrompt, todayMealIndex,
   type FoodKey, type FoodProfile, type MealPlan, type MealSlot,
 } from '../lib/planner'
-import { mealPlanIngredients, shopInfo } from '../lib/shopping'
+import { capitalize, mealPlanIngredients, shopInfo } from '../lib/shopping'
 import { todayKey } from '../lib/time'
 import { useStore } from '../store/useStore'
 
@@ -247,6 +247,7 @@ function FoodInterview({ existing, onDone, onCancel }: { existing: FoodProfile |
 function MealPlanView({ profile, onEditProfile }: { profile: FoodProfile; onEditProfile: () => void }) {
   const extra = useStore((s) => s.extra)
   const shopping = useStore((s) => s.tasks.shopping)
+  const events = useStore((s) => s.events)
   const setExtra = useStore((s) => s.setExtra)
   const addTask = useStore((s) => s.addTask)
   const hasKey = useConfig((c) => !!c.groqKey)
@@ -260,7 +261,8 @@ function MealPlanView({ profile, onEditProfile }: { profile: FoodProfile; onEdit
   const generate = async () => {
     setBusy(true); setError(null)
     try {
-      const text = await groqJson(MEAL_PLAN_SYSTEM, foodProfileText(profile), { maxTokens: 4000, temperature: 0.7 })
+      // Kalender der Woche geht mit: an Tagen unterwegs wird nicht gekocht (Stevens Wunsch)
+      const text = await groqJson(MEAL_PLAN_SYSTEM, mealPlanUserPrompt(profile, events), { maxTokens: 4000, temperature: 0.7 })
       setExtra({ mealPlan: normalizeMealPlan(parseJsonObject(text)) })
       flash('Wochenplan erstellt 🍽')
     } catch (e) {
@@ -271,8 +273,8 @@ function MealPlanView({ profile, onEditProfile }: { profile: FoodProfile; onEdit
 
   const addAll = () => {
     const fresh = newIngredients(mealPlanIngredients(extra), shopping)
-    for (const ing of fresh) addTask('shopping', ing)
-    flash(fresh.length ? '🛒 ' + fresh.length + ' Zutaten hinzugefügt' : 'Alles schon auf der Liste ✓')
+    for (const it of fresh) addTask('shopping', capitalize(it.name), it.qty)
+    flash(fresh.length ? '🛒 ' + fresh.length + ' Zutaten mit Mengen hinzugefügt' : 'Alles schon auf der Liste ✓')
   }
 
   const summary = [profile.diet, profile.cuisines, profile.people ? profile.people + ' Pers.' : '', profile.time].filter(Boolean).join(' · ')
@@ -310,10 +312,10 @@ function MealPlanView({ profile, onEditProfile }: { profile: FoodProfile; onEdit
                   if (!m) return null
                   return (
                     <button key={s.id} onClick={() => setSel({ day: di, slot: s.id })} className={'press flex w-full items-center gap-3 px-4 py-2.5 text-left ' + (si ? 'border-t border-line' : '')}>
-                      <span className="text-[20px]">{s.icon}</span>
+                      <span className="text-[20px]">{m.unterwegs ? '🚌' : s.icon}</span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[14px] font-semibold">{m.name}</span>
-                        <span className="block truncate text-[12px] text-text-2">{s.label}{m.zutaten.length ? ' · ' + m.zutaten.slice(0, 3).join(', ') + (m.zutaten.length > 3 ? ' …' : '') : ''}</span>
+                        <span className={'block truncate text-[14px] font-semibold' + (m.unterwegs ? ' text-text-2' : '')}>{m.name}</span>
+                        <span className="block truncate text-[12px] text-text-2">{s.label}{m.unterwegs ? ' · laut Kalender unterwegs, nichts geplant' : m.zutaten.length ? ' · ' + m.zutaten.slice(0, 3).join(', ') + (m.zutaten.length > 3 ? ' …' : '') : ''}</span>
                       </span>
                       <span className="text-text-3">›</span>
                     </button>
@@ -378,7 +380,7 @@ function MealSheet({ sel, plan, profile, onClose, onFlash }: { sel: { day: numbe
   }
   const toList = () => {
     const fresh = newIngredients(ings.split(',').map((s) => s.trim()), useStore.getState().tasks.shopping)
-    for (const ing of fresh) addTask('shopping', ing)
+    for (const it of fresh) addTask('shopping', capitalize(it.name), it.qty)
     onFlash(fresh.length ? '🛒 ' + fresh.length + ' Zutaten hinzugefügt' : 'Schon alles auf der Liste ✓')
     onClose()
   }

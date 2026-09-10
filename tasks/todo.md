@@ -113,10 +113,20 @@ Ziel: Der Kurzbefehl liefert 14 Tage statt nur heute. Altes Format ohne Datum bl
 
 ## M11 – Stevens Wünsche aus der App (10.09.2026 abends, `extra.wishes` im KV)
 - [x] **Knöpfe im Menü reparieren:** Schalter-Knopf ohne `left-0` startete mittig und ragte rechts über die Fläche (Toggle + Kopie im Termin-Editor → gemeinsame Komponente); KI-Blase verdeckte die Schalter rechts auf der Mehr-Seite → dort ausgeblendet. Playwright-Screenshot geprüft; beta.11
-- [ ] Smarter Essensplan: kein Essen planen, wenn laut Kalender unterwegs (Kalender in den Essensplan-Prompt, Tage mit Abwesenheit markieren)
-- [ ] Mengen bei automatischer Einkaufsliste (Zutaten aus dem Essensplan mit Menge → `qty`)
-- [ ] Widget auf dem iPhone: als PWA nicht möglich (ideen.md #18); Alternative Lockscreen-Push mit Tagesplan oder Kurzbefehl-Widget, das die App öffnet
+- [x] Smarter Essensplan: `weekCalendarText` (Mo–So, heute/vorbei markiert) geht in den Wochenplan-Prompt; Regel: Termin über 12–14 bzw. 18–20 Uhr oder ganztägig weg → Slot `{name:'Unterwegs', unterwegs:true}`; UI zeigt 🚌 „laut Kalender unterwegs, nichts geplant"; `normMeal` erkennt auch Namen „Unterwegs …"
+- [x] Mengen bei automatischer Einkaufsliste: Prompt verlangt „500 g Kartoffeln"-Form für die Personenzahl; `parseIngredient` (auch „Paprika (2 Stk)"), `newIngredients` fasst gleiche Zutaten der Woche zusammen und addiert Mengen gleicher Einheit (`mergeQty`), Einkaufsliste bekommt `qty`; Empfehlungen zeigen den Namen ohne Menge; beta.12
+- [~] Widget auf dem iPhone: Steven: „nicht so wichtig" – als PWA nicht möglich, Alternative Lockscreen-Push
 
   - Stevens Kurzbefehl (Screenshot 10.09.): Filter „Startdatum ist heute" entfernen → nur „Startdatum innerhalb der nächsten 14 Tage"; Beschränken 25 → aus/100; Token in `?s=` ist veraltet (401) → aktuelles Token als Header X-Secret
 
 ## Danach: Backlog aus CLAUDE.md §11 (Inbox, Deep-Links, …)
+
+## Vorschläge für echten Mehrwert (10.09.2026, Steven: „bisher eine Spielerei", Auswahl offen)
+Leitgedanke: Die App kennt Stevens echtes Leben schon (Apple-Kalender mit Schichten, Uni, Geburtstagen; Einkauf; To-dos). Mehrwert entsteht, wenn sie daraus Arbeit abnimmt – erinnern, zusammenfassen, entscheiden – statt neue Eingaben zu verlangen.
+- [ ] A **Schichten & Verdienst:** Kalender-Termine mit „Samowar" (konfigurierbares Stichwort) → Stunden diese Woche/Monat, Verdienst-Schätzung mit Stundenlohn, Karte im Dashboard + Zeile im Morgen-Briefing (klein)
+- [ ] B **Geburtstags-Assistent:** Morgen-Push nennt Geburtstage des Tages; in der App „Glückwunsch schreiben" → KI-Text im Share-Sheet / WhatsApp-Link; 1-Tages-Vorwarnung für Geschenk (klein)
+- [ ] C **Wochen-Vorschau Sonntag 19:00 (Push):** Schichten, Uni, Geburtstage, freie Abende der nächsten Woche; Vorschlag für 2–3 Thesis-Blöcke, „übernehmen" legt Termine an (mittel)
+- [ ] D **Thesis/Deadline-Tracker:** Projekt mit Abgabedatum, Countdown, Tagesziel aus Restumfang; Fokus-Timer auf der Fokus-Karte; Fortschritt im Abend-Review (mittel)
+- [ ] E **Route öffnen:** Termin mit Ort → Apple Karten/Google Maps per Deep-Link, Abfahrts-Push mit echter Fahrzeit über OSRM (gratis) statt Apple-Wegzeit (klein/mittel)
+- [ ] F **Ausgaben-Logbuch:** Schnell-Eingabe „-12,50 Döner" → Monatsübersicht gegen Schicht-Verdienst (mittel, nur wenn Steven es füttern will)
+- [ ] Offline-Fall (M3, klein) nebenbei erledigen

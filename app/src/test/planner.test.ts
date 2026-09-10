@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { dayPlanPrompt, foodProfileText, recipeUserPrompt, newIngredients, normalizeDayPlan, normalizeMealPlan, parseJsonObject, planToEvents, readDayPlan, readMealPlan, rerollUserPrompt, todayMealIndex, type DayPlan } from '../lib/planner'
+import { dayPlanPrompt, foodProfileText, mealPlanUserPrompt, recipeUserPrompt, newIngredients, normalizeDayPlan, normalizeMealPlan, parseJsonObject, planToEvents, readDayPlan, readMealPlan, rerollUserPrompt, todayMealIndex, weekCalendarText, type DayPlan } from '../lib/planner'
 import { EMPTY_STATE, type EventItem } from '../lib/model'
 import { toWireState, mergeRemoteState } from '../lib/sync'
 import { todayKey } from '../lib/time'
@@ -105,7 +105,32 @@ describe('Essensplan', () => {
 
   it('dedupliziert Zutaten gegen Liste inkl. Korb und in sich', () => {
     const shopping = [{ id: '1', text: 'Milch', done: false }, { id: '2', text: 'Paprika (2 Stk)', done: true }]
-    expect(newIngredients(['Haferflocken', 'milch', 'Paprika', 'Haferflocken (500 g)', '', 'Reis '], shopping)).toEqual(['Haferflocken', 'Reis'])
+    expect(newIngredients(['Haferflocken', 'milch', 'Paprika', 'Haferflocken (500 g)', '', 'Reis '], shopping)).toEqual([{ name: 'Haferflocken', qty: '500 g' }, { name: 'Reis' }])
+  })
+
+  it('rechnet Mengen derselben Zutat über die Woche zusammen', () => {
+    expect(newIngredients(['200 g Reis', '300 g Reis', '2 Paprika', 'Paprika (1 Stk)', '1 Pck. Haferflocken', '1,5 L Milch', '500 ml Milch'], [])).toEqual([
+      { name: 'Reis', qty: '500 g' },
+      { name: 'Paprika', qty: '3 Stk.' },
+      { name: 'Haferflocken', qty: '1 Pck.' },
+      { name: 'Milch', qty: '1,5 L + 500 ml' },
+    ])
+  })
+
+  it('markiert Slots als unterwegs und gibt dem Prompt den Wochenkalender mit', () => {
+    const plan = normalizeMealPlan({ days: [{ tag: 'Mo', fruehstueck: { name: 'Müsli', zutaten: ['50 g Haferflocken'] }, mittag: { name: 'Unterwegs', unterwegs: true, zutaten: ['x'] }, abend: { name: 'unterwegs (Samowar)' } }] })
+    expect(plan.days[0].mittag).toEqual({ name: 'Unterwegs', zutaten: [], unterwegs: true })
+    expect(plan.days[0].abend).toEqual({ name: 'Unterwegs', zutaten: [], unterwegs: true })
+    expect(plan.days[0].fruehstueck).toEqual({ name: 'Müsli', zutaten: ['50 g Haferflocken'] })
+
+    const events: EventItem[] = [
+      { id: 'a', date: '2026-09-11', allDay: false, time: '14:00', end: '18:30', text: 'Samowar', color: 'teal', source: 'calendar' as const },
+      { id: 'b', date: '2026-09-12', allDay: true, text: 'Urlaub', color: 'teal', source: 'calendar' as const },
+      { id: 'c', date: '2026-09-09', allDay: false, time: '10:00', text: 'Alt', color: 'accent', source: 'manual' as const },
+    ]
+    const txt = weekCalendarText(events, '2026-09-10')
+    expect(txt).toBe('Mo (vorbei): frei; Di (vorbei): frei; Mi (vorbei): 10:00 Alt; Do (heute): frei; Fr: 14:00–18:30 Samowar; Sa: ganztägig Urlaub; So: frei')
+    expect(mealPlanUserPrompt(null, events, '2026-09-10')).toBe(foodProfileText(null) + ' Kalender der Woche: ' + txt)
   })
 
   it('kennt den heutigen Wochentag (Mo = 0)', () => {

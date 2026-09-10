@@ -2,8 +2,8 @@
 // Daten liegen weiter in state.extra (dayPlan, mealPlan, foodProfile) – so lesen Worker-Cron und v7 sie unverändert.
 import { eventsOnDay } from './calendar'
 import { LISTS, type AppState, type ColorKey, type EventItem, type Task } from './model'
-import { shopBaseName } from './shopping'
-import { todayKey } from './time'
+import { mergeQty, parseIngredient, shopBaseName } from './shopping'
+import { addDaysKey, todayKey, weekStartKey } from './time'
 
 // ── Tagesplan ────────────────────────────────────────────────
 
@@ -113,7 +113,8 @@ export const MEAL_SLOTS: { id: MealSlot; label: string; icon: string }[] = [
 export const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
 /** rezept: von der KI erzeugte Kochanleitung (optional, wird gecacht) */
-export type Meal = { name: string; zutaten: string[]; rezept?: string }
+/** unterwegs: laut Kalender keine Zeit zum Kochen – Slot bewusst leer (Stevens Wunsch 10.09.2026) */
+export type Meal = { name: string; zutaten: string[]; rezept?: string; unterwegs?: boolean }
 export type MealDay = { tag: string } & Record<MealSlot, Meal | null>
 export type MealPlan = { createdAt: number; days: MealDay[] }
 
@@ -155,8 +156,25 @@ export const MEAL_PLAN_SYSTEM =
   'Du bist ein Ernährungsberater und erstellst einen 7-Tage-Essensplan (Mo–So) mit Frühstück, Mittag und Abendessen. ' +
   'Halte dich STRENG an das Profil (Ernährungsweise, Allergien, No-Gos, Kochzeit!). Frühstück darf sich wiederholen (2-3 Varianten). ' +
   'Nutze saisonale, in Deutschland gängige Zutaten, studentenfreundliches Budget. ' +
-  'Antworte NUR mit JSON: {"days":[{"tag":"Mo","fruehstueck":{"name":"...","zutaten":["Zutat1","Zutat2"]},"mittag":{...},"abend":{...}}, ... 7 Tage]}. ' +
-  'Zutaten: kurze Einkaufsnamen (z.B. "Haferflocken", "Paprika"), 3-7 pro Gericht, Menge nur wenn wichtig in Klammern.'
+  'Antworte NUR mit JSON: {"days":[{"tag":"Mo","fruehstueck":{"name":"...","zutaten":["500 g Kartoffeln","2 Paprika"]},"mittag":{...},"abend":{...}}, ... 7 Tage]}. ' +
+  'Zutaten als Einkaufsposten MIT Menge für die Personenzahl, Menge vorne: "500 g Kartoffeln", "2 Paprika", "1 Pck. Haferflocken", "200 ml Sahne" (Einheiten: g, kg, ml, L, Stk., Pck., Bund, Dose, Glas); 3-7 pro Gericht, Grundzutaten wie Salz/Öl weglassen. ' +
+  'Du bekommst den Kalender der Woche. Ist Steven zur Essenszeit unterwegs (Termin über 12–14 Uhr bzw. 18–20 Uhr, ganztägig weg, Reise), dann für diesen Slot NICHT kochen, sondern genau {"name":"Unterwegs","unterwegs":true,"zutaten":[]}. Frühstück nur auslassen, wenn ein Termin vor 8 Uhr beginnt. Vergangene Tage der Woche kurz halten.'
+
+/** Kalender der laufenden Woche (Mo–So) als Text für den Essensplan: Uhrzeiten und Ganztägiges je Tag */
+export function weekCalendarText(events: EventItem[], day = todayKey()): string {
+  const start = weekStartKey(day)
+  return WEEKDAYS.map((w, i) => {
+    const key = addDaysKey(start, i)
+    const list = eventsOnDay(events, key).map((e) => (e.allDay || !e.time ? 'ganztägig ' + e.text : e.time + (e.end ? '–' + e.end : '') + ' ' + e.text))
+    const mark = key === day ? ' (heute)' : key < day ? ' (vorbei)' : ''
+    return w + mark + ': ' + (list.join(', ') || 'frei')
+  }).join('; ')
+}
+
+/** Nutzer-Prompt für den Wochenplan: Profil + Kalender der Woche */
+export function mealPlanUserPrompt(p: FoodProfile | null, events: EventItem[], day = todayKey()): string {
+  return foodProfileText(p) + ' Kalender der Woche: ' + weekCalendarText(events, day)
+}
 
 export const RECIPE_SYSTEM = 'Du bist ein pragmatischer Koch für Studenten. Schreib ein kurzes, alltagstaugliches Rezept auf Deutsch: Zutaten mit Mengen für die genannte Personenzahl, dann nummerierte Schritte (max. 8), am Ende ein Tipp. Kein Vorgeplänkel, keine Überschrift, Markdown-frei (nur Zeilenumbrüche und „-" bzw. Nummern).'
 
@@ -173,7 +191,8 @@ export function rerollUserPrompt(p: FoodProfile | null, plan: MealPlan, slot: Me
 
 export function normMeal(m: unknown): Meal | null {
   if (!m || typeof m !== 'object') return null
-  const o = m as { name?: unknown; zutaten?: unknown }
+  const o = m as { name?: unknown; zutaten?: unknown; unterwegs?: unknown }
+  if (o.unterwegs === true || /^unterwegs\b/i.test(String(o.name || ''))) return { name: 'Unterwegs', zutaten: [], unterwegs: true }
   return { name: String(o.name || 'Gericht'), zutaten: Array.isArray(o.zutaten) ? o.zutaten.map(String).slice(0, 10) : [] }
 }
 
@@ -197,16 +216,25 @@ export function todayMealIndex(d = new Date()): number {
 
 /**
  * Zutaten, die noch nicht auf der Einkaufsliste stehen (auch nicht im Korb – Wochen-Übertrag wie v7),
- * innerhalb der Eingabe dedupliziert. Vergleich über shopBaseName, gespeichert wird der Originaltext.
+ * innerhalb der Eingabe zusammengefasst: gleiche Zutat mehrfach in der Woche → eine Position, Mengen addiert.
+ * Vergleich über shopBaseName des Namens ohne Menge.
  */
-export function newIngredients(ingredients: string[], shopping: Task[]): string[] {
+export function newIngredients(ingredients: string[], shopping: Task[]): { name: string; qty?: string }[] {
   const have = new Set(shopping.map((t) => shopBaseName(t.text)))
-  const out: string[] = []
-  for (const ing of ingredients) {
-    const base = shopBaseName(ing)
+  const out: { name: string; qty?: string }[] = []
+  const idx = new Map<string, number>()
+  for (const raw of ingredients) {
+    const { name, qty } = parseIngredient(raw)
+    const base = shopBaseName(name)
     if (!base || have.has(base)) continue
-    have.add(base)
-    out.push(ing.trim())
+    const i = idx.get(base)
+    if (i === undefined) {
+      idx.set(base, out.length)
+      out.push(qty ? { name: name.trim(), qty } : { name: name.trim() })
+    } else {
+      const merged = mergeQty(out[i].qty, qty)
+      if (merged) out[i].qty = merged
+    }
   }
   return out
 }

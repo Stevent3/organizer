@@ -72,7 +72,7 @@ export function mealPlanIngredients(extra: Record<string, unknown>): string[] {
 export function recommendations(items: Task[], history: Record<string, { n: number; ts: number }>, extra: Record<string, unknown>, limit = 8): string[] {
   const onList = new Set(items.map((t) => shopBaseName(t.text)))
   const hist = Object.entries(history).sort((a, b) => b[1].n - a[1].n || b[1].ts - a[1].ts).map((e) => e[0])
-  const plan = mealPlanIngredients(extra).map(shopBaseName)
+  const plan = mealPlanIngredients(extra).map((z) => shopBaseName(parseIngredient(z).name))
   const out: string[] = []
   const seen = new Set<string>()
   for (const src of [...plan, ...hist]) {
@@ -111,6 +111,33 @@ function normalizeQty(num: string, unit?: string): string {
   const u = (unit ?? '').toLowerCase().replace('.', '')
   const map: Record<string, Unit> = { stk: 'Stk.', st: 'Stk.', x: 'Stk.', g: 'g', kg: 'kg', ml: 'ml', l: 'L', pck: 'Pck.', packung: 'Pck.', bund: 'Bund', dose: 'Dose', dosen: 'Dose', glas: 'Glas', fl: 'Fl.', flasche: 'Fl.', flaschen: 'Fl.' }
   return num.replace('.', ',') + ' ' + (map[u] ?? 'Stk.')
+}
+
+/**
+ * Zutat aus dem Essensplan → Name + Menge. Versteht "500 g Kartoffeln", "2 Paprika", "1 Pck. Haferflocken",
+ * "Paprika (2 Stk)", "Reis (ca. 200 g)" und nackte Namen.
+ */
+export function parseIngredient(s: string): { name: string; qty?: string } {
+  const t = (s || '').trim().replace(/\s+/g, ' ')
+  const paren = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(t)
+  if (paren) {
+    const inner = /(\d+(?:[.,]\d+)?)\s*([a-zäöü.]+)?/i.exec(paren[2])
+    const rest = parseQuantity(paren[1])
+    return inner ? { name: rest.name, qty: normalizeQty(inner[1], inner[2]) } : rest
+  }
+  return parseQuantity(t)
+}
+
+/** Zwei Mengen desselben Artikels zusammenrechnen: gleiche Einheit addieren, sonst beide nennen */
+export function mergeQty(a?: string, b?: string): string | undefined {
+  if (!a) return b
+  if (!b) return a
+  const pa = /^(\d+(?:,\d+)?)\s+(.+)$/.exec(a), pb = /^(\d+(?:,\d+)?)\s+(.+)$/.exec(b)
+  if (pa && pb && pa[2] === pb[2]) {
+    const sum = Number(pa[1].replace(',', '.')) + Number(pb[1].replace(',', '.'))
+    return String(Math.round(sum * 100) / 100).replace('.', ',') + ' ' + pa[2]
+  }
+  return a + ' + ' + b
 }
 
 /** Zuletzt gekaufte Artikel (neueste zuerst), die nicht auf der Liste stehen */
