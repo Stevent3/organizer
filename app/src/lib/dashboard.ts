@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 /** Welche Abschnitte das Dashboard zeigt – unter Mehr → Dashboard schaltbar, nur auf diesem Gerät. */
-export type DashSection = 'weather' | 'quickAdd' | 'energy' | 'focus' | 'progress' | 'meal' | 'todos' | 'calendar'
+export type DashSection = 'weather' | 'quickAdd' | 'energy' | 'focus' | 'progress' | 'habits' | 'meal' | 'todos' | 'calendar' | 'dayClose'
 
 export const DASH_SECTIONS: { id: DashSection; label: string; hint: string }[] = [
   { id: 'weather', label: 'Wetter', hint: 'Chip im Kopf, Open-Meteo, ohne Account' },
@@ -9,9 +9,11 @@ export const DASH_SECTIONS: { id: DashSection; label: string; hint: string }[] =
   { id: 'energy', label: 'Energie', hint: 'Fließt in alle KI-Vorschläge ein' },
   { id: 'focus', label: 'Jetzt dran', hint: 'Laufender oder nächster Termin, Plan-Block' },
   { id: 'progress', label: 'Tagesfortschritt', hint: 'To-dos, Termine, Plan auf einen Blick' },
+  { id: 'habits', label: 'Gewohnheiten', hint: 'Tägliche Routinen mit Serie' },
   { id: 'meal', label: 'Heute essen', hint: 'Aus dem Essensplan im Planer' },
   { id: 'todos', label: 'To-dos', hint: 'Offene Aufgaben mit Schnell-Eingabe' },
   { id: 'calendar', label: 'Kalender', hint: 'Monat + nächste 7 Tage' },
+  { id: 'dayClose', label: 'Tagesabschluss', hint: 'Abends: Offenes auf morgen, Bilanz' },
 ]
 
 const KEY = 'organizer_v8_dashboard'

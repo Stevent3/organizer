@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { eventsOnDay } from './calendar'
 import { useConfig } from './config'
-import { ENERGY_LEVELS, type AppState, type ListId } from './model'
+import { ENERGY_LEVELS, isActive, type AppState, type ListId } from './model'
+import { habitsSummary, readHabits } from './habits'
 import { addDaysKey, todayKey } from './time'
 import { useStore } from '../store/useStore'
 
@@ -51,7 +52,7 @@ const LIST_LABEL: Record<ListId, string> = { today: 'Heute', work: 'Arbeit', hea
 
 export function buildContext(s: AppState, now = new Date()): string {
   const day = todayKey()
-  const fmt = (list: { text: string; done: boolean }[]) => list.filter((t) => !t.done).map((t) => t.text).join(', ') || 'keine'
+  const fmt = (list: AppState['tasks'][ListId]) => list.filter((t) => isActive(t, day)).map((t) => t.text).join(', ') || 'keine'
   const evs = (d: string) => eventsOnDay(s.events, d).map((e) => (e.allDay ? 'ganztägig' : e.time + (e.end ? '–' + e.end : '')) + ' ' + e.text + (e.sub ? ' (' + e.sub + ')' : '')).join(', ') || 'leer'
   const meal = todayMeals(s.extra)
   return [
@@ -73,6 +74,7 @@ export function buildContext(s: AppState, now = new Date()): string {
     '- Gesundheit offen: ' + fmt(s.tasks.health),
     '- Einkaufsliste offen: ' + fmt(s.tasks.shopping),
     '- Essensplan heute: ' + meal,
+    '- Gewohnheiten heute: ' + habitsSummary(readHabits(s.extra), day),
     '',
     'Du kannst Aktionen ausführen: Aufgaben/Einkäufe/Termine (auch an anderen Tagen, mehrtägig, ganztägig) anlegen, Aufgaben abhaken, Termine löschen, Energie setzen. Nutze dafür die Tools, wenn Steven darum bittet. Frag nicht unnötig nach, handle direkt und bestätige knapp.',
     'Datumsangaben immer als ISO (YYYY-MM-DD) an Tools übergeben, relative Angaben wie „morgen" oder „Freitag" selbst auflösen.',

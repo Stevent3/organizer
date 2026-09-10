@@ -79,4 +79,11 @@ Steven: „tob dich aus" – Design-Varianten vorschlagen, richtig praktische Fe
 
 **Review M7 (10.09.2026):** 87 Tests grün (38 neu), tsc/oxlint/Build sauber, Screenshots in Hell/Dunkel × 5 Akzenten geprüft. Entscheidungen: Theme über `light-dark()` + `data-theme`/`data-accent` (kein doppelter Token-Block; braucht iOS ≥ 17.5); Schnell-Eingabe rein lokal (kein Groq-Aufruf, Vorschau vor dem Absenden, „Lieber die KI fragen" als Ausweg); Dashboard-Abschnitte nur lokal gespeichert (Gerätesache, kein Sync); Wetter-Standort lokal, Standard Hannover. Offen: Steven-Test auf dem iPhone (light-dark-Support, Share-Sheet, Kurzbefehl-URL aus der Kurzbefehle-App), echte Groq-Läufe für Rezept/Plan.
 
+## M8 – Review-Fixes + Ideen aus anderen Apps (10.09.2026)
+- [x] Code-Review des gesamten Branches (10 Punkte, alle behoben, Regressionstests): Kurzbefehl-Start wartet auf ersten Pull; Plan-Blöcke aus KV validiert; theme-color mit Hex; Parser strenger; add-event prüft Uhrzeit; Rezept ohne stilles Speichern; Würfel-Guard; Termine-Kennzahl
+- [x] Recherche (Structured, Sunsama, Things 3, Todoist, Fantastical, Bring, Apple Erinnerungen) → `tasks/ideen.md` mit 18 Vorschlägen
+- [x] Gebaut: Gewohnheiten mit Serie (Dashboard-Karte, extra.habits, KI-Kontext), Zurückstellen Morgen/Nächste Woche/Irgendwann (Task.until, Abschnitt „Später"), Tagesabschluss ab 19 Uhr (Offenes auf morgen, Erledigtes aufräumen, extra.dayClosed)
+- [x] APP_VERSION → beta.4, 96 Tests grün
+- [ ] Steven: Vorschläge in `tasks/ideen.md` durchgehen und Favoriten markieren
+
 ## Danach: Backlog aus CLAUDE.md §11 (Abend-Review-Push, Wetter, Inbox, Deep-Links, …)

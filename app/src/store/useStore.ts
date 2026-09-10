@@ -16,6 +16,8 @@ type Actions = {
   deleteTask: (list: ListId, id: string) => void
   renameTask: (list: ListId, id: string, text: string) => void
   setTaskQty: (list: ListId, id: string, qty: string) => void
+  /** Zurückstellen bis `until` (YYYY-MM-DD, SOMEDAY = irgendwann); undefined = wieder aktiv */
+  snoozeTask: (list: ListId, id: string, until: string | undefined) => void
   moveTask: (from: ListId, to: ListId, id: string) => void
   clearDone: (list: ListId) => void
   /** Korb abschließen: erledigte Einkäufe in den Verlauf, von der Liste nehmen. Liefert Anzahl. */
@@ -88,6 +90,8 @@ export const useStore = create<Store>()(
         set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].map((t) => (t.id === id ? { ...t, text } : t)) }, ...touch(s) })),
       setTaskQty: (list, id, qty) =>
         set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].map((t) => (t.id === id ? { ...t, qty: qty || undefined } : t)) }, ...touch(s) })),
+      snoozeTask: (list, id, until) =>
+        set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].map((t) => (t.id === id ? { ...t, until: until || undefined } : t)) }, ...touch(s) })),
       moveTask: (from, to, id) => {
         const s = get()
         const t = s.tasks[from].find((x) => x.id === id)

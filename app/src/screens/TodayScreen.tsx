@@ -3,6 +3,8 @@ import { de } from 'date-fns/locale'
 import { Check, ChevronRight, ClipboardList, Plus, Zap } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarWidget } from '../components/calendar/CalendarWidget'
+import { DayCloseCard } from '../components/DayCloseCard'
+import { HabitsCard } from '../components/HabitsCard'
 import { EventSheet, type Draft } from '../components/calendar/EventSheet'
 import { Card, SectionLabel } from '../components/Card'
 import { QuickAdd } from '../components/QuickAdd'
@@ -10,7 +12,7 @@ import { Screen } from '../components/Screen'
 import { WeatherChip } from '../components/WeatherChip'
 import { eventsOnDay, nextFreeSlot, timedRange } from '../lib/calendar'
 import { useDashboard } from '../lib/dashboard'
-import { ENERGY_LEVELS, type EventItem } from '../lib/model'
+import { ENERGY_LEVELS, isActive, type EventItem } from '../lib/model'
 import { MEAL_SLOTS, PLAN_ICON, readDayPlan, readMealPlan, todayMealIndex } from '../lib/planner'
 import { useSyncStatus } from '../lib/syncEngine'
 import { minToTime, timeToMin, todayKey } from '../lib/time'
@@ -87,8 +89,9 @@ export function TodayScreen() {
     return { tag: d.tag, slots, activeId }
   }, [extra, nowMin]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const open = tasks.filter((t) => !t.done)
+  const open = tasks.filter((t) => isActive(t, day))
   const done = tasks.filter((t) => t.done)
+  const visible = open.length + done.length
   // Kennzahl Termine: nur Termine mit Uhrzeit (ganztägige haben kein Ende, das man abhaken könnte)
   const timedToday = todays.filter((e) => timedRange(e))
   const eventsLeft = timedToday.filter((e) => timedRange(e)!.end > nowMin).length
@@ -179,11 +182,13 @@ export function TodayScreen() {
 
       {show.progress && (
         <div className="mt-3 grid grid-cols-3 gap-2">
-          <Stat label="To-dos" value={done.length + '/' + tasks.length} pct={tasks.length ? done.length / tasks.length : 0} onClick={() => go('tasks')} />
+          <Stat label="To-dos" value={done.length + '/' + visible} pct={visible ? done.length / visible : 0} onClick={() => go('tasks')} />
           <Stat label="Termine" value={eventsLeft ? eventsLeft + ' offen' : timedToday.length ? 'fertig' : todays.length ? todays.length + ' ganztägig' : 'keine'} pct={timedToday.length ? (timedToday.length - eventsLeft) / timedToday.length : 0} onClick={() => setCalendar({ open: true, day })} />
           <Stat label="Plan" value={plan ? (planNow ? planNow.done + '/' + planNow.total : plan.blocks.length + ' Blöcke') : 'noch keiner'} pct={plan && planNow ? planNow.done / planNow.total : plan ? 1 : 0} onClick={() => go('planner')} />
         </div>
       )}
+
+      {show.habits && <HabitsCard />}
 
       {show.meal && meal && (
         <>
@@ -203,7 +208,7 @@ export function TodayScreen() {
 
       {show.todos && (
         <>
-          <SectionLabel>To-dos {tasks.length > 0 && <span className="normal-case tracking-normal">· {done.length}/{tasks.length}</span>}</SectionLabel>
+          <SectionLabel>To-dos {visible > 0 && <span className="normal-case tracking-normal">· {done.length}/{visible}</span>}</SectionLabel>
           <Card className="p-0">
             {open.map((t) => <TaskLine key={t.id} text={t.text} done={false} onToggle={() => toggleTask('today', t.id)} />)}
             <form onSubmit={(e) => { e.preventDefault(); submitTask() }} className={'flex items-center gap-2 px-3 py-2 ' + (open.length ? 'border-t border-line' : '')}>
@@ -226,6 +231,8 @@ export function TodayScreen() {
           <CalendarWidget events={events} nowMin={nowMin} onOpen={(d) => setCalendar({ open: true, day: d ?? day })} onTapEvent={(e) => setDraft({ ...e })} onAdd={newEventToday} />
         </>
       )}
+
+      {show.dayClose && <DayCloseCard hour={Math.floor(nowMin / 60)} eventsTotal={timedToday.length} eventsLeft={eventsLeft} />}
 
       {!plan && show.focus && (
         <button onClick={() => go('planner')} className="press mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-accent-soft py-2.5 text-[13px] font-semibold text-accent">

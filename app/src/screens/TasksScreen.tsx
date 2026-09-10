@@ -5,7 +5,8 @@ import { Screen } from '../components/Screen'
 import { Segmented } from '../components/Segmented'
 import { Sheet } from '../components/Sheet'
 import { ShoppingView } from '../components/tasks/ShoppingView'
-import { LISTS, type ListId, type Task } from '../lib/model'
+import { LISTS, SOMEDAY, isActive, isSnoozed, type ListId, type Task } from '../lib/model'
+import { addDaysKey, todayKey } from '../lib/time'
 import { useStore } from '../store/useStore'
 
 const LIST_KEY = 'organizer_v8_list'
@@ -16,7 +17,8 @@ export function TasksScreen() {
     setListState(l)
     try { localStorage.setItem(LIST_KEY, l) } catch { /* egal */ }
   }
-  const counts = useStore((s) => LISTS.map((l) => s.tasks[l.id].filter((t) => !t.done).length).join(','))
+  const today = todayKey()
+  const counts = useStore((s) => LISTS.map((l) => s.tasks[l.id].filter((t) => isActive(t, today)).length).join(','))
   const open = counts.split(',').map(Number)
 
   return (
@@ -37,8 +39,11 @@ function TaskList({ list }: { list: ListId }) {
   const toggleTask = useStore((s) => s.toggleTask)
   const clearDone = useStore((s) => s.clearDone)
   const [text, setText] = useState('')
+  const snoozeTask = useStore((s) => s.snoozeTask)
   const [editing, setEditing] = useState<Task | null>(null)
-  const open = tasks.filter((t) => !t.done)
+  const today = todayKey()
+  const open = tasks.filter((t) => isActive(t, today))
+  const later = tasks.filter((t) => isSnoozed(t, today))
   const done = tasks.filter((t) => t.done)
 
   const submit = () => {
@@ -55,13 +60,33 @@ function TaskList({ list }: { list: ListId }) {
           <span className="grid h-6 w-6 shrink-0 place-items-center text-accent"><Plus size={18} strokeWidth={2.5} /></span>
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Neue Aufgabe" enterKeyHint="done" className="flex-1 bg-transparent py-1 text-[15px] outline-none placeholder:text-text-3" />
         </form>
-        {open.length === 0 && done.length === 0 && <p className="border-t border-line px-4 py-4 text-center text-[13px] text-text-3">Nichts offen. Schön.</p>}
+        {open.length === 0 && done.length === 0 && later.length === 0 && <p className="border-t border-line px-4 py-4 text-center text-[13px] text-text-3">Nichts offen. Schön.</p>}
+        {open.length === 0 && later.length > 0 && <p className="border-t border-line px-4 py-4 text-center text-[13px] text-text-3">Nichts für heute. {later.length} zurückgestellt.</p>}
         {open.length > 0 && (
           <div className="border-t border-line py-1">
             {open.map((t) => <TaskRow key={t.id} t={t} onToggle={() => toggleTask(list, t.id)} onEdit={() => setEditing(t)} />)}
           </div>
         )}
       </Card>
+
+      {later.length > 0 && (
+        <>
+          <h2 className="mb-2 mt-5 px-1 text-[13px] font-semibold uppercase tracking-wider text-text-3">Später · {later.length}</h2>
+          <Card className="p-0">
+            <div className="py-1">
+              {later.map((t) => (
+                <div key={t.id} className="flex items-center gap-3 px-4 py-2">
+                  <button onClick={() => setEditing(t)} className="min-w-0 flex-1 py-1 text-left">
+                    <span className="block text-[15px]">{t.text}</span>
+                    <span className="block text-[12px] text-text-3">{snoozeLabel(t.until!, today)}</span>
+                  </button>
+                  <button onClick={() => snoozeTask(list, t.id, undefined)} className="press rounded-full bg-fill px-2.5 py-1 text-[12px] font-semibold text-accent">Heute</button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </>
+      )}
 
       {done.length > 0 && (
         <>
@@ -97,6 +122,8 @@ function TaskSheet({ task, list, onClose }: { task: Task | null; list: ListId; o
   const renameTask = useStore((s) => s.renameTask)
   const deleteTask = useStore((s) => s.deleteTask)
   const moveTask = useStore((s) => s.moveTask)
+  const snoozeTask = useStore((s) => s.snoozeTask)
+  const today = todayKey()
   const [text, setText] = useState(task?.text ?? '')
   const [key, setKey] = useState<string | null>(null)
   if (task && key !== task.id) { setKey(task.id); setText(task.text) }
@@ -108,6 +135,17 @@ function TaskSheet({ task, list, onClose }: { task: Task | null; list: ListId; o
   return (
     <Sheet open onClose={onClose} title="Aufgabe" right={<button onClick={save} className="press rounded-full bg-accent px-4 py-1.5 text-[14px] font-semibold text-on-accent">Fertig</button>}>
       <input value={text} onChange={(e) => setText(e.target.value)} className="w-full rounded-md bg-fill px-3 py-2.5 text-[17px] font-semibold outline-none" />
+      {list !== 'shopping' && (
+        <>
+          <p className="mb-2 mt-4 text-[13px] font-semibold uppercase tracking-wider text-text-3">Zurückstellen{task.until ? ' · ' + snoozeLabel(task.until, today) : ''}</p>
+          <div className="grid grid-cols-3 gap-2">
+            <button onClick={() => { snoozeTask(list, task.id, addDaysKey(today, 1)); onClose() }} className="press rounded-md bg-fill px-2 py-2.5 text-[13px] font-semibold">Morgen</button>
+            <button onClick={() => { snoozeTask(list, task.id, addDaysKey(today, 7)); onClose() }} className="press rounded-md bg-fill px-2 py-2.5 text-[13px] font-semibold">Nächste Woche</button>
+            <button onClick={() => { snoozeTask(list, task.id, SOMEDAY); onClose() }} className="press rounded-md bg-fill px-2 py-2.5 text-[13px] font-semibold">Irgendwann</button>
+          </div>
+          {task.until && <button onClick={() => { snoozeTask(list, task.id, undefined); onClose() }} className="press mt-2 w-full rounded-md bg-accent-soft py-2.5 text-[13px] font-semibold text-accent">Wieder für heute</button>}
+        </>
+      )}
       <p className="mb-2 mt-4 text-[13px] font-semibold uppercase tracking-wider text-text-3">Verschieben nach</p>
       <div className="grid grid-cols-2 gap-2">
         {LISTS.filter((l) => l.id !== list).map((l) => (
@@ -119,6 +157,13 @@ function TaskSheet({ task, list, onClose }: { task: Task | null; list: ListId; o
       </button>
     </Sheet>
   )
+}
+
+/** „morgen", „Mo 14.9." oder „irgendwann" */
+function snoozeLabel(until: string, today: string): string {
+  if (until === SOMEDAY) return 'irgendwann'
+  if (until === addDaysKey(today, 1)) return 'morgen'
+  return new Date(until + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' })
 }
 
 function readList(): ListId {

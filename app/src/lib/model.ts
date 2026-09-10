@@ -19,8 +19,16 @@ export type EventItem = {
   travel?: number // Fahrzeit in Minuten
 }
 
-/** qty: Mengenangabe für Einkäufe wie "2 kg" oder "3 Stk." (nur Einkaufsliste) */
-export type Task = { id: string; text: string; done: boolean; tag?: string; qty?: string }
+/** qty: Mengenangabe für Einkäufe wie "2 kg" oder "3 Stk." (nur Einkaufsliste).
+ *  until: zurückgestellt bis zu diesem Tag (YYYY-MM-DD), '9999-12-31' = irgendwann. Bis dahin aus den offenen Listen ausgeblendet. */
+export type Task = { id: string; text: string; done: boolean; tag?: string; qty?: string; until?: string }
+
+export const SOMEDAY = '9999-12-31'
+
+/** Offen und heute sichtbar (nicht erledigt, nicht zurückgestellt) */
+export const isActive = (t: Task, day: string) => !t.done && (!t.until || t.until <= day)
+/** Zurückgestellt (auf ein späteres Datum oder irgendwann) */
+export const isSnoozed = (t: Task, day: string) => !t.done && !!t.until && t.until > day
 
 export type Energy = { level: EnergyLevel; label: string; pct: number }
 
