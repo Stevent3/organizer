@@ -4,7 +4,7 @@ import type { Task } from './model'
 export const SHOP_CATS = [
   { id: 'obst', name: 'Obst & Gemüse', emoji: '🥦' },
   { id: 'brot', name: 'Brot & Backwaren', emoji: '🍞' },
-  { id: 'milch', name: 'Milchprodukte & Eier', emoji: '🧀' },
+  { id: 'milch', name: 'Kühlregal, Eier & Tofu', emoji: '🧀' },
   { id: 'fleisch', name: 'Fleisch & Fisch', emoji: '🍗' },
   { id: 'vorrat', name: 'Vorrat, Nudeln & Gewürze', emoji: '🥫' },
   { id: 'tk', name: 'Tiefkühl', emoji: '🧊' },
@@ -23,8 +23,9 @@ export const SHOP_CATALOG: Record<string, [string, ShopCat]> = {
   tomate: C('🍅', 'obst'), gurke: C('🥒', 'obst'), paprika: C('🫑', 'obst'), salat: C('🥬', 'obst'), spinat: C('🥬', 'obst'), karotte: C('🥕', 'obst'), möhre: C('🥕', 'obst'), kartoffel: C('🥔', 'obst'), zwiebel: C('🧅', 'obst'), knoblauch: C('🧄', 'obst'), brokkoli: C('🥦', 'obst'), blumenkohl: C('🥦', 'obst'), zucchini: C('🥒', 'obst'), aubergine: C('🍆', 'obst'), pilze: C('🍄', 'obst'), champignon: C('🍄', 'obst'), ingwer: C('🫚', 'obst'), mais: C('🌽', 'obst'), kürbis: C('🎃', 'obst'), lauch: C('🥬', 'obst'), porree: C('🥬', 'obst'), kohl: C('🥬', 'obst'), radieschen: C('🥕', 'obst'), rucola: C('🥬', 'obst'), basilikum: C('🌿', 'obst'), petersilie: C('🌿', 'obst'), koriander: C('🌿', 'obst'), schnittlauch: C('🌿', 'obst'), kräuter: C('🌿', 'obst'),
   brot: C('🍞', 'brot'), brötchen: C('🥐', 'brot'), toast: C('🍞', 'brot'), baguette: C('🥖', 'brot'), croissant: C('🥐', 'brot'), wrap: C('🌯', 'brot'), tortilla: C('🌯', 'brot'), vollkorn: C('🍞', 'brot'),
   milch: C('🥛', 'milch'), butter: C('🧈', 'milch'), käse: C('🧀', 'milch'), gouda: C('🧀', 'milch'), mozzarella: C('🧀', 'milch'), parmesan: C('🧀', 'milch'), feta: C('🧀', 'milch'), joghurt: C('🥛', 'milch'), quark: C('🥛', 'milch'), sahne: C('🥛', 'milch'), schmand: C('🥛', 'milch'), frischkäse: C('🧀', 'milch'), ei: C('🥚', 'milch'), eier: C('🥚', 'milch'), hafermilch: C('🥛', 'milch'), sojamilch: C('🥛', 'milch'),
-  hähnchen: C('🍗', 'fleisch'), huhn: C('🍗', 'fleisch'), hühnchen: C('🍗', 'fleisch'), pute: C('🍗', 'fleisch'), rind: C('🥩', 'fleisch'), hack: C('🥩', 'fleisch'), schwein: C('🥩', 'fleisch'), steak: C('🥩', 'fleisch'), wurst: C('🌭', 'fleisch'), schinken: C('🥓', 'fleisch'), speck: C('🥓', 'fleisch'), salami: C('🍕', 'fleisch'), lachs: C('🐟', 'fleisch'), fisch: C('🐟', 'fleisch'), thunfisch: C('🐟', 'fleisch'), garnele: C('🦐', 'fleisch'), tofu: C('🧊', 'fleisch'),
+  hähnchen: C('🍗', 'fleisch'), huhn: C('🍗', 'fleisch'), hühnchen: C('🍗', 'fleisch'), pute: C('🍗', 'fleisch'), rind: C('🥩', 'fleisch'), hack: C('🥩', 'fleisch'), schwein: C('🥩', 'fleisch'), steak: C('🥩', 'fleisch'), wurst: C('🌭', 'fleisch'), schinken: C('🥓', 'fleisch'), speck: C('🥓', 'fleisch'), salami: C('🍕', 'fleisch'), lachs: C('🐟', 'fleisch'), fisch: C('🐟', 'fleisch'), thunfisch: C('🐟', 'fleisch'), garnele: C('🦐', 'fleisch'), tofu: C('🫘', 'milch'),
   nudel: C('🍝', 'vorrat'), pasta: C('🍝', 'vorrat'), spaghetti: C('🍝', 'vorrat'), reis: C('🍚', 'vorrat'), couscous: C('🍚', 'vorrat'), quinoa: C('🍚', 'vorrat'), mehl: C('🌾', 'vorrat'), zucker: C('🍬', 'vorrat'), salz: C('🧂', 'vorrat'), pfeffer: C('🧂', 'vorrat'), öl: C('🫒', 'vorrat'), olivenöl: C('🫒', 'vorrat'), essig: C('🫒', 'vorrat'), honig: C('🍯', 'vorrat'), marmelade: C('🍯', 'vorrat'), müsli: C('🥣', 'vorrat'), haferflocken: C('🥣', 'vorrat'), cornflakes: C('🥣', 'vorrat'), linsen: C('🥫', 'vorrat'), bohnen: C('🥫', 'vorrat'), kichererbsen: C('🥫', 'vorrat'), tomatenmark: C('🥫', 'vorrat'), passierte: C('🥫', 'vorrat'), kokosmilch: C('🥥', 'vorrat'), sojasauce: C('🥢', 'vorrat'), curry: C('🍛', 'vorrat'), gewürz: C('🧂', 'vorrat'), brühe: C('🥣', 'vorrat'), nüsse: C('🥜', 'vorrat'), erdnuss: C('🥜', 'vorrat'), mandel: C('🥜', 'vorrat'),
+  mandelmilch: C('🥛', 'milch'), tempeh: C('🫘', 'milch'), seitan: C('🫘', 'milch'), reisnudel: C('🍜', 'vorrat'), glasnudel: C('🍜', 'vorrat'), soba: C('🍜', 'vorrat'), ramen: C('🍜', 'vorrat'), udon: C('🍜', 'vorrat'), sushi: C('🍣', 'vorrat'), erdnussbutter: C('🥜', 'vorrat'), mandelmus: C('🥜', 'vorrat'), tahini: C('🥜', 'vorrat'), spiegelei: C('🥚', 'milch'), rührei: C('🥚', 'milch'),
   pizza: C('🍕', 'tk'), pommes: C('🍟', 'tk'), tiefkühl: C('🧊', 'tk'), eis: C('🍨', 'tk'),
   wasser: C('💧', 'getraenke'), saft: C('🧃', 'getraenke'), apfelsaft: C('🧃', 'getraenke'), orangensaft: C('🧃', 'getraenke'), cola: C('🥤', 'getraenke'), limo: C('🥤', 'getraenke'), bier: C('🍺', 'getraenke'), wein: C('🍷', 'getraenke'), kaffee: C('☕', 'getraenke'), tee: C('🍵', 'getraenke'),
   schokolade: C('🍫', 'suess'), schoko: C('🍫', 'suess'), keks: C('🍪', 'suess'), chips: C('🥨', 'suess'), gummibär: C('🍬', 'suess'), bonbon: C('🍬', 'suess'), kuchen: C('🍰', 'suess'),
@@ -36,11 +37,23 @@ export function shopBaseName(text: string): string {
   return (text || '').toLowerCase().replace(/\(.*?\)/g, '').trim()
 }
 
+/**
+ * Emoji + Kategorie zu einem Artikel. Exakter Treffer, sonst der LÄNGSTE passende Katalog-Schlüssel:
+ * ganzes Wort („Soja-Ei" → ei), Teilwort ab 4 Zeichen („Basmatireis" → reis, „Reisnudeln" → nudel),
+ * kurze Schlüssel nur als Wortende („Spiegelei" → ei, aber nicht „Reis" → ei). Vorher gewann der erste
+ * Treffer in Katalogreihenfolge, deshalb bekam alles mit „ei" ein Ei (Stevens Screenshot 10.09.2026).
+ */
 export function shopInfo(text: string): { emoji: string; cat: ShopCat } {
   const n = shopBaseName(text)
   if (SHOP_CATALOG[n]) return { emoji: SHOP_CATALOG[n][0], cat: SHOP_CATALOG[n][1] }
-  for (const k of Object.keys(SHOP_CATALOG)) if (n.includes(k)) return { emoji: SHOP_CATALOG[k][0], cat: SHOP_CATALOG[k][1] }
-  return { emoji: '🛒', cat: 'sonst' }
+  const tokens = n.split(/[^a-zäöüß]+/).filter(Boolean)
+  let best = ''
+  for (const k of Object.keys(SHOP_CATALOG)) {
+    if (k.length <= best.length) continue
+    const hit = tokens.includes(k) || (k.length >= 4 ? n.includes(k) : tokens.some((t) => t.endsWith(k)))
+    if (hit) best = k
+  }
+  return best ? { emoji: SHOP_CATALOG[best][0], cat: SHOP_CATALOG[best][1] } : { emoji: '🛒', cat: 'sonst' }
 }
 
 export const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)

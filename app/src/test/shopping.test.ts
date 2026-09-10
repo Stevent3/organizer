@@ -9,6 +9,16 @@ describe('Einkaufsliste', () => {
     expect(shopInfo('Apfel')).toEqual({ emoji: '🍎', cat: 'obst' })
     expect(shopInfo('Bio-Hafermilch (2x)')).toEqual({ emoji: '🥛', cat: 'milch' })
     expect(shopInfo('Kabelbinder')).toEqual({ emoji: '🛒', cat: 'sonst' })
+    // Längster Treffer statt Katalogreihenfolge: kein Ei mehr für alles mit „ei", keine Butter für Erdnussbutter
+    expect(shopInfo('Basmatireis').emoji).toBe('🍚')
+    expect(shopInfo('Jasminreis').emoji).toBe('🍚')
+    expect(shopInfo('Reisnudeln').emoji).toBe('🍜')
+    expect(shopInfo('Soja-Ei').emoji).toBe('🥚')
+    expect(shopInfo('Spiegelei').emoji).toBe('🥚')
+    expect(shopInfo('Erdnussbutter').emoji).toBe('🥜')
+    expect(shopInfo('Kokosmilch')).toEqual({ emoji: '🥥', cat: 'vorrat' })
+    expect(shopInfo('Naturtofu')).toEqual({ emoji: '🫘', cat: 'milch' })
+    expect(shopInfo('Mandelmilch').emoji).toBe('🥛')
     expect(shopBaseName('Milch (1 L)')).toBe('milch')
   })
 
