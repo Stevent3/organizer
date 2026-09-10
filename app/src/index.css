@@ -154,7 +154,8 @@
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-up { animation: fade-up 360ms var(--ease-out) both; }
+/* backwards statt both: ein bleibender transform würde fixed-Sheets im Screen einsperren */
+.animate-fade-up { animation: fade-up 360ms var(--ease-out) backwards; }
 
 @keyframes sheet-up {
   from { transform: translateY(100%); }
