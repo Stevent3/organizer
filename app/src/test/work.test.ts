@@ -44,6 +44,9 @@ describe('Schichten & Verdienst', () => {
     expect(s.next?.id).toBe('2')
     // Nach Schichtende zählt die nächste
     expect(shiftStats(events, { keyword: 'Samowar', rate: 14.9 }, '2026-09-11', 19 * 60).next?.id).toBe('3')
+    // Laufende Nachtschicht bleibt „nächste Schicht"
+    const night = [ev('n', '2026-09-19', '22:00', '02:00', 'Samowar Nacht', { endDate: '2026-09-20' })]
+    expect(shiftStats(night, { keyword: 'Samowar', rate: 14.9 }, '2026-09-19', 23 * 60 + 30).next?.id).toBe('n')
   })
 
   it('formatiert Euro und Stunden deutsch', () => {

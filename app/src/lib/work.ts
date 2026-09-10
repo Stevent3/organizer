@@ -64,8 +64,10 @@ export function shiftStats(events: EventItem[], settings: WorkSettings, day = to
   const monthStart = day.slice(0, 8) + '01'
   const monthEnd = addDaysKey(day.slice(0, 8) + '01', 45).slice(0, 8) + '01'
   const monthLast = addDaysKey(monthEnd, -1)
+  // Ende mit Mitternachts-Überlauf wie in shiftHours, damit eine laufende Nachtschicht nicht verschwindet
+  const endMin = (e: EventItem) => { const st = timeToMin(e.time) ?? 0; const en = timeToMin(e.end); return en == null ? st + 60 : en <= st || (e.endDate && e.endDate > e.date) ? en + 1440 : en }
   const upcoming = shiftsBetween(events, keyword, day, addDaysKey(day, 60))
-    .filter((e) => e.date > day || timedRange(e)!.end > nowMin)
+    .filter((e) => e.date > day || endMin(e) > nowMin)
     .sort((a, b) => (a.date + a.time!).localeCompare(b.date + b.time!))
   return {
     today: sum(shiftsBetween(events, keyword, day, day), rate),

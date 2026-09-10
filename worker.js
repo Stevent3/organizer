@@ -145,7 +145,7 @@ async function runChecks(env) {
     if (!ev.time) continue;
     const evMin = toMin(ev.time);
     // Fahrzeit nur für bald startende Termine mit Ort berechnen (ein Geocoding je Adresse, dann Cache)
-    if (!ev.travel && ev.sub && state.home && evMin > now.min && evMin - now.min <= 180) {
+    if (!ev.travel && ev.sub && state.home && evMin > now.min && evMin - now.min <= 360) {
       ev.travel = await travelMinutes(env, state.home, ev.sub);
     }
     const lead = ev.travel ? (ev.travel + 5) : 30;
@@ -223,9 +223,11 @@ async function geocode(env, place) {
       headers: { 'User-Agent': 'organizer-steven/1.0 (privater Tagesorganizer, Cloudflare Worker)', 'Accept-Language': 'de' },
       signal: AbortSignal.timeout(6000)
     });
-    if (r.ok) { const j = await r.json(); if (Array.isArray(j) && j[0]) out = { lat: +j[0].lat, lon: +j[0].lon }; }
-  } catch (_) {}
-  // Auch „nicht gefunden" merken (30 Tage), sonst fragt jeder Cron-Lauf erneut
+    if (!r.ok) return null; // Timeout/429/5xx: nichts merken, beim nächsten Lauf erneut versuchen
+    const j = await r.json();
+    if (Array.isArray(j) && j[0]) out = { lat: +j[0].lat, lon: +j[0].lon };
+  } catch (_) { return null; }
+  // Echte Antwort merken (30 Tage) – auch „nicht gefunden", sonst fragt jeder Cron-Lauf erneut
   await env.KV.put(key, JSON.stringify(out || {}), { expirationTtl: 30 * 24 * 3600 });
   return out;
 }
@@ -542,7 +544,7 @@ async function vapidJwt(audience, subject, jwkPrivate) {
 // ═══════════════════════════════════════════════════════════
 function decodeEntities(s) {
   return s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)));
+    .replace(/&#(\d+);/g, (m, n) => (+n <= 0x10ffff ? String.fromCodePoint(+n) : m)).replace(/&#x([0-9a-f]+);/gi, (m, n) => (parseInt(n, 16) <= 0x10ffff ? String.fromCodePoint(parseInt(n, 16)) : m));
 }
 function htmlTitle(html) {
   const m = /<title[^>]*>([^<]*)<\/title>/i.exec(html);
@@ -616,12 +618,14 @@ function parseLines(text) {
   for (const raw of (text || '').split(/\r?\n/)) {
     const line = raw.trim(); if (!line) continue;
     const first = line.includes('|') ? line.split('|')[0] : (line.match(/^(\d{1,2}:\d{2})\s+/) || [])[1];
-    if (!parseStamp(first) && merged.length) merged[merged.length - 1] += ', ' + line.replace(/\|\s*$/, '');
-    else merged.push(line);
+    const prev = merged[merged.length - 1];
+    // Folgezeile ohne Zeitstempel: nur an einen Termin anhängen, der schon Titel UND Ort hat (mehrzeilige Adresse); sonst Müll verwerfen
+    if (!parseStamp(first)) { if (prev && prev.split('|').length >= 4) merged[merged.length - 1] = prev + ', ' + line.replace(/\|\s*$/, ''); continue; }
+    merged.push(line);
   }
   const seen = new Set(); const out = [];
   for (const line of merged) {
-    let date = '', endDate = '', time = '', end = '', t = 'Termin', sub = '', travel = 0, allDay = false;
+    let date = '', endDate = '', time = '', end = '', t = 'Termin', sub = '', travel = 0, allDay = false, midnightEnd = false;
     if (line.includes('|')) {
       const p = line.split('|').map(s => s.trim());
       let idx = 0; const times = []; let last = null;
@@ -635,7 +639,12 @@ function parseLines(text) {
       }
       if (!date && !times.length) continue;
       time = times[0] || ''; end = times[1] || '';
-      if (last && last.date && date && last.date > date) endDate = last.date;
+      if (last && last.date && date && last.date > date) {
+        // Apple liefert bei ganztägig/mehrtägig das Ende exklusiv („14.09., 00:00" = bis einschließlich 13.09.)
+        midnightEnd = last.time === '00:00';
+        endDate = midnightEnd ? addDays(last.date, -1) : last.date;
+        if (endDate <= date) endDate = '';
+      }
       t = p[idx] || 'Termin'; sub = p[idx + 1] || '';
       // Danach optional: „Ist ganztägig" (Ja/Nein) und Fahrzeit („23 Min.") in beliebiger Reihenfolge
       for (const f of p.slice(idx + 2)) {
@@ -647,7 +656,7 @@ function parseLines(text) {
       const m = line.match(/^(\d{1,2}:\d{2})\s+(.+)$/); if (!m) continue;
       time = m[1].padStart(5, '0'); t = m[2];
     }
-    if (allDay || (time === '00:00' && (end === '23:59' || (endDate && end === '00:00')))) { time = ''; end = ''; }
+    if (allDay || (time === '00:00' && (end === '23:59' || (midnightEnd && end === '00:00')))) { time = ''; end = ''; }
     // Outlook/Exchange schickt abgesagte Besprechungen weiter mit Präfix – die will niemand im Kalender
     if (/^(abgesagt|canceled|cancelled|storniert)\s*:/i.test(t)) continue;
     if (!time && !date) continue;

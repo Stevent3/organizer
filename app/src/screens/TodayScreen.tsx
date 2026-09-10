@@ -113,7 +113,8 @@ export function TodayScreen() {
     setDraft({ date: day, allDay: false, time: minToTime(min), end: minToTime(Math.min(min + 60, 1439)), text: '', color: 'accent', source: 'manual' })
   }
 
-  const travel = useTravel(focus?.kind === 'next' ? focus.ev.sub : undefined, focus?.ev.source === 'calendar')
+  const travelHook = useTravel(focus?.kind === 'next' && !focus.ev.travel ? focus.ev.sub : undefined, focus?.ev.source === 'calendar')
+  const travel = focus?.ev.travel || travelHook
   const depart = focus?.kind === 'next' && travel ? departureMin(timeToMin(focus.ev.time) ?? 0, travel) : null
 
   const data: TodayData = {

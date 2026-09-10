@@ -62,6 +62,8 @@ export function buildCalendarEvents(raw: RawCalEvent[], overrides: Record<string
  * updatedAt bleibt (kein Push nötig).
  */
 export function applyCalendar(state: AppState, raw: RawCalEvent[], day: string): AppState {
+  // Leerer Snapshot (Kurzbefehl hat nichts geliefert): nichts wegwerfen, alter Stand bleibt bis zum nächsten guten Lauf
+  if (!raw.length) return state
   const fresh = buildCalendarEvents(raw, state.calOverrides, day)
   const freshIds = new Set(fresh.map((e) => e.id))
   const snapshotDays = new Set(raw.map((e) => (isDate(e?.date) ? e.date! : day)))

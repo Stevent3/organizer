@@ -76,7 +76,9 @@ export function Glance(d: TodayData) {
   const hiddenTodos = Math.max(0, d.open.length - MAX_TODOS)
 
   const f = d.focus
-  const travel = useTravel(f?.kind === 'next' ? f.ev.sub : undefined, f?.ev.source === 'calendar')
+  // Fahrzeit: aus der Kurzbefehl-Zeile, sonst vom Worker (dieselbe Reihenfolge wie der Abfahrts-Push)
+  const travelHook = useTravel(f?.kind === 'next' && !f.ev.travel ? f.ev.sub : undefined, f?.ev.source === 'calendar')
+  const travel = f?.ev.travel || travelHook
   const depart = f?.kind === 'next' && travel ? departureMin(timeToMin(f.ev.time) ?? 0, travel) : null
   const heroTitle = f ? f.ev.text : d.todays.length ? 'Keine weiteren Termine' : 'Heute ist frei'
   const heroSub = f

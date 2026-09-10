@@ -65,6 +65,12 @@ describe('Kalender aus dem Worker', () => {
     expect(n.events.map((e) => e.text).sort()).toEqual(['gestern', 'heute-neu', 'manuell-morgen', 'morgen-neu'])
   })
 
+  it('leerer Snapshot (Kurzbefehl lieferte nichts) lässt alles stehen', () => {
+    const s = base({ events: [ev({ text: 'heute', source: 'calendar', date: DAY }), ev({ text: 'später', source: 'calendar', date: '2026-09-15' })], lastCalendarSync: 7 })
+    const n = applyCalendar(s, [], DAY)
+    expect(n).toBe(s)
+  })
+
   it('Snapshot ohne Datum (altes Format) ersetzt heute und alles Spätere aus dem Kalender', () => {
     const s = base({ events: [ev({ text: 'gestern', source: 'calendar', date: '2026-09-09' }), ev({ text: 'später', source: 'calendar', date: '2026-09-15' })] })
     const n = applyCalendar(s, [{ time: '08:00', text: 'neu' }], DAY)

@@ -155,7 +155,7 @@ describe('Zeilenformat mit Datum (mehrere Tage)', () => {
     expect(parseLines(raw)).toEqual([
       { date: '2026-09-10', time: '', end: '', text: 'Viktoria (24. Geburtstag)', sub: '', travel: 0 },
       { date: '2026-09-10', time: '11:00', end: '18:30', text: 'Samowar Tea and Records', sub: 'Am Sande 33, 21335 Lüneburg, Deutschland', travel: 0 },
-      { date: '2026-09-12', time: '', end: '', text: 'Urlaub', sub: '', travel: 0, endDate: '2026-09-14' },
+      { date: '2026-09-12', time: '', end: '', text: 'Urlaub', sub: '', travel: 0, endDate: '2026-09-13' },
       { date: '2026-09-12', time: '22:00', end: '02:00', text: 'Party', sub: 'Club', travel: 0, endDate: '2026-09-13' },
       { date: '2026-09-15', time: '', end: '', text: 'Feiertag', sub: '', travel: 0 },
       { date: '2026-09-15', time: '09:00', end: '10:00', text: 'Zahnarzt', sub: 'Praxis', travel: 23 },
@@ -164,6 +164,9 @@ describe('Zeilenformat mit Datum (mehrere Tage)', () => {
   it('dedupliziert nur innerhalb eines Tages und verwirft Zeilen ohne Uhrzeit', () => {
     const evs = parseLines('12.09.2026 | 08:00 | Uni\n13.09.2026 | 08:00 | Uni\n12.09.2026 | 08:00 | uni\n12.09.2026 | Ganztags\nkein Termin')
     expect(evs.map((e) => e.date + ' ' + e.time)).toEqual(['2026-09-12 08:00', '2026-09-13 08:00', '2026-09-12 '])
+    expect(evs[2].text).toBe('Ganztags') // Müllzeile wird verworfen, nicht angehängt
+    // Eintägig mit exklusivem Ende 00:00 am Folgetag → kein endDate
+    expect(parseLines('12.09.2026, 00:00 | 13.09.2026, 00:00 | Feiertag')[0]).toEqual({ date: '2026-09-12', time: '', end: '', text: 'Feiertag', sub: '', travel: 0 })
   })
   it('bildet den Override-Schlüssel mit Datum, ohne Datum wie bisher', () => {
     expect(calKey({ date: '2026-09-12', time: '08:00', text: 'Uni' })).toBe('2026-09-12|08:00|uni')
@@ -401,11 +404,25 @@ describe('runChecks (Cron)', () => {
     expect(calls.filter((c) => c.url.includes('nominatim'))).toHaveLength(1)
     expect((calls.find((c) => c.url.includes('nominatim'))!.init!.headers as Record<string, string>)['User-Agent']).toMatch(/organizer/)
     expect(kv.store.get('geo:am sande 33, 21335 lüneburg')).toBe(JSON.stringify({ lat: 53.2489, lon: 10.4102 }))
+    expect(kv.store.has('geo:kaputt')).toBe(false)
     expect(kv.store.get('route:53.250,10.400>53.249,10.410')).toBe('23')
     // Zweiter Lauf: alles aus dem Cache, keine neuen Netzaufrufe außer Push-Dedup
     calls.length = 0
     await runChecks(env)
     expect(calls.filter((c) => c.url.includes('nominatim') || c.url.includes('osrm'))).toHaveLength(0)
+  })
+
+  it('merkt sich Geocoding-Fehler NICHT (nur echte Antworten)', async () => {
+    atBerlin('08:30')
+    vi.stubGlobal('fetch', vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      calls.push({ url: String(url), init })
+      if (String(url).includes('nominatim')) return new Response('rate limited', { status: 429 })
+      return new Response('', { status: 201 })
+    }))
+    const { env, kv } = await makeEnv({ tasks: { today: [] }, home: { lat: 53.25, lon: 10.4 } }, { calendar: [{ date: DAY, time: '09:00', end: '10:00', text: 'Samowar', sub: 'Am Sande 33' }] })
+    await runChecks(env)
+    expect([...kv.store.keys()].some((k) => k.startsWith('geo:'))).toBe(false)
+    expect(pushCalls()).toHaveLength(1) // Standard 30 Min: 08:30 liegt im Fenster
   })
 
   it('bleibt ohne Zuhause oder bei Online-Terminen beim 30-Minuten-Standard', async () => {
@@ -433,6 +450,9 @@ describe('Rezept-Import (Worker)', () => {
     expect(recipeFromJsonLd(html)).toEqual({ title: 'Kürbissuppe mit Ingwer', ingredients: ['1 kg Hokkaido-Kürbis', '2 Zwiebeln', '20 g Ingwer', '400 ml Kokosmilch', 'Salz & Pfeffer'] })
     expect(recipeFromJsonLd('<html><script type="application/ld+json">{"@type":"Article"}</script></html>')).toBeNull()
     expect(recipeFromJsonLd('<script type="application/ld+json">kaputt{</script>')).toBeNull()
+  })
+  it('stürzt bei kaputten Zeichen-Entities nicht ab', () => {
+    expect(htmlToText('<p>Zutat &#1234567890; &#x110000; &#252;</p>')).toBe('Zutat &#1234567890; &#x110000; ü')
   })
   it('macht aus HTML lesbaren Text ohne Skripte', () => {
     expect(htmlToText('<html><script>x()</script><style>a{}</style><h1>Zutaten</h1><ul><li>2 Eier</li><li>100&nbsp;g Mehl</li></ul></html>')).toBe('Zutaten\n2 Eier\n100 g Mehl')
