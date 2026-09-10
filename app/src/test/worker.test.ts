@@ -381,6 +381,42 @@ describe('runChecks (Cron)', () => {
     expect(calls.some((c) => c.url.includes('groq.com'))).toBe(false)
   })
 
+  it('rechnet die Fahrzeit ab Zuhause aus und cacht Geocoding und Route', async () => {
+    atBerlin('08:30')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const u = String(url)
+        calls.push({ url: u, init })
+        if (u.startsWith('https://nominatim.openstreetmap.org/')) return new Response(JSON.stringify([{ lat: '53.2489', lon: '10.4102' }]), { status: 200 })
+        if (u.startsWith('https://router.project-osrm.org/')) return new Response(JSON.stringify({ routes: [{ duration: 23 * 60 + 20 }] }), { status: 200 })
+        return new Response('', { status: 201 })
+      }),
+    )
+    const calendar = [{ date: DAY, time: '09:00', end: '10:00', text: 'Samowar', sub: 'Am Sande 33, 21335 Lüneburg' }]
+    const { env, kv } = await makeEnv({ tasks: { today: [] }, home: { name: 'Zuhause', lat: 53.25, lon: 10.4 } }, { calendar })
+    await runChecks(env)
+    // Fahrt 23 Min → losgehen um 08:32, Fenster 08:24–08:39 → Push um 08:30
+    expect(pushCalls()).toHaveLength(1)
+    expect(calls.filter((c) => c.url.includes('nominatim'))).toHaveLength(1)
+    expect((calls.find((c) => c.url.includes('nominatim'))!.init!.headers as Record<string, string>)['User-Agent']).toMatch(/organizer/)
+    expect(kv.store.get('geo:am sande 33, 21335 lüneburg')).toBe(JSON.stringify({ lat: 53.2489, lon: 10.4102 }))
+    expect(kv.store.get('route:53.250,10.400>53.249,10.410')).toBe('23')
+    // Zweiter Lauf: alles aus dem Cache, keine neuen Netzaufrufe außer Push-Dedup
+    calls.length = 0
+    await runChecks(env)
+    expect(calls.filter((c) => c.url.includes('nominatim') || c.url.includes('osrm'))).toHaveLength(0)
+  })
+
+  it('bleibt ohne Zuhause oder bei Online-Terminen beim 30-Minuten-Standard', async () => {
+    atBerlin('08:35')
+    const calendar = [{ date: DAY, time: '09:00', end: '10:00', text: 'Jour Fixe', sub: 'Microsoft Teams-Besprechung' }]
+    const { env } = await makeEnv({ tasks: { today: [] }, home: { lat: 53.25, lon: 10.4 } }, { calendar })
+    await runChecks(env)
+    expect(calls.some((c) => c.url.includes('nominatim'))).toBe(false)
+    expect(pushCalls()).toHaveLength(1) // 09:00 − 30 = 08:30, Fenster bis 08:37
+  })
+
   it('tut ohne Push-Abo gar nichts', async () => {
     atBerlin('21:05')
     const env = { ...(await makeEnv({ tasks: { today: [{ text: 'B' }] } })).env, KV: fakeKv({ state: { tasks: { today: [{ text: 'B' }] } } }) }

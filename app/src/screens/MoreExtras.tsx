@@ -76,11 +76,13 @@ export function WeatherSection() {
   const [busy, setBusy] = useState(false)
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 3000) }
 
+  const setExtraHome = useStore((s) => s.setExtra)
   const save = () => {
     const la = Number(lat.replace(',', '.')), lo = Number(lon.replace(',', '.'))
     if (!name.trim() || Number.isNaN(la) || Number.isNaN(lo) || Math.abs(la) > 90 || Math.abs(lo) > 180) { flash('Bitte Name und gültige Koordinaten'); return }
     setLocation({ name: name.trim(), lat: la, lon: lo })
-    flash('Standort gespeichert')
+    setExtraHome({ home: { name: name.trim(), lat: la, lon: lo } })
+    flash('Standort gespeichert – gilt auch als Zuhause für den Abfahrts-Push')
   }
   const locate = async () => {
     setBusy(true)
@@ -88,7 +90,8 @@ export function WeatherSection() {
       const l = await locateMe()
       setName(l.name); setLat(String(l.lat)); setLon(String(l.lon))
       setLocation(l)
-      flash('Standort: ' + l.name)
+      setExtraHome({ home: l })
+      flash('Standort: ' + l.name + ' – auch Zuhause für den Abfahrts-Push')
     } catch (e) {
       flash(e instanceof Error ? e.message : 'Standort nicht verfügbar')
     }
@@ -98,10 +101,10 @@ export function WeatherSection() {
 
   return (
     <>
-      <SectionLabel>Wetter</SectionLabel>
+      <SectionLabel>Wetter & Zuhause</SectionLabel>
       <Card>
         <p className="flex items-center gap-1.5 text-[15px]"><MapPin size={15} className="text-text-3" /> {location.name}{data ? ' · ' + data.temp + '°' : ''}</p>
-        <p className="mb-2 text-[12px] text-text-3">Open-Meteo, kostenlos und ohne Account. Koordinaten z. B. aus Apple Karten (Ort teilen).</p>
+        <p className="mb-2 text-[12px] text-text-3">Wetter von Open-Meteo, kostenlos. Derselbe Standort ist dein Zuhause für den Abfahrts-Push: Der Worker rechnet die Fahrzeit zum Termin-Ort aus (OpenStreetMap/OSRM, Auto).</p>
         <div className="grid grid-cols-[1fr_auto_auto] gap-2">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ort" className={input} />
           <input value={lat} onChange={(e) => setLat(e.target.value)} placeholder="Breite" inputMode="decimal" className={input + ' w-24'} />

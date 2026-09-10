@@ -19,6 +19,14 @@ function api(): WorkerApi | null {
 }
 
 /** Pull (Kalender + State), danach Push, falls lokal neuer und Schreib-Sync aktiv */
+/** Netzwerkfehler heißen im Browser nur „Failed to fetch"/„Load failed" – für Steven lesbar machen */
+export function describeSyncError(e: unknown): string {
+  const m = e instanceof Error ? e.message : String(e)
+  if (/failed to fetch|load failed|networkerror|network request failed/i.test(m)) return typeof navigator !== 'undefined' && navigator.onLine === false ? 'Offline – wird beim nächsten Öffnen nachgeholt' : 'Worker nicht erreichbar – später nochmal'
+  if (/401/.test(m)) return 'Token stimmt nicht (401)'
+  return m
+}
+
 export async function syncNow(): Promise<boolean> {
   const w = api()
   if (!w) {
@@ -43,7 +51,7 @@ export async function syncNow(): Promise<boolean> {
     useSyncStatus.setState({ status: 'ok', lastOk: Date.now(), error: null })
     return true
   } catch (e) {
-    useSyncStatus.setState({ status: 'error', error: e instanceof Error ? e.message : String(e) })
+    useSyncStatus.setState({ status: 'error', error: describeSyncError(e) })
     return false
   } finally {
     running = false
@@ -63,7 +71,7 @@ export function schedulePush() {
   if (pushTimer) clearTimeout(pushTimer)
   pushTimer = setTimeout(() => {
     pushTimer = null
-    pushNow().catch((e) => useSyncStatus.setState({ status: 'error', error: e instanceof Error ? e.message : String(e) }))
+    pushNow().catch((e) => useSyncStatus.setState({ status: 'error', error: describeSyncError(e) }))
   }, 3000)
 }
 
@@ -77,5 +85,7 @@ export function startSyncEngine(): Promise<boolean> {
   })
   const onVisible = () => document.visibilityState === 'visible' && syncNow()
   document.addEventListener('visibilitychange', onVisible)
+  // Wieder online (z. B. nach der Bahnfahrt): sofort nachholen, nicht erst beim nächsten Öffnen
+  window.addEventListener('online', () => { void syncNow() })
   return syncNow()
 }

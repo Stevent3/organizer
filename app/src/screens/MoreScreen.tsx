@@ -98,7 +98,7 @@ function SyncSection() {
   const statusLabel =
     sync.status === 'unconfigured' ? 'Nicht verbunden'
     : sync.status === 'syncing' ? 'Synchronisiere …'
-    : sync.status === 'error' ? 'Fehler: ' + (sync.error ?? '')
+    : sync.status === 'error' ? (sync.error ?? 'Fehler')
     : sync.lastOk ? 'Zuletzt ' + new Date(sync.lastOk).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
     : 'Bereit'
 

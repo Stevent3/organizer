@@ -1,10 +1,11 @@
-import { Trash2 } from 'lucide-react'
+import { Navigation, Trash2 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { colorVar } from '../../lib/colors'
 import { COLORS, type ColorKey, type EventItem } from '../../lib/model'
 import { minToTime, timeToMin } from '../../lib/time'
 import { Sheet } from '../Sheet'
 import { Toggle } from '../Toggle'
+import { looksLikePlace, mapsUrl } from '../../lib/maps'
 
 export type Draft = Omit<EventItem, 'id'> & { id?: string }
 
@@ -94,6 +95,11 @@ export function EventSheet({ draft, onClose, onSave, onDelete }: Props) {
         placeholder="Ort oder Notiz"
         className="mt-3 w-full rounded-md bg-fill px-3 py-2.5 text-[15px] outline-none placeholder:text-text-3"
       />
+      {looksLikePlace(d.sub, isApple) && (
+        <a href={mapsUrl(d.sub!)} target="_blank" rel="noreferrer" className="press mt-2 flex items-center gap-2 rounded-md bg-accent-soft px-3 py-2 text-[14px] font-semibold text-accent">
+          <Navigation size={15} /> Route in Karten öffnen
+        </a>
+      )}
 
       <div className="mt-3 flex items-center gap-2.5 px-1">
         {COLORS.map((c) => (

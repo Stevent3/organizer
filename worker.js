@@ -117,10 +117,14 @@ async function runChecks(env) {
   const allCal = applyOverrides(rawCal, state.calOverrides || {});
   const cal = calendarForDay(allCal, today);
 
-  // 1) Abfahrts-Erinnerung: nutzt echte Fahrzeit, sonst 30 Min Standard
+  // 1) Abfahrts-Erinnerung: nutzt echte Fahrzeit (aus der Zeile oder berechnet ab Zuhause), sonst 30 Min Standard
   for (const ev of cal) {
     if (!ev.time) continue;
     const evMin = toMin(ev.time);
+    // Fahrzeit nur für bald startende Termine mit Ort berechnen (ein Geocoding je Adresse, dann Cache)
+    if (!ev.travel && ev.sub && state.home && evMin > now.min && evMin - now.min <= 180) {
+      ev.travel = await travelMinutes(env, state.home, ev.sub);
+    }
     const lead = ev.travel ? (ev.travel + 5) : 30;
     const departMin = evMin - lead;
     if (now.min >= departMin - 8 && now.min <= departMin + 7) {
@@ -182,6 +186,40 @@ async function runChecks(env) {
       if (preview) await sendPush(sub, { title: preview.title, body: preview.body, tag: 'week' }, env);
     }
   }
+}
+
+// ── Fahrzeit (M13 E2): Ort → Koordinaten (Nominatim) → Route ab Zuhause (OSRM), gratis, Ergebnisse in KV gecacht ──
+const NO_PLACE = /https?:\/\/|teams|zoom|meet\.|skype|telefon|online/i;
+async function geocode(env, place) {
+  const key = 'geo:' + place.toLowerCase().replace(/\s+/g, ' ').slice(0, 100);
+  const cached = await env.KV.get(key, 'json');
+  if (cached) return typeof cached.lat === 'number' ? cached : null;
+  let out = null;
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' + encodeURIComponent(place), {
+      headers: { 'User-Agent': 'organizer-steven/1.0 (privater Tagesorganizer, Cloudflare Worker)', 'Accept-Language': 'de' },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (r.ok) { const j = await r.json(); if (Array.isArray(j) && j[0]) out = { lat: +j[0].lat, lon: +j[0].lon }; }
+  } catch (_) {}
+  // Auch „nicht gefunden" merken (30 Tage), sonst fragt jeder Cron-Lauf erneut
+  await env.KV.put(key, JSON.stringify(out || {}), { expirationTtl: 30 * 24 * 3600 });
+  return out;
+}
+async function travelMinutes(env, home, place) {
+  if (!home || typeof home.lat !== 'number' || typeof home.lon !== 'number' || !place || NO_PLACE.test(place)) return 0;
+  const dest = await geocode(env, place);
+  if (!dest) return 0;
+  const key = `route:${home.lat.toFixed(3)},${home.lon.toFixed(3)}>${dest.lat.toFixed(3)},${dest.lon.toFixed(3)}`;
+  const cached = await env.KV.get(key);
+  if (cached) return +cached;
+  let min = 0;
+  try {
+    const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${home.lon},${home.lat};${dest.lon},${dest.lat}?overview=false`, { signal: AbortSignal.timeout(6000) });
+    if (r.ok) { const j = await r.json(); const s = j.routes && j.routes[0] && j.routes[0].duration; if (typeof s === 'number') min = Math.max(1, Math.round(s / 60)); }
+  } catch (_) {}
+  if (min) await env.KV.put(key, String(min), { expirationTtl: 7 * 24 * 3600 });
+  return min;
 }
 
 // ── Geburtstage (gleiche Erkennung wie app/src/lib/birthdays.ts) ─────────────
@@ -562,4 +600,4 @@ function parseLines(text) {
 }
 
 // Nur für Tests (app/src/test/worker.test.ts) – der Worker selbst nutzt export default
-export { runChecks, applyOverrides, calendarForDay, calKey, parseLines, parseStamp, openTodayTasks, buildReviewText, buildWeekPreview, birthdayNames, weatherLine, toMin };
+export { runChecks, applyOverrides, calendarForDay, calKey, parseLines, parseStamp, openTodayTasks, buildReviewText, buildWeekPreview, birthdayNames, travelMinutes, weatherLine, toMin };

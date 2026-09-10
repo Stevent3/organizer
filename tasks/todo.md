@@ -31,7 +31,7 @@ Koexistenz-Regel: v8 pusht v8-Felder + v7-kompatible `schedule`/`calendarEvents`
 - [x] Import `organizer_v3` aus localStorage (automatisch beim ersten Start, manuell unter Mehr) + JSON-Import/Export
 - [x] Einstellungen: Worker-URL/Token (mit v7 geteilt, gleiche localStorage-Keys), Groq-Key; Push nur Status (Umzug in M5)
 - [x] Tests (vitest): Migration, Overrides, Sync-Merge, Wire-Format, Kalender-Layout (Überlappung, Mehrtag), Store
-- [ ] Offline-Fall: Fehlerzustand freundlich, Retry beim Sichtbarwerden (Basis vorhanden)
+- [x] Offline-Fall: Fehlerzustand freundlich, Retry beim Sichtbarwerden und bei „online" (M13)
 
 ## M4 – Feature-Parität
 - [x] Aufgaben: 4 Listen (umbenennen, verschieben, löschen, aufräumen), Bring-Einkaufsliste (Katalog-Vorschläge, Kacheln nach Kategorie, Korb, Verlauf, Empfehlungen aus Essensplan + Verlauf)
@@ -142,8 +142,8 @@ Reihenfolge nach Nutzen ÷ Aufwand, nach jedem Punkt Tests + Commit + Push auf m
 - [x] A **Schichten & Verdienst:** `extra.work` = { keyword, rate } (synchronisiert, Standard „Samowar" / 14,90); `lib/work.ts` zählt Kalender-Termine mit Stichwort → Stunden Woche/Monat/nächste Woche, Verdienst; Karte unter „Mehr" auf der Heute-Seite mit Einstellungs-Sheet; Worker nutzt es in der Wochen-Vorschau
 - [x] B **Geburtstags-Assistent:** ganztägige Termine mit „Geburtstag" (auch „gebby", „bday") → Karte auf der Heute-Seite (heute + morgen als Vorwarnung), „Glückwunsch schreiben" per Groq mit Ton-Profil (`extra.greetingStyle`: Freitext + Beispiel unter Mehr → Geburtstage), Ergebnis bearbeiten → Teilen/WhatsApp; Worker: Morgen-Briefing nennt Geburtstage, Abend-Review nennt morgige
 - [x] C **Wochen-Vorschau Sonntag 19:00 (Worker-Push):** Schichten mit Stunden/Verdienst, Termine je Tag, Geburtstage, freie Abende der nächsten Woche
-- [ ] E1 **Route öffnen:** Termin mit Ort → Apple Karten (`maps://`) im Termin-Sheet und in den Heute-Kacheln
-- [ ] E2 **Echte Fahrzeit im Abfahrts-Push:** Worker geocodiert Ort (Nominatim) + Route ab Zuhause (OSRM, gratis), Cache je Adresse in KV, Zuhause aus `extra.home` (App: Standort unter Mehr); Fallback bleibt 30 Min
-- [ ] Offline-Fall (M3): Fehlerzustand freundlich, Retry beim Sichtbarwerden
+- [x] E1 **Route öffnen:** Termin mit Ort → Apple Karten (`maps://`) im Termin-Sheet und in den Heute-Kacheln
+- [x] E2 **Echte Fahrzeit im Abfahrts-Push:** Worker geocodiert Ort (Nominatim) + Route ab Zuhause (OSRM, gratis), Cache je Adresse in KV, Zuhause aus `extra.home` (App: Standort unter Mehr); Fallback bleibt 30 Min
+- [x] Offline-Fall (M3): Fehlerzustand freundlich, Retry beim Sichtbarwerden
 - [ ] Kleinigkeiten mit Mehrwert: mehrtägiger Termin am Folgetag „bis HH:MM" statt Startzeit; Rezept-Import per Link (ideen #7); saisonale Empfehlungen (ideen #8)
 - [ ] F **Finanzen:** Recherche zu kostenloser, legaler Bank-Anbindung für Privatpersonen (GoCardless Bank Account Data, finAPI, FinTS/HBCI) → Ergebnis in ideen.md, Entscheidung mit Steven
