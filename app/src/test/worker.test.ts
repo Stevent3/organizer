@@ -111,6 +111,16 @@ describe('Zeilenformat mit Datum (mehrere Tage)', () => {
       { time: '12:00', end: '', text: 'Mittag', sub: '', travel: 0 },
     ])
   })
+  it('versteht unformatierte Datumsvariablen aus Kurzbefehlen (Datum und Uhrzeit in einem Feld)', () => {
+    const evs = parseLines('10.09.2026, 08:00 | 10.09.2026, 09:30 | Uni | Leuphana\n10.09.26, 8:00 | Frühstück\n2026-09-11 18:00 | 2026-09-11 22:00 | Schicht\n08:00:00 | 09:00:00 | Alt')
+    expect(evs).toEqual([
+      { date: '2026-09-10', time: '08:00', end: '09:30', text: 'Uni', sub: 'Leuphana', travel: 0 },
+      { date: '2026-09-10', time: '08:00', end: '', text: 'Frühstück', sub: '', travel: 0 },
+      { date: '2026-09-11', time: '18:00', end: '22:00', text: 'Schicht', sub: '', travel: 0 },
+      { time: '08:00', end: '09:00', text: 'Alt', sub: '', travel: 0 },
+    ])
+  })
+
   it('dedupliziert nur innerhalb eines Tages und verwirft Zeilen ohne Uhrzeit', () => {
     const evs = parseLines('12.09.2026 | 08:00 | Uni\n13.09.2026 | 08:00 | Uni\n12.09.2026 | 08:00 | uni\n12.09.2026 | Ganztags')
     expect(evs.map((e) => e.date)).toEqual(['2026-09-12', '2026-09-13'])

@@ -106,6 +106,8 @@ Ziel: Der Kurzbefehl liefert 14 Tage statt nur heute. Altes Format ohne Datum bl
 - [x] App `lib/worker.ts`: `RawCalEvent.date?`; `lib/sync.ts`: `calKey(time, text, date?)`, `buildCalendarEvents` nimmt pro Termin `e.date ?? day`, `applyCalendar` ersetzt Kalender-Termine ab heute und alle Tage des Snapshots (Vergangenheit bleibt als Verlauf); `toWireState` liest origTime aus dem Key mit Datum
 - [x] Mehr → Kurzbefehle: Karte „Kalender-Kurzbefehl (14 Tage)" mit Rezept (Filter „in den nächsten 14 Tagen", Zeilenformat mit Datum, POST an `<Worker>/calendar` mit X-Secret)
 - [x] Doku: CLAUDE.md §5 Zeilenformat; APP_VERSION → beta.5; 120 Tests grün (8 neu), tsc + Build sauber; Commit + Push; Worker deployt
+- [x] Parser tolerant für unformatierte Datumsvariablen („10.09.2026, 08:00" in einem Feld, 2-stelliges Jahr, „8:00"), nach Stevens Screenshot (10.09.2026); beta.6
 - [ ] Steven: Kurzbefehl auf dem iPhone umstellen (Rezept unter Mehr → Kurzbefehle), dann Kalender-Tab prüfen (Woche/Monat mit Apple-Terminen)
+  - Stevens Kurzbefehl (Screenshot 10.09.): Filter „Startdatum ist heute" entfernen → nur „Startdatum innerhalb der nächsten 14 Tage"; Beschränken 25 → aus/100; Token in `?s=` ist veraltet (401) → aktuelles Token als Header X-Secret
 
 ## Danach: Backlog aus CLAUDE.md §11 (Inbox, Deep-Links, …)

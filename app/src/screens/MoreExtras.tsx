@@ -146,10 +146,10 @@ export function ShortcutsSection() {
 
 /** Schritte für den Kalender-Kurzbefehl (Apple Kalender → Worker), 14 Tage im Voraus */
 const CALENDAR_STEPS: { title: string; detail?: string }[] = [
-  { title: 'Kalenderereignisse suchen', detail: 'Filter: Startdatum „ist in den nächsten" 14 Tagen. Optional: „Ist ganztägig" ist nein.' },
-  { title: 'Wiederhole mit jedem → Text', detail: 'Startdatum als dd.MM.yyyy, Start und Ende als HH:mm (Aktion „Datum formatieren", eigenes Format).' },
+  { title: 'Kalenderereignisse suchen', detail: 'Nur ein Filter: Startdatum „ist innerhalb der nächsten" 14 Tage (kein „ist heute" mehr). Beschränken aus oder auf 100 stellen.' },
+  { title: 'Wiederhole mit jedem → Text', detail: 'Die Variablen Startdatum und Enddatum können unformatiert bleiben („10.09.2026, 08:00"), der Worker liest Datum und Uhrzeit daraus.' },
   { title: 'Text kombinieren', detail: 'Nach der Schleife, Trenner: Zeilenumbruch.' },
-  { title: 'Inhalte abrufen (POST)', detail: 'Header X-Secret = dein Token, Haupttext JSON: text = kombinierter Text.' },
+  { title: 'Inhalte abrufen (POST)', detail: 'Header X-Secret = dein aktuelles Token (wie unter Cloud-Sync), Haupttext JSON: text = kombinierter Text. Antwort „Unauthorized" = Token veraltet.' },
   { title: 'Als Automation täglich morgens', detail: 'Läuft stumm; die App holt den Kalender bei jedem Öffnen.' },
 ]
 
@@ -184,7 +184,7 @@ export function CalendarShortcutCard() {
         </ol>
         <button onClick={() => copy('line', line)} className="press flex w-full items-center justify-between gap-3 border-t border-line px-4 py-3 text-left">
           <span className="min-w-0">
-            <span className="block text-[12px] text-text-3">Zeile im Kurzbefehl (Beispiel: 12.09.2026 | 08:00 | 09:30 | Uni | Leuphana)</span>
+            <span className="block text-[12px] text-text-3">Zeile im Kurzbefehl (ergibt z. B. 12.09.2026, 08:00 | 12.09.2026, 09:30 | Uni | Leuphana)</span>
             <span className="block truncate font-mono text-[12px]">{line}</span>
           </span>
           {copied === 'line' ? <Check size={16} className="shrink-0 text-green" /> : <Copy size={16} className="shrink-0 text-text-3" />}

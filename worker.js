@@ -404,15 +404,30 @@ function berlinNow() {
   const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p => [p.type, p.value]));
   return { min: (+parts.hour)*60 + (+parts.minute), date: `${parts.year}-${parts.month}-${parts.day}` };
 }
-// „10.09.2026" oder „2026-09-10" → „2026-09-10", sonst ''
-function parseDate(s) {
-  let m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(s || '');
-  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
-  m = /^(\d{4}-\d{2}-\d{2})$/.exec(s || '');
-  return m ? m[1] : '';
+// Datumsfeld des Kurzbefehls: „10.09.2026", „10.9.26", „2026-09-10" – optional mit Uhrzeit dahinter,
+// so wie Kurzbefehle eine Datumsvariable unformatiert einsetzen („10.09.2026, 08:00"). null = kein Datum.
+function parseDateField(s) {
+  s = (s || '').trim();
+  let m = /^(\d{1,2})\.(\d{1,2})\.(\d{4}|\d{2})(?:,?\s+(\d{1,2}:\d{2}))?/.exec(s);
+  if (m) {
+    const y = m[3].length === 2 ? '20' + m[3] : m[3];
+    return { date: `${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`, time: padTime(m[4]) };
+  }
+  m = /^(\d{4}-\d{2}-\d{2})(?:[T, ]\s*(\d{1,2}:\d{2}))?/.exec(s);
+  return m ? { date: m[1], time: padTime(m[2]) } : null;
 }
-// Zeilenformat des Kurzbefehls: [DD.MM.YYYY |] HH:MM [| HH:MM] | Titel [| Ort [| Fahrzeit]]
-// Ohne Datum (altes Format) fehlt das Feld `date` → gilt als heute.
+// Uhrzeit aus einem Feld („08:00", „8:00", „08:00:00", auch mit Datum davor: „10.09.2026, 09:30") → „HH:MM" oder ''
+function parseTimeField(s) {
+  const m = /^(?:(?:\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}-\d{2}-\d{2}),?\s*)?(\d{1,2}):(\d{2})/.exec((s || '').trim());
+  return m && +m[1] < 24 && +m[2] < 60 ? padTime(m[1] + ':' + m[2]) : '';
+}
+function padTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  return h.padStart(2, '0') + ':' + m;
+}
+// Zeilenformat des Kurzbefehls: [Datum |] Start [| Ende] | Titel [| Ort [| Fahrzeit]]
+// Datum und Start dürfen in einem Feld stehen („10.09.2026, 08:00"). Ohne Datum (altes Format) fehlt `date` → heute.
 function parseLines(text) {
   const seen = new Set(); const out = [];
   for (let line of (text || '').split(/\r?\n+/)) {
@@ -421,17 +436,19 @@ function parseLines(text) {
     if (line.includes('|')) {
       const p = line.split('|').map(s => s.trim());
       let idx = 0;
-      date = parseDate(p[0]); if (date) idx = 1;
-      time = (p[idx] || '').slice(0, 5); idx++;
-      if (/^\d{1,2}:\d{2}/.test(p[idx] || '')) { end = p[idx].slice(0, 5); idx++; }
+      const d = parseDateField(p[0]);
+      if (d) { date = d.date; time = d.time; idx = 1; }
+      if (!time) { time = parseTimeField(p[idx]); idx++; }
+      const endT = parseTimeField(p[idx]);
+      if (endT) { end = endT; idx++; }
       t = p[idx] || 'Termin'; sub = p[idx + 1] || '';
       const tm = (p[idx + 2] || '').match(/\d+/);
       travel = tm ? parseInt(tm[0], 10) : 0;
     } else {
       const m = line.match(/^(\d{1,2}:\d{2})\s+(.+)$/); if (!m) continue;
-      time = m[1]; t = m[2];
+      time = padTime(m[1]); t = m[2];
     }
-    if (!/^\d{1,2}:\d{2}$/.test(time)) continue;
+    if (!time) continue;
     const key = date + '|' + time + '|' + end + '|' + t.toLowerCase();
     if (seen.has(key)) continue; seen.add(key);
     out.push(date ? { date, time, end, text: t, sub, travel } : { time, end, text: t, sub, travel });
