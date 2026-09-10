@@ -428,7 +428,7 @@ function parseStamp(s) {
 }
 // Zeilenformat des Kurzbefehls: [Datum |] Start [| Ende] | Titel [| Ort [| Fahrzeit]]
 // Datum und Start dürfen in einem Feld stehen. Ohne Datum (altes Format) fehlt `date` → heute.
-// Nur Datum ohne Uhrzeit oder 00:00–23:59 = ganztägig (time ''). Endet der Termin an einem späteren Tag → endDate.
+// Nur Datum ohne Uhrzeit, 00:00–23:59 oder Feld „Ja" (Ist ganztägig) = ganztägig (time ''). Endet der Termin an einem späteren Tag → endDate.
 // Zeilen, die nicht mit Datum/Uhrzeit beginnen (mehrzeilige Adressen aus Apple Kalender), gehören zum Termin davor.
 function parseLines(text) {
   const merged = [];
@@ -440,7 +440,7 @@ function parseLines(text) {
   }
   const seen = new Set(); const out = [];
   for (const line of merged) {
-    let date = '', endDate = '', time = '', end = '', t = 'Termin', sub = '', travel = 0;
+    let date = '', endDate = '', time = '', end = '', t = 'Termin', sub = '', travel = 0, allDay = false;
     if (line.includes('|')) {
       const p = line.split('|').map(s => s.trim());
       let idx = 0; const times = []; let last = null;
@@ -456,13 +456,17 @@ function parseLines(text) {
       time = times[0] || ''; end = times[1] || '';
       if (last && last.date && date && last.date > date) endDate = last.date;
       t = p[idx] || 'Termin'; sub = p[idx + 1] || '';
-      const tm = (p[idx + 2] || '').match(/\d+/);
-      travel = tm ? parseInt(tm[0], 10) : 0;
+      // Danach optional: „Ist ganztägig" (Ja/Nein) und Fahrzeit („23 Min.") in beliebiger Reihenfolge
+      for (const f of p.slice(idx + 2)) {
+        if (/^(ja|yes|true)$/i.test(f)) allDay = true;
+        else if (/^(nein|no|false)$/i.test(f)) continue;
+        else { const tm = f.match(/\d+/); if (tm && !travel) travel = parseInt(tm[0], 10); }
+      }
     } else {
       const m = line.match(/^(\d{1,2}:\d{2})\s+(.+)$/); if (!m) continue;
       time = m[1].padStart(5, '0'); t = m[2];
     }
-    if (time === '00:00' && (end === '23:59' || (endDate && end === '00:00'))) { time = ''; end = ''; }
+    if (allDay || (time === '00:00' && (end === '23:59' || (endDate && end === '00:00')))) { time = ''; end = ''; }
     if (!time && !date) continue;
     const key = date + '|' + time + '|' + end + '|' + t.toLowerCase();
     if (seen.has(key)) continue; seen.add(key);

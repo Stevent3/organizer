@@ -146,8 +146,8 @@ export function ShortcutsSection() {
 
 /** Schritte für den Kalender-Kurzbefehl (Apple Kalender → Worker), 14 Tage im Voraus */
 const CALENDAR_STEPS: { title: string; detail?: string }[] = [
-  { title: 'Kalenderereignisse suchen', detail: 'Nur ein Filter: Startdatum „ist innerhalb der nächsten" 14 Tage (kein „ist heute" mehr). Beschränken aus oder auf 100 stellen.' },
-  { title: 'Wiederhole mit jedem → Text', detail: 'Die Variablen Startdatum und Enddatum können unformatiert bleiben („10.09.2026, 08:00"), der Worker liest Datum und Uhrzeit daraus.' },
+  { title: 'Kalenderereignisse suchen', detail: 'Nur ein Filter: Enddatum „ist innerhalb der nächsten" 14 Tage (kein „Startdatum ist heute"). Beschränken aus.' },
+  { title: 'Wiederhole mit jedem → Text', detail: 'Chips aus „Objekt wiederholen": Startdatum, Enddatum, Titel (das Objekt selbst), Ort, Ist ganztägig. Unformatiert lassen („10.09.2026, 08:00"), der Worker liest Datum und Uhrzeit daraus.' },
   { title: 'Text kombinieren', detail: 'Nach der Schleife, Trenner: Zeilenumbruch.' },
   { title: 'Inhalte abrufen (POST)', detail: 'Header X-Secret = dein aktuelles Token (wie unter Cloud-Sync), Haupttext JSON: text = kombinierter Text. Antwort „Unauthorized" = Token veraltet.' },
   { title: 'Als Automation täglich morgens', detail: 'Läuft stumm; die App holt den Kalender bei jedem Öffnen.' },
@@ -162,7 +162,7 @@ export function CalendarShortcutCard() {
     setCopied(what)
     setTimeout(() => setCopied(null), 1500)
   }
-  const line = '[Startdatum] | [Start] | [Ende] | [Titel] | [Ort]'
+  const line = '[Startdatum] | [Enddatum] | [Titel] | [Ort] | [Ist ganztägig]'
   const calUrl = url ? url + '/calendar' : ''
   return (
     <>
