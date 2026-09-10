@@ -146,11 +146,11 @@ export function ShortcutsSection() {
 
 /** Schritte für den Kalender-Kurzbefehl (Apple Kalender → Worker), 14 Tage im Voraus */
 const CALENDAR_STEPS: { title: string; detail?: string }[] = [
-  { title: 'Kalenderereignisse suchen', detail: 'Nur ein Filter: Enddatum „ist innerhalb der nächsten" 14 Tage (kein „Startdatum ist heute"). Beschränken aus.' },
+  { title: 'Kalenderereignisse suchen', detail: 'Genau ein Filter mit „Alle": Startdatum „ist innerhalb der nächsten" 2 Wochen (die Zeile „ist heute" umstellen, zweite Zeile löschen). Beschränken aus. „Mindestens eine" liefert nichts, Apple-Fehler.' },
   { title: 'Wiederhole mit jedem → Text', detail: 'Chips aus „Objekt wiederholen": Startdatum, Enddatum, Titel (das Objekt selbst), Ort, Ist ganztägig. Unformatiert lassen („10.09.2026, 08:00"), der Worker liest Datum und Uhrzeit daraus.' },
   { title: 'Text kombinieren', detail: 'Nach der Schleife, Trenner: Zeilenumbruch.' },
   { title: 'Inhalte abrufen (POST)', detail: 'Header X-Secret = dein aktuelles Token (wie unter Cloud-Sync), Haupttext JSON: text = kombinierter Text. Antwort „Unauthorized" = Token veraltet.' },
-  { title: 'Als Automation täglich morgens', detail: 'Läuft stumm; die App holt den Kalender bei jedem Öffnen.' },
+  { title: 'Als Automation täglich um 23:55', detail: 'Nicht morgens: Apple zählt „nächste 2 Wochen" ab jetzt, um 06:00 fehlen die ganztägigen Termine des Tages. Um 23:55 ist der nächste Tag komplett dabei. Kein zweiter Lauf tagsüber.' },
 ]
 
 /** Mehr → Kurzbefehle: Rezept für den Kalender-Kurzbefehl mit Datum (Zeitraum 14 Tage) */

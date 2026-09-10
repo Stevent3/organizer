@@ -150,6 +150,7 @@ describe('Zeilenformat mit Datum (mehrere Tage)', () => {
       '12.09.2026, 22:00|13.09.2026, 02:00|Party|Club|',
       '15.09.2026, 09:00 | 15.09.2026, 10:00 | Feiertag |  | Ja',
       '15.09.2026, 09:00 | 15.09.2026, 10:00 | Zahnarzt | Praxis | Nein | 23 Min.',
+      '14.09.2026, 11:00 | 14.09.2026, 12:00 | Abgesagt: Jour Fixe | Teams | Nein',
     ].join('\n')
     expect(parseLines(raw)).toEqual([
       { date: '2026-09-10', time: '', end: '', text: 'Viktoria (24. Geburtstag)', sub: '', travel: 0 },

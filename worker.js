@@ -467,6 +467,8 @@ function parseLines(text) {
       time = m[1].padStart(5, '0'); t = m[2];
     }
     if (allDay || (time === '00:00' && (end === '23:59' || (endDate && end === '00:00')))) { time = ''; end = ''; }
+    // Outlook/Exchange schickt abgesagte Besprechungen weiter mit Präfix – die will niemand im Kalender
+    if (/^(abgesagt|canceled|cancelled|storniert)\s*:/i.test(t)) continue;
     if (!time && !date) continue;
     const key = date + '|' + time + '|' + end + '|' + t.toLowerCase();
     if (seen.has(key)) continue; seen.add(key);
