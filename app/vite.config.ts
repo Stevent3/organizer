@@ -5,8 +5,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 import { APP_VERSION } from './src/lib/version.ts'
 
-// Die neue App läuft während der Entwicklung parallel zur v7 unter /organizer/next/
-const BASE = '/organizer/next/'
+// Seit dem Umzug (10.09.2026) läuft v8 auf der Hauptadresse; v7 liegt unter /organizer/legacy/
+const BASE = '/organizer/'
 
 export default defineConfig({
   base: BASE,
@@ -14,11 +14,14 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'],
       manifest: {
-        name: 'Organizer Next',
-        short_name: 'Organizer β',
+        name: 'Organizer',
+        short_name: 'Organizer',
         description: 'Persönlicher KI-Tagesorganizer',
         lang: 'de',
         start_url: BASE,
@@ -32,9 +35,8 @@ export default defineConfig({
           { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
-        cleanupOutdatedCaches: true,
       },
     }),
   ],

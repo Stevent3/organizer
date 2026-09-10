@@ -194,7 +194,7 @@ async function buildSmartTip(cal, state, now, slot, env) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + env.GROQ_KEY },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }],
         max_tokens: 160, temperature: 0.4,
         response_format: { type: 'json_object' }
@@ -225,7 +225,7 @@ async function buildBriefing(events, openTasks, env) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + env.GROQ_KEY },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: 'openai/gpt-oss-120b',
           messages: [{
             role: 'user',
             content: `Formuliere ein kurzes, freundliches Morgen-Briefing (max 2 Sätze, Deutsch) für Steven. Termine: ${evText}. Offene Aufgaben: ${taskText}. Kein Gruß-Overkill, konkret und motivierend.`

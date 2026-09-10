@@ -39,8 +39,17 @@ Koexistenz-Regel: v8 pusht v8-Felder + v7-kompatible `schedule`/`calendarEvents`
 - [ ] Planer: KI-Tagesplan („Plan übernehmen" → echte Termine), Essensplaner
 - [x] Energie als Pillen-Zeile, Fokus-Karte, Kalender-Widget mit Vollbild-Overlay (Steven-Feedback 10.09.); Shortcut-URLs offen
 
-## M5 – Cutover
-- [ ] v7 nach `legacy/`, neue App auf `/organizer/` (Base ändern), SW-Cache-Wechsel sauber (alte Caches löschen)
-- [ ] APP_VERSION v8, Push-Subscription prüfen, Steven-Test auf dem iPhone
+## M5 – Cutover (10.09.2026, Steven: „direkt umziehen, ich benutze die alte eh nicht")
+- [x] v7 nach `legacy/`, neue App auf `/organizer/` (Base geändert), `/next/` leitet um, SW (injectManifest) löscht alte organizer-v*-Caches
+- [x] Schreib-Sync standardmäßig an, Push aktivieren/testen/ausschalten unter Mehr (VAPID-Public-Key in `lib/push.ts`)
+- [x] APP_VERSION v8.0.0-beta.1
+- [ ] Steven-Test auf dem iPhone: alte Homescreen-App öffnen (lädt jetzt v8 mit den v7-Daten), Push einmal neu aktivieren
+
+## Offene Punkte aus Stevens Feedback (10.09.2026)
+- [x] Einkaufsliste wie Bring: Empfehlungen, zuletzt gekauft, Mengen (Stk./kg/…) per Langdruck oder Eingabe „2 kg Kartoffeln"
+- [x] KI: Groq-Modellwechsel (gpt-oss-120b) + echte Fehlermeldung
+- [x] Dashboard: To-dos direkt sichtbar (vor dem Kalender), Kalender-Widget mit Monatsraster + nächsten 7 Tagen
+- [x] Kalender-Overlay schließt animiert nach unten, folgt beim Ziehen dem Finger
+- [ ] Planer (KI-Tagesplan „Plan übernehmen", Essensplaner), Shortcut-URLs, Worker-Kalenderformat mit Datum
 
 ## Danach: Backlog aus CLAUDE.md §11 (Abend-Review-Push, Wetter, Inbox, Deep-Links, …)

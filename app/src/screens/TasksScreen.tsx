@@ -20,7 +20,7 @@ export function TasksScreen() {
   const open = counts.split(',').map(Number)
 
   return (
-    <Screen title="Aufgaben" subtitle={open.reduce((a, b) => a + b, 0) + ' offen'}>
+    <Screen title="To-dos" subtitle={open.reduce((a, b) => a + b, 0) + ' offen'}>
       <Segmented
         options={LISTS.map((l, i) => ({ id: l.id, label: l.label + (open[i] ? ' ' + open[i] : '') }))}
         value={list}

@@ -19,7 +19,8 @@ export type EventItem = {
   travel?: number // Fahrzeit in Minuten
 }
 
-export type Task = { id: string; text: string; done: boolean; tag?: string }
+/** qty: Mengenangabe für Einkäufe wie "2 kg" oder "3 Stk." (nur Einkaufsliste) */
+export type Task = { id: string; text: string; done: boolean; tag?: string; qty?: string }
 
 export type Energy = { level: EnergyLevel; label: string; pct: number }
 
@@ -53,7 +54,7 @@ export const EMPTY_STATE: AppState = {
 }
 
 export const LISTS: { id: ListId; label: string; emoji: string }[] = [
-  { id: 'today', label: 'Heute', emoji: '☀️' },
+  { id: 'today', label: 'To-dos', emoji: '☀️' },
   { id: 'work', label: 'Arbeit', emoji: '💼' },
   { id: 'health', label: 'Gesundheit', emoji: '💚' },
   { id: 'shopping', label: 'Einkauf', emoji: '🛒' },

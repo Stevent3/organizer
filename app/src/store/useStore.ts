@@ -11,10 +11,11 @@ type Actions = {
   deleteEvent: (id: string) => void
   setOverride: (key: string, patch: CalOverride) => void
   setEnergy: (e: Energy | null) => void
-  addTask: (list: ListId, text: string) => Task
+  addTask: (list: ListId, text: string, qty?: string) => Task
   toggleTask: (list: ListId, id: string) => void
   deleteTask: (list: ListId, id: string) => void
   renameTask: (list: ListId, id: string, text: string) => void
+  setTaskQty: (list: ListId, id: string, qty: string) => void
   moveTask: (from: ListId, to: ListId, id: string) => void
   clearDone: (list: ListId) => void
   /** Korb abschließen: erledigte Einkäufe in den Verlauf, von der Liste nehmen. Liefert Anzahl. */
@@ -72,8 +73,8 @@ export const useStore = create<Store>()(
       setOverride: (key, patch) =>
         set((s) => ({ calOverrides: { ...s.calOverrides, [key]: { ...(s.calOverrides[key] ?? {}), ...patch } }, ...touch(s) })),
       setEnergy: (energy) => set((s) => ({ energy, ...touch(s) })),
-      addTask: (list, text) => {
-        const t: Task = { id: uid('t'), text, done: false }
+      addTask: (list, text, qty) => {
+        const t: Task = { id: uid('t'), text, done: false, ...(qty ? { qty } : {}) }
         set((s) => ({ tasks: { ...s.tasks, [list]: [...s.tasks[list], t] }, ...touch(s) }))
         return t
       },
@@ -83,6 +84,8 @@ export const useStore = create<Store>()(
         set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].filter((t) => t.id !== id) }, ...touch(s) })),
       renameTask: (list, id, text) =>
         set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].map((t) => (t.id === id ? { ...t, text } : t)) }, ...touch(s) })),
+      setTaskQty: (list, id, qty) =>
+        set((s) => ({ tasks: { ...s.tasks, [list]: s.tasks[list].map((t) => (t.id === id ? { ...t, qty: qty || undefined } : t)) }, ...touch(s) })),
       moveTask: (from, to, id) => {
         const s = get()
         const t = s.tasks[from].find((x) => x.id === id)

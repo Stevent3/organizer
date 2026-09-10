@@ -84,6 +84,45 @@ export function recommendations(items: Task[], history: Record<string, { n: numb
   return out
 }
 
+/** Einheiten für die Mengenauswahl (Bring-Stil); Vorschlag je Kategorie */
+export const UNITS = ['Stk.', 'g', 'kg', 'ml', 'L', 'Pck.', 'Bund', 'Dose', 'Glas', 'Fl.'] as const
+export type Unit = (typeof UNITS)[number]
+
+export function defaultUnit(cat: ShopCat): Unit {
+  if (cat === 'obst') return 'Stk.'
+  if (cat === 'fleisch') return 'g'
+  if (cat === 'getraenke') return 'Fl.'
+  if (cat === 'vorrat' || cat === 'suess' || cat === 'tk') return 'Pck.'
+  return 'Stk.'
+}
+
+/** "2 kg Kartoffeln", "Milch 3x", "3 Stk Eier" → Name + Menge */
+export function parseQuantity(input: string): { name: string; qty?: string } {
+  const s = input.trim().replace(/\s+/g, ' ')
+  const unitRe = '(stk\\.?|st\\.?|x|g|kg|ml|l|pck\\.?|packung|bund|dose|dosen|glas|fl\\.?|flasche|flaschen)'
+  const lead = new RegExp('^(\\d+(?:[.,]\\d+)?)\\s*' + unitRe + '?\\s+(.+)$', 'i').exec(s)
+  if (lead) return { name: lead[3], qty: normalizeQty(lead[1], lead[2]) }
+  const trail = new RegExp('^(.+?)\\s+(\\d+(?:[.,]\\d+)?)\\s*' + unitRe + '?$', 'i').exec(s)
+  if (trail) return { name: trail[1], qty: normalizeQty(trail[2], trail[3]) }
+  return { name: s }
+}
+
+function normalizeQty(num: string, unit?: string): string {
+  const u = (unit ?? '').toLowerCase().replace('.', '')
+  const map: Record<string, Unit> = { stk: 'Stk.', st: 'Stk.', x: 'Stk.', g: 'g', kg: 'kg', ml: 'ml', l: 'L', pck: 'Pck.', packung: 'Pck.', bund: 'Bund', dose: 'Dose', dosen: 'Dose', glas: 'Glas', fl: 'Fl.', flasche: 'Fl.', flaschen: 'Fl.' }
+  return num.replace('.', ',') + ' ' + (map[u] ?? 'Stk.')
+}
+
+/** Zuletzt gekaufte Artikel (neueste zuerst), die nicht auf der Liste stehen */
+export function recentItems(items: Task[], history: Record<string, { n: number; ts: number }>, limit = 8): string[] {
+  const onList = new Set(items.map((t) => shopBaseName(t.text)))
+  return Object.entries(history)
+    .sort((a, b) => b[1].ts - a[1].ts)
+    .map((e) => e[0])
+    .filter((n) => n && !onList.has(n))
+    .slice(0, limit)
+}
+
 export function groupByCat(items: Task[]): { cat: (typeof SHOP_CATS)[number]; items: Task[] }[] {
   const by = new Map<ShopCat, Task[]>()
   for (const t of items) {

@@ -19,10 +19,11 @@ function read(): Config {
       url: localStorage.getItem(CONFIG_KEYS.url) ?? '',
       secret: localStorage.getItem(CONFIG_KEYS.secret) ?? '',
       groqKey: localStorage.getItem(CONFIG_KEYS.groqKey) ?? '',
-      writeSync: localStorage.getItem(CONFIG_KEYS.writeSync) === '1',
+      // Seit dem Umzug (10.09.2026) ist v8 die Haupt-App: Schreib-Sync standardmäßig an
+      writeSync: localStorage.getItem(CONFIG_KEYS.writeSync) !== '0',
     }
   } catch {
-    return { url: '', secret: '', groqKey: '', writeSync: false }
+    return { url: '', secret: '', groqKey: '', writeSync: true }
   }
 }
 

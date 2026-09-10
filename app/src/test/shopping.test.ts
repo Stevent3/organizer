@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { groupByCat, recommendations, shopBaseName, shopInfo, suggest } from '../lib/shopping'
+import { groupByCat, parseQuantity, recentItems, recommendations, shopBaseName, shopInfo, suggest } from '../lib/shopping'
 import type { Task } from '../lib/model'
 
 const t = (text: string, done = false): Task => ({ id: text, text, done })
@@ -30,5 +30,19 @@ describe('Einkaufsliste', () => {
     const hist = { milch: { n: 5, ts: 1 }, brot: { n: 2, ts: 2 }, nudeln: { n: 9, ts: 3 } }
     const r = recommendations([t('Milch')], hist, extra)
     expect(r).toEqual(['nudeln', 'parmesan', 'brot'])
+  })
+
+  it('liefert zuletzt gekaufte Artikel nach Zeit, ohne Listen-Einträge', () => {
+    const hist = { milch: { n: 1, ts: 10 }, brot: { n: 9, ts: 30 }, eier: { n: 2, ts: 20 } }
+    expect(recentItems([t('Eier')], hist)).toEqual(['brot', 'milch'])
+  })
+
+  it('liest Mengen aus der Eingabe', () => {
+    expect(parseQuantity('2 kg Kartoffeln')).toEqual({ name: 'Kartoffeln', qty: '2 kg' })
+    expect(parseQuantity('Milch 3x')).toEqual({ name: 'Milch', qty: '3 Stk.' })
+    expect(parseQuantity('500g Hack')).toEqual({ name: 'Hack', qty: '500 g' })
+    expect(parseQuantity('1,5 l Wasser')).toEqual({ name: 'Wasser', qty: '1,5 L' })
+    expect(parseQuantity('Eier')).toEqual({ name: 'Eier' })
+    expect(parseQuantity('2 Bund Petersilie')).toEqual({ name: 'Petersilie', qty: '2 Bund' })
   })
 })

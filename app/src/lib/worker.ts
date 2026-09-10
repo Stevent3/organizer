@@ -46,4 +46,10 @@ export class WorkerApi {
   pushTest() {
     return this.req<{ ok: boolean; status: number }>('/push/test', { method: 'POST' })
   }
+  pushSubscribe(sub: PushSubscriptionJSON) {
+    return this.req<{ ok: boolean }>('/push/subscribe', { method: 'POST', body: JSON.stringify(sub) })
+  }
+  pushUnsubscribe() {
+    return this.req<{ ok: boolean }>('/push/unsubscribe', { method: 'POST' })
+  }
 }

@@ -1,7 +1,8 @@
 import { ArrowUp, ChevronDown, Sparkles, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState, type TouchEvent } from 'react'
-import { sendChat, useChat } from '../../lib/ai'
+import { useEffect, useRef, useState } from 'react'
+import { currentModel, sendChat, useChat } from '../../lib/ai'
 import { useConfig } from '../../lib/config'
+import { FullSheet } from '../FullSheet'
 
 /** Schwebende Sprechblase unten rechts, öffnet den KI-Chat als Vollbild-Overlay */
 export function AiBubble({ hidden = false }: { hidden?: boolean }) {
@@ -29,24 +30,10 @@ export function AiOverlay({ open, onClose }: { open: boolean; onClose: () => voi
   const hasKey = useConfig((c) => !!c.groqKey)
   const [text, setText] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
-  const start = useRef<{ x: number; y: number } | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-    }
-  }, [open, onClose])
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
   }, [lines.length, busy])
-
-  if (!open) return null
 
   const submit = (t = text) => {
     const v = t.trim()
@@ -54,33 +41,22 @@ export function AiOverlay({ open, onClose }: { open: boolean; onClose: () => voi
     setText('')
     sendChat(v)
   }
-  const gesture = {
-    onTouchStart: (e: TouchEvent) => { start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY } },
-    onTouchEnd: (e: TouchEvent) => {
-      if (!start.current) return
-      const dx = e.changedTouches[0].clientX - start.current.x
-      const dy = e.changedTouches[0].clientY - start.current.y
-      start.current = null
-      if ((dy > 70 && dy > Math.abs(dx)) || (dx > 90 && Math.abs(dy) < dx / 2)) onClose()
-    },
-  }
+
+  const header = (
+    <div className="flex items-center justify-between pb-2 pt-3">
+      <div>
+        <p className="text-[13px] font-medium text-text-2">Groq · {currentModel().replace(/^.*\//, '')}</p>
+        <h1 className="font-display text-[26px] font-bold leading-tight tracking-tight">Assistent</h1>
+      </div>
+      <div className="flex items-center gap-1">
+        {lines.length > 0 && <button aria-label="Chat leeren" onClick={reset} className="press grid h-9 w-9 place-items-center rounded-full bg-elev text-text-2 shadow-sm"><Trash2 size={16} /></button>}
+        <button aria-label="Schließen" onClick={onClose} className="press grid h-9 w-9 place-items-center rounded-full bg-accent-soft text-accent"><ChevronDown size={20} strokeWidth={2.5} /></button>
+      </div>
+    </div>
+  )
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-bg animate-sheet" role="dialog" aria-label="KI-Assistent" style={{ paddingTop: 'var(--safe-top)' }}>
-      <header className="mx-auto w-full max-w-lg shrink-0 px-4" {...gesture}>
-        <div className="pt-2"><span className="mx-auto block h-1.5 w-12 rounded-full bg-fill-strong" /></div>
-        <div className="flex items-center justify-between pb-2 pt-3">
-          <div>
-            <p className="text-[13px] font-medium text-text-2">Groq · Llama 3.3</p>
-            <h1 className="font-display text-[26px] font-bold leading-tight tracking-tight">Assistent</h1>
-          </div>
-          <div className="flex items-center gap-1">
-            {lines.length > 0 && <button aria-label="Chat leeren" onClick={reset} className="press grid h-9 w-9 place-items-center rounded-full bg-elev text-text-2 shadow-sm"><Trash2 size={16} /></button>}
-            <button aria-label="Schließen" onClick={onClose} className="press grid h-9 w-9 place-items-center rounded-full bg-accent-soft text-accent"><ChevronDown size={20} strokeWidth={2.5} /></button>
-          </div>
-        </div>
-      </header>
-
+    <FullSheet open={open} onClose={onClose} label="KI-Assistent" header={header}>
       <div ref={listRef} className="no-scrollbar mx-auto w-full max-w-lg min-h-0 flex-1 overflow-y-auto px-4 pb-3">
         {lines.length === 0 && (
           <div className="mt-6 space-y-2">
@@ -124,6 +100,6 @@ export function AiOverlay({ open, onClose }: { open: boolean; onClose: () => voi
           </button>
         </div>
       </form>
-    </div>
+    </FullSheet>
   )
 }

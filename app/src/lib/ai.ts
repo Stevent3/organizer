@@ -5,8 +5,23 @@ import { ENERGY_LEVELS, type AppState, type ListId } from './model'
 import { addDaysKey, todayKey } from './time'
 import { useStore } from '../store/useStore'
 
-export const GROQ_MODEL = 'llama-3.3-70b-versatile'
+/**
+ * Groq hat llama-3.3-70b-versatile am 16.08.2026 abgeschaltet. Reihenfolge = Präferenz;
+ * bei „model not found/decommissioned" wird automatisch das nächste probiert und gemerkt.
+ */
+export const GROQ_MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b', 'llama-3.1-8b-instant']
+export const GROQ_MODEL = GROQ_MODELS[0]
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+const MODEL_KEY = 'organizer_v8_groq_model'
+
+export function currentModel(): string {
+  try {
+    const m = localStorage.getItem(MODEL_KEY)
+    return m && GROQ_MODELS.includes(m) ? m : GROQ_MODELS[0]
+  } catch {
+    return GROQ_MODELS[0]
+  }
+}
 
 export type ToolCall = { id: string; type: 'function'; function: { name: string; arguments: string } }
 export type ChatMessage =
@@ -142,12 +157,33 @@ export function executeTool(name: string, args: Record<string, unknown>): string
   return 'Unbekanntes Tool.'
 }
 
-async function groqCall(key: string, messages: ChatMessage[], useTools: boolean) {
-  const body: Record<string, unknown> = { model: GROQ_MODEL, messages, max_tokens: 700, temperature: 0.7 }
-  if (useTools) { body.tools = AI_TOOLS; body.tool_choice = 'auto' }
-  const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify(body) })
-  if (!res.ok) throw new Error(res.status + ': ' + (await res.text()).slice(0, 200))
-  return (await res.json()) as { choices: { message: { content: string | null; tool_calls?: ToolCall[] } }[] }
+export class GroqError extends Error {
+  status: number
+  constructor(status: number, message: string) {
+    super(message)
+    this.status = status
+  }
+}
+
+type GroqResponse = { choices: { message: { content: string | null; tool_calls?: ToolCall[] } }[] }
+
+async function groqCall(key: string, messages: ChatMessage[], useTools: boolean): Promise<GroqResponse> {
+  let model = currentModel()
+  for (let attempt = 0; attempt < GROQ_MODELS.length; attempt++) {
+    const body: Record<string, unknown> = { model, messages, max_tokens: 900, temperature: 0.7 }
+    if (useTools) { body.tools = AI_TOOLS; body.tool_choice = 'auto' }
+    const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify(body) })
+    if (res.ok) {
+      try { localStorage.setItem(MODEL_KEY, model) } catch { /* egal */ }
+      return (await res.json()) as GroqResponse
+    }
+    const text = (await res.text()).slice(0, 300)
+    const modelGone = (res.status === 400 || res.status === 404) && /model|decommission|not found|does not exist/i.test(text)
+    const next = GROQ_MODELS[GROQ_MODELS.indexOf(model) + 1]
+    if (modelGone && next) { model = next; continue }
+    throw new GroqError(res.status, text)
+  }
+  throw new GroqError(0, 'Kein Modell verfügbar')
 }
 
 let seq = 0
@@ -186,8 +222,16 @@ export async function sendChat(text: string): Promise<void> {
     const reply = msg.content?.trim() || 'Erledigt.'
     useChat.setState((c) => ({ busy: false, history: [...c.history, { role: 'assistant', content: reply }], lines: [...c.lines, line('ai', reply)] }))
   } catch (e) {
-    const m = e instanceof Error ? e.message : String(e)
-    const txt = m.startsWith('401') ? 'Groq-Key ungültig. Bitte unter „Mehr" neu eintragen.' : m.startsWith('429') ? 'Groq ist gerade ausgelastet. Gleich nochmal.' : 'Verbindung fehlgeschlagen. Versuch es nochmal.'
+    let txt = 'Verbindung fehlgeschlagen. Versuch es nochmal.'
+    if (e instanceof GroqError) {
+      let detail = e.message
+      try { detail = (JSON.parse(e.message) as { error?: { message?: string } }).error?.message ?? e.message } catch { /* Rohtext */ }
+      txt = e.status === 401 ? 'Groq-Key ungültig. Bitte unter „Mehr" neu eintragen.'
+        : e.status === 429 ? 'Groq ist gerade ausgelastet. Gleich nochmal.'
+        : 'Groq meldet ' + e.status + ': ' + detail.slice(0, 160)
+    } else if (e instanceof Error && e.message) {
+      txt += ' (' + e.message.slice(0, 80) + ')'
+    }
     useChat.setState((c) => ({ busy: false, lines: [...c.lines, line('error', txt)] }))
   }
 }

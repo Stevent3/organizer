@@ -1,10 +1,11 @@
-import { Check, CloudOff, CloudUpload, Download, RefreshCw, Upload } from 'lucide-react'
+import { Bell, Check, CloudOff, CloudUpload, Download, RefreshCw, Upload } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Card, SectionLabel } from '../components/Card'
 import { Screen } from '../components/Screen'
 import { buildInfo } from '../lib/buildInfo'
 import { isConfigured, useConfig } from '../lib/config'
 import { importFromV7, readV3, v3Summary } from '../lib/importV3'
+import { disablePush, enablePush, isStandalone, localSubscription } from '../lib/push'
 import { syncNow, useSyncStatus } from '../lib/syncEngine'
 import { WorkerApi } from '../lib/worker'
 import { useStore } from '../store/useStore'
@@ -114,7 +115,7 @@ function SyncSection() {
             <div className="flex items-center justify-between px-4 py-3">
               <div>
                 <p className="text-[15px]">Änderungen hochladen</p>
-                <p className="text-[12px] text-text-3">Aus, solange die alte App dein Hauptgerät ist. An: v8 schreibt Aufgaben, Energie und Termine in die Cloud, die alte App liest sie weiter.</p>
+                <p className="text-[12px] text-text-3">An: To-dos, Energie, Termine und Einkäufe werden in die Cloud geschrieben, damit Push und andere Geräte sie kennen. Nur zum Testen ausschalten.</p>
               </div>
               <Toggle on={cfg.writeSync} onChange={(v) => { cfg.set({ writeSync: v }); if (v) syncNow() }} />
             </div>
@@ -206,17 +207,60 @@ function AiSection() {
 
 function PushSection() {
   const cfg = useConfig()
-  const [sub, setSub] = useState<boolean | null>(null)
-  useEffect(() => {
-    if (!isConfigured(cfg)) return
-    new WorkerApi(cfg.url, cfg.secret).pushStatus().then((r) => setSub(r.subscribed)).catch(() => setSub(null))
-  }, [cfg])
+  const [remote, setRemote] = useState<boolean | null>(null)
+  const [local, setLocal] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  const { msg, show } = useToast()
+  const api = isConfigured(cfg) ? new WorkerApi(cfg.url, cfg.secret) : null
+
+  const refresh = () => {
+    if (api) api.pushStatus().then((r) => setRemote(r.subscribed)).catch(() => setRemote(null))
+    localSubscription().then((s) => setLocal(!!s)).catch(() => setLocal(null))
+  }
+  useEffect(refresh, [cfg]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const enable = async () => {
+    if (!api) { show('Erst Cloud-Sync einrichten'); return }
+    if (!isStandalone()) { show('Push geht auf dem iPhone nur in der Homescreen-App (Teilen → Zum Home-Bildschirm).'); return }
+    setBusy(true)
+    const r = await enablePush(api).catch((e) => ({ ok: false as const, reason: e instanceof Error ? e.message : String(e) }))
+    setBusy(false)
+    show(r.ok ? 'Benachrichtigungen aktiv' : r.reason)
+    refresh()
+  }
+  const test = async () => {
+    if (!api) return
+    try {
+      const r = await api.pushTest()
+      show(r.ok ? 'Test gesendet, schau auf den Sperrbildschirm' : 'Test fehlgeschlagen (Status ' + r.status + ')')
+    } catch (e) {
+      show('Test fehlgeschlagen: ' + (e instanceof Error ? e.message : String(e)))
+    }
+  }
+  const disable = async () => {
+    if (!api) return
+    await disablePush(api).catch(() => undefined)
+    show('Benachrichtigungen aus')
+    refresh()
+  }
+
+  const status = local ? 'aktiv auf diesem Gerät' : remote ? 'aktiv (anderes Gerät/alte App)' : remote === false ? 'nicht aktiv' : '–'
   return (
     <>
       <SectionLabel>Benachrichtigungen</SectionLabel>
       <Card className="divide-y divide-line p-0">
-        <Row k="Push im Worker" v={sub == null ? '–' : sub ? 'aktiv (alte App)' : 'nicht aktiv'} />
-        <p className="px-4 py-3 text-[12px] text-text-3">Push bleibt bis zum Umzug bei der alten App, damit nichts doppelt oder gar nicht ankommt. Beim Wechsel auf v8 aktivierst du es hier einmal neu.</p>
+        <Row k="Status" v={status} />
+        {!local && (
+          <button onClick={enable} disabled={busy} className="press flex w-full items-center justify-between px-4 py-3 text-[15px] disabled:opacity-50">
+            Benachrichtigungen aktivieren <Bell size={16} className="text-text-3" />
+          </button>
+        )}
+        {(local || remote) && (
+          <button onClick={test} className="press flex w-full items-center justify-between px-4 py-3 text-[15px]">Test-Benachrichtigung senden <Bell size={16} className="text-text-3" /></button>
+        )}
+        {local && <button onClick={disable} className="press w-full px-4 py-3 text-left text-[15px] text-red">Benachrichtigungen ausschalten</button>}
+        <p className="px-4 py-3 text-[12px] text-text-3">Abfahrt, Morgen-Briefing um 6:00 und zwei Smart-Tipps am Tag kommen vom Worker. Funktioniert nur in der Homescreen-App.</p>
+        <div className="px-4 pb-1"><Toast msg={msg} /></div>
       </Card>
     </>
   )

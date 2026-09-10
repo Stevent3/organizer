@@ -1,6 +1,7 @@
-# Baut die neue App (app/) und deployt GitHub Pages:
-#   /organizer/       → v7 (Root-Dateien, unverändert)
-#   /organizer/next/  → neue App (Vite-Build)
+# Baut die v8-App (app/) und deployt GitHub Pages:
+#   /organizer/         → v8 (Vite-Build)
+#   /organizer/legacy/  → v7 (Ordner legacy/, unverändert, als Rückfallebene)
+#   /organizer/next/    → Weiterleitung auf /organizer/ (alte Beta-Adresse)
 # Voraussetzung: Repo → Settings → Pages → Source = "GitHub Actions"
 name: Deploy Pages
 
@@ -40,11 +41,15 @@ jobs:
           VITE_BUILD_TIME: ${{ github.event.head_commit.timestamp }}
           VITE_COMMIT: ${{ github.sha }}
         run: npm run build
-      - name: Assemble site (v7 root + next/)
+      - name: Assemble site (v8 root + legacy/ + next/ redirect)
         run: |
-          mkdir -p _site/next
-          cp index.html sw.js manifest.json icon-*.png _site/
-          cp -r app/dist/. _site/next/
+          mkdir -p _site/legacy _site/next
+          cp -r app/dist/. _site/
+          cp -r legacy/. _site/legacy/
+          cat > _site/next/index.html <<'EOF'
+          <!doctype html><html lang="de"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=/organizer/"><title>Organizer</title></head>
+          <body><p>Die App ist umgezogen: <a href="/organizer/">stevent3.github.io/organizer</a></p><script>location.replace('/organizer/' + location.search)</script></body></html>
+          EOF
           touch _site/.nojekyll
           find _site -maxdepth 2 | sort
       - uses: actions/upload-pages-artifact@v3
