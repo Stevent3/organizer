@@ -7,6 +7,7 @@ import { CalendarScreen } from '../screens/CalendarScreen'
 import { TasksScreen } from '../screens/TasksScreen'
 import { PlannerScreen } from '../screens/PlannerScreen'
 import { AiBubble } from '../components/ai/AiBubble'
+import { useDashboard } from '../lib/dashboard'
 import { autoImportOnce } from '../lib/importV3'
 import { applySetupFromUrl } from '../lib/setupLink'
 import { startSyncEngine } from '../lib/syncEngine'
@@ -15,6 +16,9 @@ import { applyActionFromUrl } from '../lib/actions'
 
 export default function App() {
   const tab = useUi((u) => u.tab)
+  // Auf der Glance-Heute-Seite öffnet der Funken-Knopf der Schnell-Eingabe den Chat, die Blase würde nur Kacheln verdecken
+  const dashLayout = useDashboard((d) => d.layout)
+  const dashShow = useDashboard((d) => d.on)
   const setTab = useUi((u) => u.go)
   const toast = useUi((u) => u.toast)
 
@@ -45,7 +49,7 @@ export default function App() {
         </div>
       )}
       {/* Auf der Mehr-Seite ausblenden: dort verdeckt die Blase die Schalter rechts (Stevens Wunsch 10.09.) */}
-      <AiBubble hidden={tab === 'more'} />
+      <AiBubble hidden={tab === 'more' || (tab === 'today' && dashLayout === 'glance' && dashShow.quickAdd)} />
       <TabBar tabs={TABS} active={tab} onChange={setTab} />
     </div>
   )

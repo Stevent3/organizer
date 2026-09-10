@@ -130,3 +130,8 @@ Leitgedanke: Die App kennt Stevens echtes Leben schon (Apple-Kalender mit Schich
 - [ ] E **Route öffnen:** Termin mit Ort → Apple Karten/Google Maps per Deep-Link, Abfahrts-Push mit echter Fahrzeit über OSRM (gratis) statt Apple-Wegzeit (klein/mittel)
 - [ ] F **Ausgaben-Logbuch:** Schnell-Eingabe „-12,50 Döner" → Monatsübersicht gegen Schicht-Verdienst (mittel, nur wenn Steven es füttern will)
 - [ ] Offline-Fall (M3, klein) nebenbei erledigen
+
+## M12 – Heute-Seite „Auf einen Blick" (10.09.2026, Stevens Feedback: „alles direkt sichtbar, nicht scrollen")
+- [x] Neues Layout `glance` (Standard) neben `classic`, umschaltbar unter Mehr → Dashboard: Kopf mit Energie-Pille (tippen schaltet Wenig→Gut→Top→aus) + Wetter, Schnell-Eingabe (Funken-Knopf öffnet den KI-Chat, die schwebende Blase ist auf dieser Seite aus), kompakte „Jetzt dran"-Karte mit Countdown + Plan-Zeile, Kennzahlen, 2×2-Kacheln Heute | To-dos, Routinen | Essen; darunter „Mehr": Monatskalender + 7 Tage, volle To-do-Liste mit Eingabe und Erledigtem, Tagesabschluss
+- [x] Erste Seite endet bei 690 px (iPhone 393×852, Tab-Leiste ab ~760) – per Playwright mit Beispieldaten gemessen, Screenshots hell/dunkel an Steven; `Stat`/`TaskLine`/`fmtMin` nach `screens/today/bits.tsx`, Daten als `TodayData` für beide Layouts; beta.14
+- [ ] Steven-Feedback zum Glance-Layout einarbeiten

@@ -28,13 +28,29 @@ function read(): Record<DashSection, boolean> {
   }
 }
 
-type DashStore = { on: Record<DashSection, boolean>; toggle: (id: DashSection, v?: boolean) => void }
+/** Layout der Heute-Seite: „glance" = alles auf einen Blick ohne Scrollen (Steven 10.09.2026), „classic" = Karten untereinander */
+export type DashLayout = 'glance' | 'classic'
+export const DASH_LAYOUTS: { id: DashLayout; label: string }[] = [
+  { id: 'glance', label: 'Auf einen Blick' },
+  { id: 'classic', label: 'Klassisch' },
+]
+const LAYOUT_KEY = 'organizer_v8_dashboard_layout'
+function readLayout(): DashLayout {
+  try { return localStorage.getItem(LAYOUT_KEY) === 'classic' ? 'classic' : 'glance' } catch { return 'glance' }
+}
+
+type DashStore = { on: Record<DashSection, boolean>; layout: DashLayout; toggle: (id: DashSection, v?: boolean) => void; setLayout: (l: DashLayout) => void }
 
 export const useDashboard = create<DashStore>()((set, get) => ({
   on: read(),
+  layout: readLayout(),
   toggle: (id, v) => {
     const on = { ...get().on, [id]: v ?? !get().on[id] }
     try { localStorage.setItem(KEY, JSON.stringify(on)) } catch { /* egal */ }
     set({ on })
+  },
+  setLayout: (layout) => {
+    try { localStorage.setItem(LAYOUT_KEY, layout) } catch { /* egal */ }
+    set({ layout })
   },
 }))

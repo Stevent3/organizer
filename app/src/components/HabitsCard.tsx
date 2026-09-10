@@ -62,7 +62,7 @@ export function HabitsCard() {
   )
 }
 
-function HabitsSheet({ open, habits, onClose, onSave }: { open: boolean; habits: Habit[]; onClose: () => void; onSave: (l: Habit[]) => void }) {
+export function HabitsSheet({ open, habits, onClose, onSave }: { open: boolean; habits: Habit[]; onClose: () => void; onSave: (l: Habit[]) => void }) {
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState('✅')
   const [days, setDays] = useState<number[]>([])

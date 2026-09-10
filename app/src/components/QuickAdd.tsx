@@ -21,7 +21,7 @@ export function QuickAdd() {
   return (
     <form onSubmit={(e) => { e.preventDefault(); submit() }} className="rounded-lg bg-elev shadow-sm">
       <div className="flex items-center gap-2 px-3 py-2">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-accent-soft text-accent"><Sparkles size={15} /></span>
+        <button type="button" onClick={() => openChat()} aria-label="KI-Assistent öffnen" className="press grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent text-on-accent"><Sparkles size={16} /></button>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}

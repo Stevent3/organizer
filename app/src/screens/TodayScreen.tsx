@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import { de } from 'date-fns/locale'
-import { Check, ChevronRight, ClipboardList, Plus, Zap } from 'lucide-react'
+import { ChevronRight, ClipboardList, Plus, Zap } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarWidget } from '../components/calendar/CalendarWidget'
 import { DayCloseCard } from '../components/DayCloseCard'
@@ -19,6 +19,8 @@ import { minToTime, timeToMin, todayKey } from '../lib/time'
 import { useUi } from '../lib/ui'
 import { useStore } from '../store/useStore'
 import { CalendarOverlay } from './CalendarScreen'
+import { Glance, type TodayData } from './today/Glance'
+import { EnergyPill, Stat, TaskLine, fmtMin } from './today/bits'
 
 function greeting(h: number) {
   if (h < 5) return 'Gute Nacht'
@@ -41,6 +43,7 @@ export function TodayScreen() {
   const deleteEvent = useStore((s) => s.deleteEvent)
   const extra = useStore((s) => s.extra)
   const show = useDashboard((d) => d.on)
+  const layout = useDashboard((d) => d.layout)
   const go = useUi((u) => u.go)
   const sync = useSyncStatus()
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -107,20 +110,40 @@ export function TodayScreen() {
     setDraft({ date: day, allDay: false, time: minToTime(min), end: minToTime(Math.min(min + 60, 1439)), text: '', color: 'accent', source: 'manual' })
   }
 
+  const data: TodayData = {
+    day, nowMin, events, todays, focus, plan, planNow, planHint, meal, open, done, visible, timedToday, eventsLeft, show, go,
+    openCalendar: (d) => setCalendar({ open: true, day: d ?? day }),
+    openEvent: (e) => setDraft({ ...e }),
+    newEvent: newEventToday,
+    toggleTask: (id) => toggleTask('today', id),
+    addTask: (text) => { addTask('today', text) },
+  }
+
   return (
     <Screen
       title={greeting(now.getHours())}
       subtitle={format(now, 'EEEE, d. MMMM', { locale: de })}
+      compact={layout === 'glance'}
       right={
         <div className="flex items-center gap-2">
+          {layout === 'glance' && show.energy && <EnergyPill />}
           {show.weather && <WeatherChip />}
           <span title={sync.status} className={'mb-2 h-2.5 w-2.5 rounded-full ' + (sync.status === 'ok' ? 'bg-green' : sync.status === 'error' ? 'bg-red' : sync.status === 'syncing' ? 'animate-pulse bg-accent' : 'bg-fill-strong')} />
         </div>
       }
     >
-      {show.quickAdd && <div className="mb-3"><QuickAdd /></div>}
+      {sync.status === 'unconfigured' && (
+        <Card tone="soft" className="mb-3">
+          <p className="text-[15px] font-semibold text-accent">Noch nicht mit der Cloud verbunden</p>
+          <p className="mt-1 text-[13px] text-text-2">Unter „Mehr" die Worker-Adresse und das Token eintragen, dann kommen Termine und Aufgaben aus der Cloud.</p>
+        </Card>
+      )}
 
-      {show.energy && (
+      {layout === 'glance' && <Glance {...data} />}
+
+      {layout === 'classic' && show.quickAdd && <div className="mb-3"><QuickAdd /></div>}
+
+      {layout === 'classic' && show.energy && (
         <div className="mb-3 flex items-center gap-2">
           <span className="flex items-center gap-1 text-[12px] font-semibold uppercase tracking-wider text-text-3"><Zap size={13} /> Energie</span>
           <div className="flex gap-1.5">
@@ -140,14 +163,7 @@ export function TodayScreen() {
         </div>
       )}
 
-      {sync.status === 'unconfigured' && (
-        <Card tone="soft" className="mb-3">
-          <p className="text-[15px] font-semibold text-accent">Noch nicht mit der Cloud verbunden</p>
-          <p className="mt-1 text-[13px] text-text-2">Unter „Mehr" die Worker-Adresse und das Token eintragen, dann kommen Termine und Aufgaben aus der Cloud.</p>
-        </Card>
-      )}
-
-      {show.focus && (
+      {layout === 'classic' && show.focus && (
         <Card tone="accent">
           {focus ? (
             <button onClick={() => setDraft({ ...focus.ev })} className="w-full text-left">
@@ -180,7 +196,7 @@ export function TodayScreen() {
         </Card>
       )}
 
-      {show.progress && (
+      {layout === 'classic' && show.progress && (
         <div className="mt-3 grid grid-cols-3 gap-2">
           <Stat label="To-dos" value={done.length + '/' + visible} pct={visible ? done.length / visible : 0} onClick={() => go('tasks')} />
           <Stat label="Termine" value={eventsLeft ? eventsLeft + ' offen' : timedToday.length ? 'fertig' : todays.length ? todays.length + ' ganztägig' : 'keine'} pct={timedToday.length ? (timedToday.length - eventsLeft) / timedToday.length : 0} onClick={() => setCalendar({ open: true, day })} />
@@ -188,9 +204,9 @@ export function TodayScreen() {
         </div>
       )}
 
-      {show.habits && <HabitsCard />}
+      {layout === 'classic' && show.habits && <HabitsCard />}
 
-      {show.meal && meal && (
+      {layout === 'classic' && show.meal && meal && (
         <>
           <SectionLabel>Heute essen</SectionLabel>
           <Card className="p-0">
@@ -206,7 +222,7 @@ export function TodayScreen() {
         </>
       )}
 
-      {show.todos && (
+      {layout === 'classic' && show.todos && (
         <>
           <SectionLabel>To-dos {visible > 0 && <span className="normal-case tracking-normal">· {done.length}/{visible}</span>}</SectionLabel>
           <Card className="p-0">
@@ -225,16 +241,16 @@ export function TodayScreen() {
         </>
       )}
 
-      {show.calendar && (
+      {layout === 'classic' && show.calendar && (
         <>
           <SectionLabel>Kalender</SectionLabel>
           <CalendarWidget events={events} nowMin={nowMin} onOpen={(d) => setCalendar({ open: true, day: d ?? day })} onTapEvent={(e) => setDraft({ ...e })} onAdd={newEventToday} />
         </>
       )}
 
-      {show.dayClose && <DayCloseCard hour={Math.floor(nowMin / 60)} eventsTotal={timedToday.length} eventsLeft={eventsLeft} />}
+      {layout === 'classic' && show.dayClose && <DayCloseCard hour={Math.floor(nowMin / 60)} eventsTotal={timedToday.length} eventsLeft={eventsLeft} />}
 
-      {!plan && show.focus && (
+      {layout === 'classic' && !plan && show.focus && (
         <button onClick={() => go('planner')} className="press mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-accent-soft py-2.5 text-[13px] font-semibold text-accent">
           <ClipboardList size={15} /> Tag von der KI planen lassen
         </button>
@@ -249,39 +265,4 @@ export function TodayScreen() {
       />
     </Screen>
   )
-}
-
-/** Kleine Kennzahl mit Fortschrittsring */
-function Stat({ label, value, pct, onClick }: { label: string; value: string; pct: number; onClick: () => void }) {
-  const r = 11, c = 2 * Math.PI * r
-  const p = Math.max(0, Math.min(1, pct))
-  return (
-    <button onClick={onClick} className="press flex items-center gap-2.5 rounded-lg bg-elev px-3 py-2.5 text-left shadow-sm">
-      <svg width="28" height="28" viewBox="0 0 28 28" className="shrink-0 -rotate-90">
-        <circle cx="14" cy="14" r={r} fill="none" stroke="var(--fill-strong)" strokeWidth="3.5" />
-        <circle cx="14" cy="14" r={r} fill="none" stroke={p >= 1 ? 'var(--green)' : 'var(--accent)'} strokeWidth="3.5" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - p)} style={{ transition: 'stroke-dashoffset 500ms var(--ease-out)' }} />
-      </svg>
-      <span className="min-w-0">
-        <span className="block text-[10.5px] font-semibold uppercase tracking-wider text-text-3">{label}</span>
-        <span className="block truncate text-[13px] font-bold">{value}</span>
-      </span>
-    </button>
-  )
-}
-
-function TaskLine({ text, done, onToggle }: { text: string; done: boolean; onToggle: () => void }) {
-  return (
-    <button onClick={onToggle} className="press flex w-full items-center gap-3 px-4 py-2.5 text-left">
-      <span className={'grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 transition-colors ' + (done ? 'border-accent bg-accent text-on-accent' : 'border-fill-strong')}>
-        {done && <Check size={14} strokeWidth={3} />}
-      </span>
-      <span className={'text-[15px] ' + (done ? 'text-text-3 line-through' : '')}>{text}</span>
-    </button>
-  )
-}
-
-function fmtMin(m: number) {
-  if (m < 60) return m + ' Min.'
-  const h = Math.floor(m / 60), r = m % 60
-  return h + ' Std.' + (r ? ' ' + r + ' Min.' : '')
 }

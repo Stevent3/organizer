@@ -5,7 +5,7 @@ import { Segmented } from '../components/Segmented'
 import { Toggle } from '../components/Toggle'
 import { APP_URL, SHORTCUT_EXAMPLES } from '../lib/actions'
 import { useConfig } from '../lib/config'
-import { DASH_SECTIONS, useDashboard } from '../lib/dashboard'
+import { DASH_LAYOUTS, DASH_SECTIONS, useDashboard } from '../lib/dashboard'
 import { ACCENTS, THEME_MODES, useTheme } from '../lib/theme'
 import { DEFAULT_LOCATION, locateMe, useWeather } from '../lib/weather'
 import { addWish, readWishes, removeWish, toggleWish, wishesToText, type Wish } from '../lib/wishes'
@@ -42,11 +42,15 @@ export function AppearanceSection() {
 
 /** Mehr → Dashboard: Abschnitte ein-/ausblenden */
 export function DashboardSection() {
-  const { on, toggle } = useDashboard()
+  const { on, toggle, layout, setLayout } = useDashboard()
   return (
     <>
       <SectionLabel>Dashboard</SectionLabel>
-      <Card className="divide-y divide-line p-0">
+      <Card className="p-3">
+        <Segmented options={DASH_LAYOUTS} value={layout} onChange={setLayout} />
+        <p className="mt-2 px-1 text-[12px] text-text-3">{layout === 'glance' ? 'Alles Wichtige ohne Scrollen: Jetzt dran, Kennzahlen, Termine, To-dos und Routinen nebeneinander. Darunter Kalender, Erledigtes und Tagesabschluss.' : 'Karten untereinander wie bisher.'}</p>
+      </Card>
+      <Card className="mt-2 divide-y divide-line p-0">
         {DASH_SECTIONS.map((s) => (
           <div key={s.id} className="flex items-center justify-between px-4 py-3">
             <div className="min-w-0">
