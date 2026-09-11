@@ -15,7 +15,7 @@ import { PLAN_ICON, type DayPlan, type Meal, type MealSlot, type PlanBlock } fro
 import { useStore } from '../../store/useStore'
 import { departureMin, useTravel } from '../../lib/travel'
 import { timeToMin, minToTime } from '../../lib/time'
-import { Stat, TaskLine, fmtMin } from './bits'
+import { TaskLine, fmtMin } from './bits'
 import { WorkCard } from './WorkCard'
 import { BirthdayCard } from './BirthdayCard'
 
@@ -113,21 +113,20 @@ export function Glance(d: TodayData) {
               <ChevronRight size={15} className="opacity-70" />
             </button>
           )}
+          {d.show.progress && (
+            <div className="mt-2.5 grid grid-cols-3 gap-1.5">
+              <MiniStat label="To-dos" value={d.done.length + '/' + d.visible} done={!!d.visible && d.done.length === d.visible} onClick={() => d.go('tasks')} />
+              <MiniStat label="Termine" value={d.eventsLeft ? d.eventsLeft + ' offen' : d.timedToday.length ? 'fertig' : d.todays.length ? d.todays.length + ' ganzt.' : 'keine'} done={d.timedToday.length > 0 && !d.eventsLeft} onClick={() => d.openCalendar()} />
+              <MiniStat label="Plan" value={d.plan ? (d.planNow ? d.planNow.done + '/' + d.planNow.total : d.plan.blocks.length + ' Blöcke') : 'keiner'} done={false} onClick={() => d.go('planner')} />
+            </div>
+          )}
         </Card>
       )}
 
       {d.show.birthdays && <BirthdayCard events={d.events} day={d.day} />}
 
-      {d.show.progress && (
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          <Stat label="To-dos" value={d.done.length + '/' + d.visible} pct={d.visible ? d.done.length / d.visible : 0} onClick={() => d.go('tasks')} />
-          <Stat label="Termine" value={d.eventsLeft ? d.eventsLeft + ' offen' : d.timedToday.length ? 'fertig' : d.todays.length ? d.todays.length + ' ganztägig' : 'keine'} pct={d.timedToday.length ? (d.timedToday.length - d.eventsLeft) / d.timedToday.length : 0} onClick={() => d.openCalendar()} />
-          <Stat label="Plan" value={d.plan ? (d.planNow ? d.planNow.done + '/' + d.planNow.total : d.plan.blocks.length + ' Blöcke') : 'noch keiner'} pct={d.plan && d.planNow ? d.planNow.done / d.planNow.total : d.plan ? 1 : 0} onClick={() => d.go('planner')} />
-        </div>
-      )}
-
       {(d.show.calendar || d.show.todos || d.show.habits || (d.show.meal && d.meal)) && (
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="mt-2.5 grid grid-cols-2 gap-2.5">
           {d.show.calendar && (
             <Tile title="Heute" count={d.todays.length} onHeader={() => d.openCalendar()} className={d.show.todos ? '' : 'col-span-2'}>
               {allDay.slice(0, 2).map((e) => (
@@ -237,6 +236,16 @@ export function Glance(d: TodayData) {
 
       <HabitsSheet open={manage} habits={habits} onClose={() => setManage(false)} onSave={(l) => setExtra({ habits: l })} />
     </>
+  )
+}
+
+/** Kennzahl in der Jetzt-dran-Karte: To-dos · Termine · Plan, tippbar (Steven: Zahlen ja, aber ohne eigene Zeile) */
+function MiniStat({ label, value, done, onClick }: { label: string; value: string; done: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="press rounded-md bg-white/15 px-2 py-1.5 text-left">
+      <span className="block text-[10px] font-semibold uppercase tracking-wider opacity-75">{label}</span>
+      <span className="block truncate text-[13px] font-bold">{done ? '✓ ' : ''}{value}</span>
+    </button>
   )
 }
 

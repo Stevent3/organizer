@@ -171,18 +171,27 @@ type GroqResponse = { choices: { message: { content: string | null; tool_calls?:
 
 type GroqOptions = { tools?: boolean; json?: boolean; maxTokens?: number; temperature?: number }
 
+/** gpt-oss ist ein Reasoning-Modell: Denk-Tokens zählen zu max_tokens. Mit 220 Tokens kam nur Nachdenken, keine Antwort (Steven, 11.09.2026). */
+const REASONING_BUDGET = 1500
+const isReasoning = (model: string) => /^openai\/gpt-oss|^qwen/.test(model)
+
 async function groqCall(key: string, messages: ChatMessage[], opts: GroqOptions = {}): Promise<GroqResponse> {
   let model = currentModel()
-  for (let attempt = 0; attempt < GROQ_MODELS.length; attempt++) {
-    const body: Record<string, unknown> = { model, messages, max_tokens: opts.maxTokens ?? 900, temperature: opts.temperature ?? 0.7 }
+  let json = !!opts.json
+  for (let attempt = 0; attempt < GROQ_MODELS.length + 1; attempt++) {
+    const want = opts.maxTokens ?? 900
+    const body: Record<string, unknown> = { model, messages, max_tokens: isReasoning(model) ? want + REASONING_BUDGET : want, temperature: opts.temperature ?? 0.7 }
+    if (/^openai\/gpt-oss/.test(model)) body.reasoning_effort = 'low'
     if (opts.tools) { body.tools = AI_TOOLS; body.tool_choice = 'auto' }
-    if (opts.json) body.response_format = { type: 'json_object' }
+    if (json) body.response_format = { type: 'json_object' }
     const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify(body) })
     if (res.ok) {
       try { localStorage.setItem(MODEL_KEY, model) } catch { /* egal */ }
       return (await res.json()) as GroqResponse
     }
     const text = (await res.text()).slice(0, 300)
+    // Groq validiert im JSON-Modus die Antwort selbst; scheitert das, einmal ohne Modus wiederholen – der Prompt verlangt JSON, parseJsonObject fischt es heraus
+    if (json && res.status === 400 && /validate JSON|json_validate_failed|failed_generation/i.test(text)) { json = false; continue }
     const modelGone = (res.status === 400 || res.status === 404) && /model|decommission|not found|does not exist/i.test(text)
     const next = GROQ_MODELS[GROQ_MODELS.indexOf(model) + 1]
     if (modelGone && next) { model = next; continue }

@@ -12,6 +12,8 @@ describe('Geburtstage', () => {
     expect(parseBirthday(allDay('d', '2026-09-10', 'Viktoria Vitalievna Bormashova (24. Geburtstag)'))).toMatchObject({ name: 'Viktoria Vitalievna Bormashova', age: 24 })
     expect(parseBirthday(allDay('e', '2026-09-10', '🎂 Nora hat Geburtstag'))).toMatchObject({ name: 'Nora', age: null })
     expect(parseBirthday(allDay('f', '2026-09-10', '30. Hochzeitstag'))).toBeNull()
+    expect(parseBirthday(allDay('h', '2026-09-11', 'Celinda bday feier'))).toMatchObject({ name: 'Celinda', age: null })
+    expect(parseBirthday(allDay('i', '2026-09-11', 'Geburtstag Nora'))).toMatchObject({ name: 'Nora' })
     expect(parseBirthday(allDay('g', '2026-09-10', 'Weltkindertag'))).toBeNull()
   })
 

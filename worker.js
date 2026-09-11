@@ -253,8 +253,9 @@ function birthdayNames(cal) {
   const out = [];
   for (const e of cal) {
     if (!BDAY_RE.test(e.text || '')) continue;
-    const name = String(e.text).replace(/\([^)]*\)/g, ' ').replace(/\b(hat|has)\b/gi, ' ').replace(/\d{1,3}\s*\./g, ' ')
-      .replace(BDAY_RE, ' ').replace(/[🎂🎉🎈🥳]/gu, ' ').replace(/[:\-–·,]+\s*$/g, ' ').replace(/\s+/g, ' ').trim() || 'Jemand';
+    const clean = String(e.text).replace(/\([^)]*\)/g, ' ').replace(/\b(hat|has)\b/gi, ' ').replace(/\d{1,3}\s*\./g, ' ').replace(/[🎂🎉🎈🥳]/gu, ' ');
+    const before = clean.split(BDAY_RE)[0].replace(/[:\-–·,]+\s*$/g, ' ').replace(/\s+/g, ' ').trim();
+    const name = before || clean.replace(BDAY_RE, ' ').replace(/^\s*[:\-–·,]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Jemand';
     if (!out.includes(name)) out.push(name);
   }
   return out;
@@ -424,7 +425,8 @@ async function buildSmartTip(cal, state, now, slot, env) {
       body: JSON.stringify({
         model: 'openai/gpt-oss-120b',
         messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }],
-        max_tokens: 160, temperature: 0.4,
+        // Reasoning-Modell: Denk-Tokens zählen mit – 160 reichten nie für eine Antwort
+        max_tokens: 1200, temperature: 0.4, reasoning_effort: 'low',
         response_format: { type: 'json_object' }
       })
     });
@@ -460,7 +462,7 @@ async function buildBriefing(events, openTasks, weather, env, birthdays = []) {
             role: 'user',
             content: `Formuliere ein kurzes, freundliches Morgen-Briefing (max 2 Sätze, Deutsch) für Steven. Termine: ${evText}. Offene Aufgaben: ${taskText}.${weatherText}${bdayText} Kein Gruß-Overkill, konkret und motivierend; das Wetter nur kurz erwähnen, wenn es für den Tag relevant ist (Regen, Kälte, Hitze).`
           }],
-          max_tokens: 120, temperature: 0.7
+          max_tokens: 1000, temperature: 0.7, reasoning_effort: 'low'
         })
       });
       if (r.ok) {

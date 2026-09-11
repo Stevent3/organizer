@@ -202,6 +202,7 @@ describe('Geburtstage + Wochen-Vorschau', () => {
   it('extrahiert Namen wie die App', () => {
     expect(birthdayNames(cal)).toEqual(['Tristan Eberhardt', 'Herni'])
     expect(birthdayNames([{ text: 'Weltkindertag' }, { text: '30. Hochzeitstag' }])).toEqual([])
+    expect(birthdayNames([{ text: 'Celinda bday feier' }, { text: 'Geburtstag Nora' }])).toEqual(['Celinda', 'Nora'])
   })
   it('fasst die nächste Woche zusammen: Schichten mit Verdienst, Geburtstage, freie Abende, vollster Tag', () => {
     const p = buildWeekPreview(cal, { work: { keyword: 'Samowar', rate: 14.9 } }, '2026-09-14')

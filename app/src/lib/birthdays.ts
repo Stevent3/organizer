@@ -20,16 +20,10 @@ export function parseBirthday(ev: EventItem): Birthday | null {
   }
   const m2 = /(\d{1,3})\s*\.?\s*(?=geburtstag|gebby|bday|birthday)/i.exec(name)
   if (m2 && age == null) age = Number(m2[1])
-  name = name
-    .replace(/\b(hat|has)\b/gi, ' ')
-    .replace(/\d{1,3}\s*\./g, ' ')
-    .replace(BDAY, ' ')
-    .replace(/[🎂🎉🎈🥳]/gu, ' ')
-    .replace(/[:\-–·,]+\s*$/g, ' ')
-    .replace(/^\s*[:\-–·,]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-  if (!name) name = 'Jemand'
+  const clean = name.replace(/\b(hat|has)\b/gi, ' ').replace(/\d{1,3}\s*\./g, ' ').replace(/[🎂🎉🎈🥳]/gu, ' ')
+  // Name = Teil VOR dem Stichwort („Celinda bday feier" → Celinda); nur wenn davor nichts steht, der Rest („Geburtstag Nora" → Nora)
+  const tidy = (s: string) => s.replace(/[:\-–·,]+\s*$/g, ' ').replace(/^\s*[:\-–·,]+/g, ' ').replace(/\s+/g, ' ').trim()
+  name = tidy(clean.split(BDAY)[0]) || tidy(clean.replace(BDAY, ' ')) || 'Jemand'
   return { name, age, ev }
 }
 

@@ -10,31 +10,33 @@ import { useStore } from '../../store/useStore'
 /** Geburtstage heute (Glückwunsch schreiben) und morgen (Geschenk?) – nur sichtbar, wenn es welche gibt */
 export function BirthdayCard({ events, day }: { events: EventItem[]; day: string }) {
   const b = useMemo(() => findBirthdays(events, day), [events, day])
-  const [sel, setSel] = useState<Birthday | null>(null)
+  const [open, setOpen] = useState(false)
   if (!b.today.length && !b.tomorrow.length) return null
+  const names = (l: Birthday[]) => l.map((x) => x.name).join(', ')
   return (
     <>
-      <div className="mt-2 rounded-lg bg-elev px-3 py-2 shadow-sm">
-        {b.today.map((x) => (
-          <div key={x.name} className="flex items-center gap-2 py-1">
-            <span className="text-[18px]">🎂</span>
-            <span className="min-w-0 flex-1 truncate text-[13.5px]"><b>{x.name}</b> hat heute Geburtstag{x.age ? ' · ' + x.age : ''}</span>
-            <button onClick={() => setSel(x)} className="press shrink-0 rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-on-accent">Glückwunsch</button>
+      <div className="mt-2 rounded-lg bg-elev px-3 py-1.5 shadow-sm">
+        {b.today.length > 0 && (
+          <div className="flex items-center gap-2 py-1">
+            <span className="text-[17px]">🎂</span>
+            <span className="min-w-0 flex-1 truncate text-[13px]"><b>{names(b.today)}</b> {b.today.length > 1 ? 'haben' : 'hat'} heute Geburtstag</span>
+            <button onClick={() => setOpen(true)} className="press shrink-0 rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-on-accent">Glückwunsch</button>
           </div>
-        ))}
-        {b.tomorrow.map((x) => (
-          <div key={x.name} className="flex items-center gap-2 py-1 text-text-2">
-            <span className="text-[18px]">🎁</span>
-            <span className="min-w-0 flex-1 truncate text-[13px]"><b className="text-text">{x.name}</b> hat morgen Geburtstag{x.age ? ' · ' + x.age : ''}. Geschenk, Karte, Nachricht vorbereiten?</span>
+        )}
+        {b.tomorrow.length > 0 && (
+          <div className="flex items-center gap-2 py-1 text-text-2">
+            <span className="text-[17px]">🎁</span>
+            <span className="min-w-0 flex-1 truncate text-[12.5px]"><b className="text-text">{names(b.tomorrow)}</b> morgen · Geschenk oder Karte?</span>
           </div>
-        ))}
+        )}
       </div>
-      {sel && <GreetingSheet key={sel.name} b={sel} onClose={() => setSel(null)} />}
+      {open && <GreetingSheet list={b.today} onClose={() => setOpen(false)} />}
     </>
   )
 }
 
-function GreetingSheet({ b, onClose }: { b: Birthday; onClose: () => void }) {
+function GreetingSheet({ list, onClose }: { list: Birthday[]; onClose: () => void }) {
+  const [b, setB] = useState<Birthday>(list[0])
   const extra = useStore((s) => s.extra)
   const hasKey = useConfig((c) => !!c.groqKey)
   const style = useMemo(() => readGreetingStyle(extra), [extra])
@@ -48,7 +50,7 @@ function GreetingSheet({ b, onClose }: { b: Birthday; onClose: () => void }) {
     setBusy(true); setError(null)
     try {
       const p = greetingPrompt(style, b, note.trim())
-      const t = (await groqText(p.system, p.user, { maxTokens: 220, temperature: 0.9 })).trim().replace(/^["„“]|["“”]$/g, '')
+      const t = (await groqText(p.system, p.user, { maxTokens: 300, temperature: 0.9 })).trim().replace(/^["„“]|["“”]$/g, '')
       if (!t) throw new Error('Leere Antwort')
       setText(t)
     } catch (e) {
@@ -69,6 +71,13 @@ function GreetingSheet({ b, onClose }: { b: Birthday; onClose: () => void }) {
 
   return (
     <Sheet open onClose={onClose} title={'🎂 ' + b.name + (b.age ? ' wird ' + b.age : '')}>
+      {list.length > 1 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {list.map((x) => (
+            <button key={x.name} onClick={() => { setB(x); setText(''); setError(null) }} className={'press rounded-full px-3 py-1.5 text-[13px] font-semibold ' + (x.name === b.name ? 'bg-accent text-on-accent' : 'bg-fill text-text-2')}>{x.name}</button>
+          ))}
+        </div>
+      )}
       <label className="mb-1 block text-[12px] font-semibold uppercase tracking-wider text-text-3">Persönlicher Bezug (optional)</label>
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={'z. B. „letzte Woche Rave zusammen", „Uni-Kumpel"'} className="w-full rounded-md bg-fill px-3 py-2.5 text-[15px] outline-none placeholder:text-text-3" />
       <button onClick={generate} disabled={busy || !hasKey} className="press mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-accent py-3 text-[15px] font-semibold text-on-accent disabled:opacity-60">
